@@ -2,5 +2,6 @@
 
 export(abs_distance)
 export(comparison_vectors)
+export(train_rec_lin)
 import(data.table)
 importFrom(reclin2,cmp_identical)

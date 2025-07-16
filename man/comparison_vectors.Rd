@@ -4,7 +4,7 @@
 \alias{comparison_vectors}
 \title{Create comparison vectors}
 \usage{
-comparison_vectors(A, B, variables, comparators = NULL)
+comparison_vectors(A, B, variables, comparators = NULL, matches = NULL)
 }
 \description{
 Create comparison vectors
