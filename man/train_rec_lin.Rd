@@ -4,7 +4,16 @@
 \alias{train_rec_lin}
 \title{Train a record linkage classifier}
 \usage{
-train_rec_lin(A, B, matches, variables, comparators = NULL, methods = NULL)
+train_rec_lin(
+  A,
+  B,
+  matches,
+  variables,
+  comparators = NULL,
+  methods = NULL,
+  controls_nleqslv = list(),
+  controls_kliep = control_kliep()
+)
 }
 \description{
 Train a record linkage classifier

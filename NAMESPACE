@@ -2,6 +2,10 @@
 
 export(abs_distance)
 export(comparison_vectors)
+export(control_kliep)
 export(train_rec_lin)
 import(data.table)
+importFrom(densityratio,kliep)
+importFrom(nleqslv,nleqslv)
+importFrom(purrr,partial)
 importFrom(reclin2,cmp_identical)

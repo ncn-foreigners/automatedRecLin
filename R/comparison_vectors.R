@@ -49,10 +49,10 @@ comparison_vectors <- function(
   A[, a := .I]
   B[, b := .I]
 
-  gamma <- data.table::CJ(a = A$a, b = B$b)
-  setkey(gamma, NULL)
-  A_values <- A[gamma$a, ]
-  B_values <- B[gamma$b, ]
+  Omega <- data.table::CJ(a = A$a, b = B$b)
+  setkey(Omega, NULL)
+  A_values <- A[Omega$a, ]
+  B_values <- B[Omega$b, ]
   A_values[, a := NULL]
   B_values[, b := NULL]
 
@@ -62,13 +62,13 @@ comparison_vectors <- function(
     return(as.numeric(comparators[[x]](A_values[[variable]], B_values[[variable]])))
   })
 
-  gamma[, (gamma_names) := gamma_list]
+  Omega[, (gamma_names) := gamma_list]
 
-  gamma[, match := as.numeric(paste(a, b) %in% paste(matches$a, matches$b))]
+  Omega[, match := as.numeric(paste(a, b) %in% paste(matches$a, matches$b))]
 
   structure(
     list(
-      gamma = data.table(gamma),
+      Omega = data.table(Omega),
       variables = variables,
       comparators = comparators
     ),
