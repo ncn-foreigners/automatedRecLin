@@ -60,7 +60,7 @@ train_rec_lin <- function(
     p_0_U <- p_0_formula(U_continuous_parametric)
     gamma_plus_M <- gamma_plus_formula(M_continuous_parametric)
     gamma_plus_U <- gamma_plus_formula(U_continuous_parametric)
-    temp_function <- partial(nleqslv::nleqslv, control = controls_nleqslv)
+    temp_function <- purrr::partial(nleqslv::nleqslv, control = controls_nleqslv)
     alpha_M <- alpha_formula(M_continuous_parametric, temp_function)
     alpha_U <- alpha_formula(U_continuous_parametric, temp_function)
     beta_M <- alpha_M / gamma_plus_M
