@@ -3,6 +3,7 @@
 export(abs_distance)
 export(comparison_vectors)
 export(control_kliep)
+export(custom_rec_lin_model)
 export(train_rec_lin)
 import(data.table)
 importFrom(densityratio,kliep)

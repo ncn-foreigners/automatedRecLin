@@ -2,7 +2,7 @@
 % Please edit documentation in R/supervised_learning.R
 \name{train_rec_lin}
 \alias{train_rec_lin}
-\title{Train a record linkage classifier}
+\title{Train a record linkage model}
 \usage{
 train_rec_lin(
   A,
@@ -16,5 +16,5 @@ train_rec_lin(
 )
 }
 \description{
-Train a record linkage classifier
+Train a record linkage model
 }
