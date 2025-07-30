@@ -24,10 +24,8 @@ train_rec_lin <- function(
   Omega <- vectors$Omega
   comparators <- vectors$comparators
 
-  if(!is.null(methods)) {
-    stopifnot("`methods` should be a list." =
-              is.list(methods))
-  }
+  stopifnot("`methods` should be a list." =
+            is.list(methods))
 
   missing_variables <- variables[!(variables %in% names(methods))]
   methods[missing_variables] <- "binary"
@@ -38,6 +36,10 @@ train_rec_lin <- function(
   n <- NROW(Omega)
   n_M <- NROW(M)
   pi_est <- n_M / n
+
+  binary_variables <- NULL
+  continuous_parametric_variables <- NULL
+  continuous_nonparametric_variables <- NULL
 
   binary_params <- NULL
   continuous_parametric_params <- NULL
@@ -105,6 +107,9 @@ train_rec_lin <- function(
 
   structure(
     list(
+      binary_variables = if (is.null(binary_variables)) NULL else binary_variables,
+      continuous_parametric_variables = if (is.null(continuous_parametric_variables)) NULL else continuous_parametric_variables,
+      continuous_nonparametric_variables = if (is.null(continuous_nonparametric_variables)) NULL else continuous_nonparametric_variables,
       binary_params = if (is.null(binary_params)) NULL else binary_params,
       continuous_parametric_params = if (is.null(continuous_parametric_params)) NULL else continuous_parametric_params,
       ratio_kliep = if (is.null(ratio_kliep)) NULL else ratio_kliep,
@@ -144,6 +149,9 @@ custom_rec_lin_model <- function(ml_model, vectors) {
 
   structure(
     list(
+      binary_variables = NULL,
+      continuous_parametric_variables = NULL,
+      continuous_nonparametric_variables = NULL,
       binary_params = NULL,
       continuous_parametric_params = NULL,
       ratio_kliep = NULL,

@@ -64,7 +64,9 @@ comparison_vectors <- function(
 
   Omega[, (gamma_names) := gamma_list]
 
-  Omega[, match := as.numeric(paste(a, b) %in% paste(matches$a, matches$b))]
+  if(!is.null(matches)) {
+    Omega[, match := as.numeric(paste(a, b) %in% paste(matches$a, matches$b))]
+  }
 
   structure(
     list(
