@@ -3,7 +3,58 @@
 #' @importFrom purrr partial
 #' @importFrom densityratio kliep
 #'
-#' @title Train a record linkage model
+#' @title Train a Record Linkage Model
+#'
+#' @author Adam Struzik
+#'
+#' @description Trains a supervised record linkage model using probability or density ratio estimation.
+#'
+#' @param A A duplicate-free `data.frame` or `data.table`.
+#' @param B A duplicate-free `data.frame` or `data.table`.
+#' @param matches A `data.frame` or `data.table` indicating known matches.
+#' @param variables A character vector of key variables used to create comparison vectors.
+#' @param comparators A named list of functions for comparing pairs of records.
+#' @param methods A named list of methods used for estimation (`"binary"`, `"continuous_parametric"` or `"continuous_nonparametric"`).
+#' @param controls_nleqslv Controls passed to the \link[nleqslv]{nleqslv} function (only if the `"continuous_parametric"` method has been chosen for at least one variable).
+#' @param controls_kliep Controls passed to the \link[densityratio]{kliep} function (only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
+#'
+#' @return
+#' Returns a list containing:\cr
+#' \itemize{
+#' \item{`binary_variables` -- a character vector of variables chosen for the `"binary"` method (with the prefix `"gamma_"`),}
+#' \item{`continuous_parametric_variables` -- a character vector of variables chosen for the `"continuous_parametric"` method (with the prefix `"gamma_"`),}
+#' \item{`continuous_nonparametric_variables` -- a character vector of variables chosen for the `"continuous_nonparametric"` method (with the prefix `"gamma_"`),}
+#' \item{`binary_params` -- parameters estimated using the `"binary"` method,}
+#' \item{`continuous_parametric_params` -- parameters estimated using the `"continuous_parametric"` method,}
+#' \item{`ratio_kliep` -- a result of the \link[densityratio]{kliep} function,}
+#' \item{`ml_model` -- here `NULL`,}
+#' \item{`pi_est` -- a prior probability of matching,}
+#' \item{`variables` -- a character vector of key variables used for comparison,}
+#' \item{`comparators` -- a list of functions used to compare pairs of records,}
+#' \item{`methods` -- a list of methods used for estimation.}
+#' }
+#'
+#' @examples
+#' df_1 <- data.frame(
+#'   "name" = c("John", "Emily", "Mark", "Anna", "David"),
+#'   "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
+#' )
+#' df_2 <- data.frame(
+#'   "name" = c("Jon", "Emely", "Marc", "Michael"),
+#'   "surname" = c("Smitth", "Jonson", "Tailor", "Henderson")
+#' )
+#' comparators <- list("name" = reclin2::cmp_jarowinkler(),
+#'                     "surname" = reclin2::cmp_jarowinkler())
+#' matches <- data.frame("a" = 1:3, "b" = 1:3)
+#' methods <- list("name" = "continuous_nonparametric",
+#'                 "surname" = "continuous_nonparametric")
+#' model <- train_rec_lin(A = df_1, B = df_2, matches = matches,
+#'                        variables = c("name", "surname"),
+#'                        comparators = comparators,
+#'                        methods = methods,
+#'                        controls_kliep = control_kliep(nfold = 3))
+#' model
+#'
 #'
 #' @export
 train_rec_lin <- function(
@@ -124,7 +175,31 @@ train_rec_lin <- function(
 
 }
 
-#' @title Create a custom record linkage model
+#' @title Create a Custom Record Linkage Model
+#'
+#' @author Adam Struzik
+#'
+#' @description
+#' Creates a supervised record linkage model using a custom machine learning (ML) classifier.
+#'
+#' @param ml_model A trained ML model that predicts the probability of a match based on comparison vectors.
+#' @param vectors An object of class `comparison_vectors` (a result of the `comparison_vectors` function), used for training the `ml_model`.
+#'
+#' @return
+#' Returns a list containing:\cr
+#' \itemize{
+#' \item{`binary_variables` -- here `NULL`,}
+#' \item{`continuous_parametric_variables` -- here `NULL`,}
+#' \item{`continuous_nonparametric_variables` -- here `NULL`,}
+#' \item{`binary_params` -- here `NULL`,}
+#' \item{`continuous_parametric_params` -- here `NULL`,}
+#' \item{`ratio_kliep` -- here `NULL`,}
+#' \item{`ml_model` -- ML model used for creating the record linkage model,}
+#' \item{`pi_est` -- a prior probability of matching,}
+#' \item{`variables` -- a character vector of key variables used for comparison,}
+#' \item{`comparators` -- a list of functions used to compare pairs of records,}
+#' \item{`methods` -- here `NULL`.}
+#' }
 #'
 #' @export
 custom_rec_lin_model <- function(ml_model, vectors) {
@@ -144,9 +219,6 @@ custom_rec_lin_model <- function(ml_model, vectors) {
   variables <- vectors$variables
   K <- length(variables)
 
-  methods <- replicate(K, "custom", simplify = FALSE)
-  names(methods) <- variables
-
   structure(
     list(
       binary_variables = NULL,
@@ -159,7 +231,7 @@ custom_rec_lin_model <- function(ml_model, vectors) {
       pi_est = pi_est,
       variables = variables,
       comparators = vectors$comparators,
-      methods = methods
+      methods = NULL
     ),
     class = "rec_lin_model"
   )

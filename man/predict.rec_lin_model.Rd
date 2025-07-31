@@ -11,7 +11,9 @@
   set_construction = c("size", "flr"),
   fixed_method = "Newton",
   target_flr = 0.05,
-  controls_ml_predictions = list()
+  tol = 10^(-3),
+  max_iter = 1000,
+  ...
 )
 }
 \description{

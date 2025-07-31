@@ -2,7 +2,7 @@
 % Please edit documentation in R/supervised_learning.R
 \name{train_rec_lin}
 \alias{train_rec_lin}
-\title{Train a record linkage model}
+\title{Train a Record Linkage Model}
 \usage{
 train_rec_lin(
   A,
@@ -15,6 +15,65 @@ train_rec_lin(
   controls_kliep = control_kliep()
 )
 }
+\arguments{
+\item{A}{A duplicate-free \code{data.frame} or \code{data.table}.}
+
+\item{B}{A duplicate-free \code{data.frame} or \code{data.table}.}
+
+\item{matches}{A \code{data.frame} or \code{data.table} indicating known matches.}
+
+\item{variables}{A character vector of key variables used to create comparison vectors.}
+
+\item{comparators}{A named list of functions for comparing pairs of records.}
+
+\item{methods}{A named list of methods used for estimation (\code{"binary"}, \code{"continuous_parametric"} or \code{"continuous_nonparametric"}).}
+
+\item{controls_nleqslv}{Controls passed to the \link[nleqslv]{nleqslv} function (only if the \code{"continuous_parametric"} method has been chosen for at least one variable).}
+
+\item{controls_kliep}{Controls passed to the \link[densityratio]{kliep} function (only if the \code{"continuous_nonparametric"} method has been chosen for at least one variable).}
+}
+\value{
+Returns a list containing:\cr
+\itemize{
+\item{\code{binary_variables} -- a character vector of variables chosen for the \code{"binary"} method (with the prefix \code{"gamma_"}),}
+\item{\code{continuous_parametric_variables} -- a character vector of variables chosen for the \code{"continuous_parametric"} method (with the prefix \code{"gamma_"}),}
+\item{\code{continuous_nonparametric_variables} -- a character vector of variables chosen for the \code{"continuous_nonparametric"} method (with the prefix \code{"gamma_"}),}
+\item{\code{binary_params} -- parameters estimated using the \code{"binary"} method,}
+\item{\code{continuous_parametric_params} -- parameters estimated using the \code{"continuous_parametric"} method,}
+\item{\code{ratio_kliep} -- a result of the \link[densityratio]{kliep} function,}
+\item{\code{ml_model} -- here \code{NULL},}
+\item{\code{pi_est} -- a prior probability of matching,}
+\item{\code{variables} -- a character vector of key variables used for comparison,}
+\item{\code{comparators} -- a list of functions used to compare pairs of records,}
+\item{\code{methods} -- a list of methods used for estimation.}
+}
+}
 \description{
-Train a record linkage model
+Trains a supervised record linkage model using probability or density ratio estimation.
+}
+\examples{
+df_1 <- data.frame(
+  "name" = c("John", "Emily", "Mark", "Anna", "David"),
+  "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
+)
+df_2 <- data.frame(
+  "name" = c("Jon", "Emely", "Marc", "Michael"),
+  "surname" = c("Smitth", "Jonson", "Tailor", "Henderson")
+)
+comparators <- list("name" = reclin2::cmp_jarowinkler(),
+                    "surname" = reclin2::cmp_jarowinkler())
+matches <- data.frame("a" = 1:3, "b" = 1:3)
+methods <- list("name" = "continuous_nonparametric",
+                "surname" = "continuous_nonparametric")
+model <- train_rec_lin(A = df_1, B = df_2, matches = matches,
+                       variables = c("name", "surname"),
+                       comparators = comparators,
+                       methods = methods,
+                       controls_kliep = control_kliep(nfold = 3))
+model
+
+
+}
+\author{
+Adam Struzik
 }

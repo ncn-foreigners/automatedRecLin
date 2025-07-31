@@ -11,13 +11,18 @@ predict.rec_lin_model <- function(object,
                                   set_construction = c("size", "flr"),
                                   fixed_method = "Newton",
                                   target_flr = 0.05,
-                                  controls_ml_predictions = list()) {
+                                  tol = 10^(-3),
+                                  max_iter = 1000,
+                                  ...) {
 
   stopifnot("`newdata_A` is required for predictions." =
               !missing(newdata_A))
 
   stopifnot("`newdata_B` is required for predictions." =
               !missing(newdata_B))
+
+  stopifnot("`set_construction` should be `size` or `flr`." =
+              set_construction %in% c("size", "flr"))
 
   if (missing(set_construction)) set_construction <- "size"
 
@@ -31,15 +36,20 @@ predict.rec_lin_model <- function(object,
 
   if (!is.null(object$ml_model)) {
 
-    predicted_probs <- do.call(
-      predict,
-      c(list(
-        object$ml_model,
-        Omega
-      ),
-      controls_ml_predictions)
-    )
+    # predicted_probs <- do.call(
+    #   predict,
+    #   c(list(
+    #     object$ml_model,
+    #     Omega
+    #   ),
+    #   controls_ml_predictions)
+    # )
+    ml_model <- object$ml_model
+    predicted_probs <- predict(ml_model,
+                               Omega,
+                               ...)
     Omega[, "ratio" := predicted_probs]
+    # TODO
 
   } else {
 
@@ -104,17 +114,26 @@ predict.rec_lin_model <- function(object,
 
   }
 
+  n_M_start <- NROW(merge(newdata_A, newdata_B, by = object$variables, all = FALSE))
+  fun_n_M <- fixed_n_M(n = n, ratio_gamma = Omega$ratio)
+  n_M_est <- min(FixedPoint::FixedPoint(Function = fun_n_M, # to think
+                                        Inputs = n_M_start,
+                                        Method = fixed_method)$FixedPoint,
+                 min(NROW(newdata_A), NROW(newdata_B)))
+  n_M_est <- max(n_M_est, 0)
+
   if (set_construction == "size") {
 
-    n_M_start <- NROW(merge(newdata_A, newdata_B, by = object$variables, all = FALSE))
-    fun_n_M <- fixed_n_M(n = n, ratio_gamma = Omega$ratio)
-    n_M_est <- min(round(FixedPoint::FixedPoint(Function = fun_n_M, # to think
-                                                Inputs = n_M_start,
-                                                Method = fixed_method)$FixedPoint),
-                   min(NROW(newdata_A), NROW(newdata_B)))
+    # n_M_start <- NROW(merge(newdata_A, newdata_B, by = object$variables, all = FALSE))
+    # fun_n_M <- fixed_n_M(n = n, ratio_gamma = Omega$ratio)
+    # n_M_est <- min(FixedPoint::FixedPoint(Function = fun_n_M, # to think
+    #                                       Inputs = n_M_start,
+    #                                       Method = fixed_method)$FixedPoint,
+    #                min(NROW(newdata_A), NROW(newdata_B)))
+    # n_M_est <- max(n_M_est, 0)
 
     Omega <- Omega[order(-ratio), ]
-    M_est <- data.table("a" = numeric(), "b" = numeric())
+    M_est <- data.table("a" = numeric(), "b" = numeric(), "ratio" = numeric())
     used_a <- c()
     used_b <- c()
 
@@ -123,15 +142,68 @@ predict.rec_lin_model <- function(object,
       current_a <- Omega$a[i]
       current_b <- Omega$b[i]
       if (!(current_a %in% used_a) && !(current_b %in% used_b)) {
-        M_est <- rbind(M_est, Omega[i, c("a", "b")])
+        M_est <- rbind(M_est, Omega[i, c("a", "b", "ratio")])
         used_a <- c(used_a, current_a)
         used_b <- c(used_b, current_b)
       }
 
     }
 
-    return(head(M_est, n_M_est))
+    g_est <- pmin(NROW(M_est) * M_est$ratio / (NROW(M_est) * (M_est$ratio - 1) + n), 1)
+    flr_est <- 1 / NROW(M_est) * sum(1 - g_est)
+
+    it <- NULL
+
+  } else if (set_construction == "flr") {
+
+    Omega <- Omega[order(-ratio), ]
+
+    min_treshold <- min(Omega$ratio)
+    max_treshold <- max(Omega$ratio)
+    treshold <- (min_treshold + max_treshold) / 2
+
+    it <- 0
+
+    while (it < max_iter) {
+
+      M_est <- Omega[ratio >= treshold, ]
+      g_est <- pmin(NROW(M_est) * M_est$ratio / (NROW(M_est) * (M_est$ratio - 1) + n), 1)
+      flr_est <- 1 / NROW(M_est) * sum(1 - g_est)
+
+      if (abs(flr_est - target_flr) <= tol) {
+
+        break
+
+      } else if (flr_est < target_flr) {
+
+        max_treshold <- treshold
+        treshold <- (min_treshold + max_treshold) / 2
+
+      } else {
+
+        min_treshold <- treshold
+        treshold <- (min_treshold + max_treshold) / 2
+
+      }
+
+      it <- it + 1
+
+    }
 
   }
+
+  mmr_est <- 1 - sum(g_est / n_M_est)
+  M_est <- M_est[, c("a", "b")]
+
+  structure(
+    list(
+      M_est = M_est,
+      set_construction = set_construction,
+      flr_est = flr_est,
+      mmr_est = mmr_est,
+      it = if (is.null(it)) NULL else it
+    ),
+    class = "rec_lin_predictions"
+  )
 
 }

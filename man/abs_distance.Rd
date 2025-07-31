@@ -2,10 +2,21 @@
 % Please edit documentation in R/comparators.R
 \name{abs_distance}
 \alias{abs_distance}
-\title{Calculate absolute distance}
+\title{Absolute Distance Comparison Function}
 \usage{
 abs_distance()
 }
+\value{
+Returns a function taking two arguments, \code{x} and \code{y}, and returning their absolute difference.
+}
 \description{
-Calculate absolute distance
+Creates a function that calculates the absolute distance between two values.
+}
+\examples{
+cmp <- abs_distance()
+cmp(1, 5) # returns 4
+
+}
+\author{
+Adam Struzik
 }

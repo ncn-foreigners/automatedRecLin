@@ -2,10 +2,23 @@
 % Please edit documentation in R/controls.R
 \name{control_kliep}
 \alias{control_kliep}
-\title{Control parameters for the kliep function}
+\title{Controls for the kliep Function}
 \usage{
 control_kliep(scale = NULL, ...)
 }
+\arguments{
+\item{scale}{\code{"numerator"}, \code{"denominator"} or \code{NULL}, indicating whether to standardize each numeric variable according
+to the numerator means and standard deviations, the denominator means and standard deviations,
+or apply no standardization at all.}
+
+\item{...}{Additional arguments.}
+}
+\value{
+Returns a list with parameters.
+}
 \description{
-Control parameters for the kliep function
+Controls for the \link[densityratio]{kliep} function used in the package.
+}
+\author{
+Adam Struzik
 }

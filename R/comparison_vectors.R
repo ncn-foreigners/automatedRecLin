@@ -1,7 +1,45 @@
 #' @import data.table
 #' @importFrom reclin2 cmp_identical
+#' @importFrom reclin2 cmp_jarowinkler
 #'
-#' @title Create comparison vectors
+#' @title Create Comparison Vectors for Record Linkage
+#'
+#' @author Adam Struzik
+#'
+#' @description
+#' Creates comparison vectors between records in two datasets based on specified variables
+#' and comparison functions.
+#'
+#' @param A A duplicate-free `data.frame` or `data.table`.
+#' @param B A duplicate-free `data.frame` or `data.table`.
+#' @param variables A character vector of key variables used to create comparison vectors.
+#' @param comparators A named list of functions for comparing pairs of records.
+#' @param matches Optional. A `data.frame` or `data.table` indicating known matches.
+#'
+#' @return
+#' Returns a list containing:\cr
+#' \itemize{
+#' \item{`Omega` -- a `data.table` with comparison vectors between all records from both datasets,
+#' including optional match information,}
+#' \item{`variables` -- a character vector of key variables used for comparison,}
+#' \item{`comparators` -- a list of functions used to compare pairs of records.}
+#' }
+#'
+#' @examples
+#' df_1 <- data.frame(
+#' "name" = c("John", "Emily", "Mark", "Anna", "David"),
+#' "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
+#' )
+#' df_2 <- data.frame(
+#'   "name" = c("Jon", "Emely", "Marc", "Michael"),
+#'   "surname" = c("Smitth", "Jonson", "Tailor", "Henderson")
+#' )
+#' comparators <- list("name" = reclin2::cmp_jarowinkler(),
+#'                     "surname" = reclin2::cmp_jarowinkler())
+#' matches <- data.frame("a" = 1:3, "b" = 1:3)
+#' result <- comparison_vectors(A = df_1, B = df_2, variables = c("name", "surname"),
+#'                              comparators = comparators, matches = matches)
+#' result
 #'
 #' @export
 comparison_vectors <- function(

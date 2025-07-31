@@ -2,10 +2,51 @@
 % Please edit documentation in R/comparison_vectors.R
 \name{comparison_vectors}
 \alias{comparison_vectors}
-\title{Create comparison vectors}
+\title{Create Comparison Vectors for Record Linkage}
 \usage{
 comparison_vectors(A, B, variables, comparators = NULL, matches = NULL)
 }
+\arguments{
+\item{A}{A duplicate-free \code{data.frame} or \code{data.table}.}
+
+\item{B}{A duplicate-free \code{data.frame} or \code{data.table}.}
+
+\item{variables}{A character vector of key variables used to create comparison vectors.}
+
+\item{comparators}{A named list of functions for comparing pairs of records.}
+
+\item{matches}{Optional. A \code{data.frame} or \code{data.table} indicating known matches.}
+}
+\value{
+Returns a list containing:\cr
+\itemize{
+\item{\code{Omega} -- a \code{data.table} with comparison vectors between all records from both datasets,
+including optional match information,}
+\item{\code{variables} -- a character vector of key variables used for comparison,}
+\item{\code{comparators} -- a list of functions used to compare pairs of records.}
+}
+}
 \description{
-Create comparison vectors
+Creates comparison vectors between records in two datasets based on specified variables
+and comparison functions.
+}
+\examples{
+df_1 <- data.frame(
+"name" = c("John", "Emily", "Mark", "Anna", "David"),
+"surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
+)
+df_2 <- data.frame(
+  "name" = c("Jon", "Emely", "Marc", "Michael"),
+  "surname" = c("Smitth", "Jonson", "Tailor", "Henderson")
+)
+comparators <- list("name" = reclin2::cmp_jarowinkler(),
+                    "surname" = reclin2::cmp_jarowinkler())
+matches <- data.frame("a" = 1:3, "b" = 1:3)
+result <- comparison_vectors(A = df_1, B = df_2, variables = c("name", "surname"),
+                             comparators = comparators, matches = matches)
+result
+
+}
+\author{
+Adam Struzik
 }

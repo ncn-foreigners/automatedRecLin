@@ -2,10 +2,34 @@
 % Please edit documentation in R/supervised_learning.R
 \name{custom_rec_lin_model}
 \alias{custom_rec_lin_model}
-\title{Create a custom record linkage model}
+\title{Create a Custom Record Linkage Model}
 \usage{
 custom_rec_lin_model(ml_model, vectors)
 }
+\arguments{
+\item{ml_model}{A trained ML model that predicts the probability of a match based on comparison vectors.}
+
+\item{vectors}{An object of class \code{comparison_vectors} (a result of the \code{comparison_vectors} function), used for training the \code{ml_model}.}
+}
+\value{
+Returns a list containing:\cr
+\itemize{
+\item{\code{binary_variables} -- here \code{NULL},}
+\item{\code{continuous_parametric_variables} -- here \code{NULL},}
+\item{\code{continuous_nonparametric_variables} -- here \code{NULL},}
+\item{\code{binary_params} -- here \code{NULL},}
+\item{\code{continuous_parametric_params} -- here \code{NULL},}
+\item{\code{ratio_kliep} -- here \code{NULL},}
+\item{\code{ml_model} -- ML model used for creating the record linkage model,}
+\item{\code{pi_est} -- a prior probability of matching,}
+\item{\code{variables} -- a character vector of key variables used for comparison,}
+\item{\code{comparators} -- a list of functions used to compare pairs of records,}
+\item{\code{methods} -- here \code{NULL}.}
+}
+}
 \description{
-Create a custom record linkage model
+Creates a supervised record linkage model using a custom machine learning (ML) classifier.
+}
+\author{
+Adam Struzik
 }
