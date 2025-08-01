@@ -15,7 +15,6 @@ Creates a function that calculates the absolute distance between two values.
 \examples{
 cmp <- abs_distance()
 cmp(1, 5) # returns 4
-
 }
 \author{
 Adam Struzik

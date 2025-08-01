@@ -34,6 +34,17 @@
 #' \item{`methods` -- a list of methods used for estimation.}
 #' }
 #'
+#' @references
+#' Lee, D., Zhang, L.-C. and Kim, J. K. (2022). Maximum entropy classification for record linkage.
+#' Survey Methodology, Statistics Canada, Catalogue No. 12-001-X, Vol. 48, No. 1.
+#'
+#' Vo, T. H., Chauvet, G., Happe, A., Oger, E., Paquelet, S., and Garès, V. (2023).
+#' Extending the Fellegi-Sunter record linkage model for mixed-type data with application to the French national health data system.
+#' Computational Statistics & Data Analysis, 179, 107656.
+#'
+#' Sugiyama, M., Suzuki, T., Nakajima, S. et al. Direct importance estimation for covariate shift adaptation.
+#' Ann Inst Stat Math 60, 699–746 (2008). \doi{10.1007/s10463-008-0197-x}
+#'
 #' @examples
 #' df_1 <- data.frame(
 #'   "name" = c("John", "Emily", "Mark", "Anna", "David"),
@@ -54,8 +65,6 @@
 #'                        methods = methods,
 #'                        controls_kliep = control_kliep(nfold = 3))
 #' model
-#'
-#'
 #' @export
 train_rec_lin <- function(
     A,
@@ -175,6 +184,8 @@ train_rec_lin <- function(
 
 }
 
+#' @importFrom methods is
+#'
 #' @title Create a Custom Record Linkage Model
 #'
 #' @author Adam Struzik
@@ -201,6 +212,32 @@ train_rec_lin <- function(
 #' \item{`methods` -- here `NULL`.}
 #' }
 #'
+#' @examples
+#' if (requireNamespace("xgboost", quietly = TRUE)) {
+#'   df_1 <- data.frame(
+#'     "name" = c("John", "Emily", "Mark", "Anna", "David"),
+#'     "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
+#'   )
+#'   df_2 <- data.frame(
+#'     "name" = c("Jon", "Emely", "Marc", "Michael"),
+#'     "surname" = c("Smitth", "Jonson", "Tailor", "Henderson")
+#'   )
+#'   comparators <- list("name" = reclin2::cmp_jarowinkler(),
+#'                       "surname" = reclin2::cmp_jarowinkler())
+#'   matches <- data.frame("a" = 1:3, "b" = 1:3)
+#'   vectors <- comparison_vectors(A = df_1, B = df_2, variables = c("name", "surname"),
+#'                                comparators = comparators, matches = matches)
+#'   train_data <- xgboost::xgb.DMatrix(
+#'     data = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
+#'     label = vectors$Omega$match
+#'   )
+#'   params <- list(objective = "binary:logistic",
+#'                  eval_metric = "logloss")
+#'   model_xgb <- xgboost::xgboost(data = train_data, params = params,
+#'                                 nrounds = 50, verbose = 0)
+#'   custom_xgb_model <- custom_rec_lin_model(model_xgb, vectors)
+#'   custom_xgb_model
+#' }
 #' @export
 custom_rec_lin_model <- function(ml_model, vectors) {
 

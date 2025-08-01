@@ -1,6 +1,5 @@
 #' @import data.table
-#' @importFrom reclin2 cmp_identical
-#' @importFrom reclin2 cmp_jarowinkler
+#' @import reclin2
 #'
 #' @title Create Comparison Vectors for Record Linkage
 #'
@@ -40,7 +39,6 @@
 #' result <- comparison_vectors(A = df_1, B = df_2, variables = c("name", "surname"),
 #'                              comparators = comparators, matches = matches)
 #' result
-#'
 #' @export
 comparison_vectors <- function(
     A,

@@ -71,8 +71,17 @@ model <- train_rec_lin(A = df_1, B = df_2, matches = matches,
                        methods = methods,
                        controls_kliep = control_kliep(nfold = 3))
 model
+}
+\references{
+Lee, D., Zhang, L.-C. and Kim, J. K. (2022). Maximum entropy classification for record linkage.
+Survey Methodology, Statistics Canada, Catalogue No. 12-001-X, Vol. 48, No. 1.
 
+Vo, T. H., Chauvet, G., Happe, A., Oger, E., Paquelet, S., and Garès, V. (2023).
+Extending the Fellegi-Sunter record linkage model for mixed-type data with application to the French national health data system.
+Computational Statistics & Data Analysis, 179, 107656.
 
+Sugiyama, M., Suzuki, T., Nakajima, S. et al. Direct importance estimation for covariate shift adaptation.
+Ann Inst Stat Math 60, 699–746 (2008). \doi{10.1007/s10463-008-0197-x}
 }
 \author{
 Adam Struzik

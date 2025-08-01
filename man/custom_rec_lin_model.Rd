@@ -30,6 +30,33 @@ Returns a list containing:\cr
 \description{
 Creates a supervised record linkage model using a custom machine learning (ML) classifier.
 }
+\examples{
+if (requireNamespace("xgboost", quietly = TRUE)) {
+  df_1 <- data.frame(
+    "name" = c("John", "Emily", "Mark", "Anna", "David"),
+    "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
+  )
+  df_2 <- data.frame(
+    "name" = c("Jon", "Emely", "Marc", "Michael"),
+    "surname" = c("Smitth", "Jonson", "Tailor", "Henderson")
+  )
+  comparators <- list("name" = reclin2::cmp_jarowinkler(),
+                      "surname" = reclin2::cmp_jarowinkler())
+  matches <- data.frame("a" = 1:3, "b" = 1:3)
+  vectors <- comparison_vectors(A = df_1, B = df_2, variables = c("name", "surname"),
+                               comparators = comparators, matches = matches)
+  train_data <- xgboost::xgb.DMatrix(
+    data = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
+    label = vectors$Omega$match
+  )
+  params <- list(objective = "binary:logistic",
+                 eval_metric = "logloss")
+  model_xgb <- xgboost::xgboost(data = train_data, params = params,
+                                nrounds = 50, verbose = 0)
+  custom_xgb_model <- custom_rec_lin_model(model_xgb, vectors)
+  custom_xgb_model
+}
+}
 \author{
 Adam Struzik
 }

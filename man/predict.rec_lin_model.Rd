@@ -2,7 +2,7 @@
 % Please edit documentation in R/predict.R
 \name{predict.rec_lin_model}
 \alias{predict.rec_lin_model}
-\title{Predict matches based on a given record linkage model}
+\title{Predict Matches Based on a Given Record Linkage Model}
 \usage{
 \method{predict}{rec_lin_model}(
   object,
@@ -13,9 +13,89 @@
   target_flr = 0.05,
   tol = 10^(-3),
   max_iter = 1000,
-  ...
+  data_type = c("data.frame", "data.table", "matrix"),
+  controls_ml_predictions = list()
 )
 }
+\arguments{
+\item{object}{A \code{rec_lin_model} object from the \code{train_rec_lin} or \code{custom_rec_lin_model} functions.}
+
+\item{newdata_A}{A duplicate-free \code{data.frame} or \code{data.table}.}
+
+\item{newdata_B}{A duplicate-free \code{data.frame} or \code{data.table}.}
+
+\item{set_construction}{A method for constructing the predicted set of matches (\code{"size"} or \code{"flr"}).}
+
+\item{fixed_method}{A method for solving fixed-point equations using the \link[FixedPoint]{FixedPoint} function
+(used only if \code{set_construction == "size"}).}
+
+\item{target_flr}{A target false link rate (FLR) (used only if \code{set_construction == "flr"}).}
+
+\item{tol}{Error tolerance in the bisection procedure (used only if \code{set_construction == "flr"}).}
+
+\item{max_iter}{A maximum number of iterations for the bisection procedure (used only if \code{set_construction == "flr"}).}
+
+\item{data_type}{Data type for predictions with a custom ML model (\code{"data.frame"}, \code{"data.table"} or \code{"matrix"};
+used only if \code{object} is from the \code{custom_rec_lin_model} function).}
+
+\item{controls_ml_predictions}{Controls passed to the \code{predict} function for custom ML model
+(used only if the \code{object} is from the \code{custom_rec_lin_model} function).}
+}
+\value{
+Returns a list containing:\cr
+\itemize{
+\item{\code{M_est} -- a \code{data.table} with predicted matches,}
+\item{\code{set_construction} -- a method for constructing the predicted set of matches,}
+\item{\code{n_M_est} -- estimated classification set size,}
+\item{\code{flr_est} -- estimated false link rate (FLR),}
+\item{\code{mmr_est} -- estimated missing match rate (MMR),}
+\item{\code{iter} -- the number of iterations in the bisection procedure.}
+}
+}
 \description{
-Predict matches based on a given record linkage model
+Predicts matches between records in two datasets based on a given record linkage model.
+}
+\examples{
+df_1 <- data.frame(
+  "name" = c("John", "Emily", "Mark", "Anna", "David"),
+  "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
+)
+df_2 <- data.frame(
+  "name" = c("Jon", "Emely", "Marc", "Michael"),
+  "surname" = c("Smitth", "Jonson", "Tailor", "Henderson")
+)
+comparators <- list("name" = reclin2::cmp_jarowinkler(),
+                    "surname" = reclin2::cmp_jarowinkler())
+matches <- data.frame("a" = 1:3, "b" = 1:3)
+methods <- list("name" = "continuous_nonparametric",
+                "surname" = "continuous_nonparametric")
+model <- train_rec_lin(A = df_1, B = df_2, matches = matches,
+                       variables = c("name", "surname"),
+                       comparators = comparators,
+                       methods = methods,
+                       controls_kliep = control_kliep(nfold = 3))
+
+df_new_1 <- data.frame(
+  "name" = c("Jame", "Lia", "Tomas", "Emma", "Andrew"),
+  "surname" = c("Wilsen", "Thomsson", "Davis", "Harrison", "Scott")
+)
+df_new_2 <- data.frame(
+  "name" = c("James", "Leah", "Thomas", "Sophie", "Mathew", "Andrew"),
+  "surname" = c("Wilson", "Thompson", "Davies", "Clarks", "Robinson", "Scot")
+)
+predict(model, df_new_1, df_new_2, set_construction = "flr")
+}
+\references{
+Lee, D., Zhang, L.-C. and Kim, J. K. (2022). Maximum entropy classification for record linkage.
+Survey Methodology, Statistics Canada, Catalogue No. 12-001-X, Vol. 48, No. 1.
+
+Vo, T. H., Chauvet, G., Happe, A., Oger, E., Paquelet, S., and Garès, V. (2023).
+Extending the Fellegi-Sunter record linkage model for mixed-type data with application to the French national health data system.
+Computational Statistics & Data Analysis, 179, 107656.
+
+Sugiyama, M., Suzuki, T., Nakajima, S. et al. Direct importance estimation for covariate shift adaptation.
+Ann Inst Stat Math 60, 699–746 (2008). \doi{10.1007/s10463-008-0197-x}
+}
+\author{
+Adam Struzik
 }

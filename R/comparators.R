@@ -11,7 +11,6 @@
 #' @examples
 #' cmp <- abs_distance()
 #' cmp(1, 5) # returns 4
-#'
 #' @export
 abs_distance <- function() {
   function(x, y) {

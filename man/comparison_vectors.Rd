@@ -45,7 +45,6 @@ matches <- data.frame("a" = 1:3, "b" = 1:3)
 result <- comparison_vectors(A = df_1, B = df_2, variables = c("name", "surname"),
                              comparators = comparators, matches = matches)
 result
-
 }
 \author{
 Adam Struzik
