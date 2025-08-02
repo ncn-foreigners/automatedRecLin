@@ -80,17 +80,23 @@ comparison_vectors <- function(
 
   data.table::setDT(A)
   data.table::setDT(B)
-  A <- A[, ..variables]
-  B <- B[, ..variables]
-  A[, a := .I]
-  B[, b := .I]
+  A <- A[, variables, with = FALSE]
+  B <- B[, variables, with = FALSE]
+  # A[, a := .I]
+  # B[, b := .I]
+  data.table::set(A, j = "a", value = seq_len(nrow(A)))
+  data.table::set(B, j = "b", value = seq_len(nrow(B)))
 
-  Omega <- data.table::CJ(a = A$a, b = B$b)
-  setkey(Omega, NULL)
+  # Omega <- data.table::CJ(a = A$a, b = B$b)
+  Omega <- data.table::CJ(a = A[["a"]], b = B[["b"]])
+  data.table::setkey(Omega, NULL)
   A_values <- A[Omega$a, ]
   B_values <- B[Omega$b, ]
-  A_values[, a := NULL]
-  B_values[, b := NULL]
+  # A_values[, a := NULL]
+  # B_values[, b := NULL]
+  data.table::set(A, j = "a", value = NULL)
+  data.table::set(B, j = "b", value = NULL)
+
 
   gamma_names <- paste0("gamma_", variables)
   gamma_list <- lapply(1:K, function(x) {
@@ -101,7 +107,9 @@ comparison_vectors <- function(
   Omega[, (gamma_names) := gamma_list]
 
   if(!is.null(matches)) {
-    Omega[, match := as.numeric(paste(a, b) %in% paste(matches$a, matches$b))]
+    data.table::setDT(matches)
+    # Omega[, match := as.numeric(paste(a, b) %in% paste(matches$a, matches$b))]
+    Omega[, match := as.numeric(paste(.SD[["a"]], .SD[["b"]]) %in% paste(matches[["a"]], matches[["b"]]))]
   }
 
   structure(

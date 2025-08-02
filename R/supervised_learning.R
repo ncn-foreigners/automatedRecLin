@@ -108,8 +108,10 @@ train_rec_lin <- function(
   if (any(methods == "binary")) {
 
     binary_variables <- paste0("gamma_", names(which(methods == "binary")))
-    M_binary <- M[, ..binary_variables]
-    U_binary <- U[, ..binary_variables]
+    # M_binary <- M[, ..binary_variables]
+    # U_binary <- U[, ..binary_variables]
+    M_binary <- M[, binary_variables, with = FALSE]
+    U_binary <- U[, binary_variables, with = FALSE]
     theta_binary <- binary_formula(M_binary)
     eta_binary <- binary_formula(U_binary)
 
@@ -124,8 +126,10 @@ train_rec_lin <- function(
   if (any(methods == "continuous_parametric")) {
 
     continuous_parametric_variables <- paste0("gamma_", names(which(methods == "continuous_parametric")))
-    M_continuous_parametric <- M[, ..continuous_parametric_variables]
-    U_continuous_parametric <- U[, ..continuous_parametric_variables]
+    # M_continuous_parametric <- M[, ..continuous_parametric_variables]
+    # U_continuous_parametric <- U[, ..continuous_parametric_variables]
+    M_continuous_parametric <- M[, continuous_parametric_variables, with = FALSE]
+    U_continuous_parametric <- U[, continuous_parametric_variables, with = FALSE]
     p_0_M <- p_0_formula(M_continuous_parametric)
     p_0_U <- p_0_formula(U_continuous_parametric)
     gamma_plus_M <- gamma_plus_formula(M_continuous_parametric)
@@ -151,8 +155,10 @@ train_rec_lin <- function(
   if (any(methods == "continuous_nonparametric")) {
 
     continuous_nonparametric_variables <- paste0("gamma_", names(which(methods == "continuous_nonparametric")))
-    M_continuous_nonparametric <- M[, ..continuous_nonparametric_variables]
-    U_continuous_nonparametric <- U[, ..continuous_nonparametric_variables]
+    # M_continuous_nonparametric <- M[, ..continuous_nonparametric_variables]
+    # U_continuous_nonparametric <- U[, ..continuous_nonparametric_variables]
+    M_continuous_nonparametric <- M[, continuous_nonparametric_variables, with = FALSE]
+    U_continuous_nonparametric <- U[, continuous_nonparametric_variables, with = FALSE]
 
     ratio_kliep <- do.call(
       densityratio::kliep,

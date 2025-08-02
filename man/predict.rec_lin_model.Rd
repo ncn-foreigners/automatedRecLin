@@ -12,7 +12,7 @@
   fixed_method = "Newton",
   target_flr = 0.05,
   tol = 10^(-3),
-  max_iter = 1000,
+  max_iter = 50,
   data_type = c("data.frame", "data.table", "matrix"),
   controls_ml_predictions = list()
 )
