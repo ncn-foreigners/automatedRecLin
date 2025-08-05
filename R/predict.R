@@ -22,7 +22,7 @@
 #' @param max_iter A maximum number of iterations for the bisection procedure (used only if `set_construction == "flr"`).
 #' @param data_type Data type for predictions with a custom ML model (`"data.frame"`, `"data.table"` or `"matrix"`;
 #' used only if `object` is from the `custom_rec_lin_model` function).
-#' @param controls_ml_predictions Controls passed to the `predict` function for custom ML model
+#' @param ... Additional controls passed to the `predict` function for custom ML model
 #' (used only if the `object` is from the `custom_rec_lin_model` function).
 #'
 #' @return
@@ -86,7 +86,8 @@ predict.rec_lin_model <- function(object,
                                   tol = 10^(-3),
                                   max_iter = 50,
                                   data_type = c("data.frame", "data.table", "matrix"),
-                                  controls_ml_predictions = list()) {
+                                  # controls_ml_predictions = list(),
+                                  ...) {
 
   stopifnot("`newdata_A` is required for predictions." =
               !missing(newdata_A))
@@ -129,6 +130,8 @@ predict.rec_lin_model <- function(object,
       Omega_temp <- Omega
 
     }
+
+    controls_ml_predictions <- list(...)
 
     predicted_probs <- do.call(
       predict,

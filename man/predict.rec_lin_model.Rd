@@ -14,7 +14,7 @@
   tol = 10^(-3),
   max_iter = 50,
   data_type = c("data.frame", "data.table", "matrix"),
-  controls_ml_predictions = list()
+  ...
 )
 }
 \arguments{
@@ -38,7 +38,7 @@
 \item{data_type}{Data type for predictions with a custom ML model (\code{"data.frame"}, \code{"data.table"} or \code{"matrix"};
 used only if \code{object} is from the \code{custom_rec_lin_model} function).}
 
-\item{controls_ml_predictions}{Controls passed to the \code{predict} function for custom ML model
+\item{...}{Additional controls passed to the \code{predict} function for custom ML model
 (used only if the \code{object} is from the \code{custom_rec_lin_model} function).}
 }
 \value{
