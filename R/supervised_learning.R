@@ -76,6 +76,11 @@ train_rec_lin <- function(
     controls_nleqslv = list(),
     controls_kliep = control_kliep()) {
 
+  if (!is.null(methods)) {
+    stopifnot("`methods` should be a list." =
+                is.list(methods))
+  }
+
   vectors <- comparison_vectors(A = A,
                                 B = B,
                                 variables = variables,
@@ -83,9 +88,6 @@ train_rec_lin <- function(
                                 matches = matches)
   Omega <- vectors$Omega
   comparators <- vectors$comparators
-
-  stopifnot("`methods` should be a list." =
-            is.list(methods))
 
   missing_variables <- variables[!(variables %in% names(methods))]
   methods[missing_variables] <- "binary"
@@ -280,3 +282,4 @@ custom_rec_lin_model <- function(ml_model, vectors) {
   )
 
 }
+

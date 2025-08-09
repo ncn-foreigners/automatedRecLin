@@ -34,7 +34,7 @@ print.rec_lin_model <- function(x, ...) {
     cat("========================================================\n")
     cat("Variables selected for the continuous parametric method: ", paste(substring(x$continuous_parametric_variables, 7), collapse = ", "), ".\n", sep = "")
     cat("Estimated parameters for the continuous parametric method:\n")
-    print(x$binary_params)
+    print(x$continuous_parametric_params)
   }
 
   if (!is.null(x$continuous_nonparametric_variables)) {

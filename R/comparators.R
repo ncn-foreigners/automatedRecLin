@@ -17,3 +17,17 @@ abs_distance <- function() {
     abs(x - y)
   }
 }
+
+#' @import reclin2
+#'
+#' @title Jaro-Winkler Distance Complement
+#'
+#' @author Adam Struzik
+#'
+#' @export
+jarowinkler_complement <- function() {
+  temp <- reclin2::cmp_jarowinkler()
+  function(x, y) {
+    1 - temp(x, y)
+  }
+}
