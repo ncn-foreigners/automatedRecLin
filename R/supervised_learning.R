@@ -15,6 +15,7 @@
 #' @param variables A character vector of key variables used to create comparison vectors.
 #' @param comparators A named list of functions for comparing pairs of records.
 #' @param methods A named list of methods used for estimation (`"binary"`, `"continuous_parametric"` or `"continuous_nonparametric"`).
+#' @param prob_ratio Probability ratio type (`"1"` or `"2"`).
 #' @param controls_nleqslv Controls passed to the \link[nleqslv]{nleqslv} function (only if the `"continuous_parametric"` method has been chosen for at least one variable).
 #' @param controls_kliep Controls passed to the \link[densityratio]{kliep} function (only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
 #'
@@ -63,6 +64,7 @@
 #'                        variables = c("name", "surname"),
 #'                        comparators = comparators,
 #'                        methods = methods,
+#'                        prob_ratio = "2",
 #'                        controls_kliep = control_kliep(nfold = 3))
 #' model
 #' @export
@@ -73,12 +75,17 @@ train_rec_lin <- function(
     variables,
     comparators = NULL,
     methods = NULL,
+    prob_ratio = NULL,
     controls_nleqslv = list(),
     controls_kliep = control_kliep()) {
 
   if (!is.null(methods)) {
     stopifnot("`methods` should be a list." =
                 is.list(methods))
+  }
+
+  if (is.null(prob_ratio)) {
+    prob_ratio <- "2"
   }
 
   vectors <- comparison_vectors(A = A,
@@ -113,9 +120,14 @@ train_rec_lin <- function(
     # M_binary <- M[, ..binary_variables]
     # U_binary <- U[, ..binary_variables]
     M_binary <- M[, binary_variables, with = FALSE]
-    U_binary <- U[, binary_variables, with = FALSE]
     theta_binary <- binary_formula(M_binary)
-    eta_binary <- binary_formula(U_binary)
+    if (prob_ratio == "1") {
+      Omega_binary <- Omega[, binary_variables, with = FALSE]
+      eta_binary <- binary_formula(Omega_binary)
+    } else if (prob_ratio == "2") {
+      U_binary <- U[, binary_variables, with = FALSE]
+      eta_binary <- binary_formula(U_binary)
+    }
 
     binary_params <- data.table(
       variable = binary_variables,
@@ -130,27 +142,45 @@ train_rec_lin <- function(
     continuous_parametric_variables <- paste0("gamma_", names(which(methods == "continuous_parametric")))
     # M_continuous_parametric <- M[, ..continuous_parametric_variables]
     # U_continuous_parametric <- U[, ..continuous_parametric_variables]
-    M_continuous_parametric <- M[, continuous_parametric_variables, with = FALSE]
-    U_continuous_parametric <- U[, continuous_parametric_variables, with = FALSE]
-    p_0_M <- p_0_formula(M_continuous_parametric)
-    p_0_U <- p_0_formula(U_continuous_parametric)
-    gamma_plus_M <- gamma_plus_formula(M_continuous_parametric)
-    gamma_plus_U <- gamma_plus_formula(U_continuous_parametric)
     modified_nleqslv <- purrr::partial(nleqslv::nleqslv, control = controls_nleqslv)
+    M_continuous_parametric <- M[, continuous_parametric_variables, with = FALSE]
+    p_0_M <- p_0_formula(M_continuous_parametric)
+    gamma_plus_M <- gamma_plus_formula(M_continuous_parametric)
     alpha_M <- alpha_formula(M_continuous_parametric, modified_nleqslv)
-    alpha_U <- alpha_formula(U_continuous_parametric, modified_nleqslv)
     beta_M <- alpha_M / gamma_plus_M
-    beta_U <- alpha_U / gamma_plus_U
+    if (prob_ratio == "1") {
+      Omega_continuous_parametric <- Omega[, continuous_parametric_variables, with = FALSE]
+      p_0_Omega <- p_0_formula(Omega_continuous_parametric)
+      gamma_plus_Omega <- gamma_plus_formula(Omega_continuous_parametric)
+      alpha_Omega <- alpha_formula(Omega_continuous_parametric, modified_nleqslv)
+      beta_Omega <- alpha_Omega / gamma_plus_Omega
 
-    continuous_parametric_params <- data.table(
-      variable = continuous_parametric_variables,
-      p_0_M = p_0_M,
-      p_0_U = p_0_U,
-      alpha_M = alpha_M,
-      alpha_U = alpha_U,
-      beta_M = beta_M,
-      beta_U = beta_U
-    )
+      continuous_parametric_params <- data.table(
+        variable = continuous_parametric_variables,
+        p_0_M = p_0_M,
+        p_0_Omega = p_0_Omega,
+        alpha_M = alpha_M,
+        alpha_Omega = alpha_Omega,
+        beta_M = beta_M,
+        beta_Omega = beta_Omega
+      )
+    } else if (prob_ratio == "2") {
+      U_continuous_parametric <- U[, continuous_parametric_variables, with = FALSE]
+      p_0_U <- p_0_formula(U_continuous_parametric)
+      gamma_plus_U <- gamma_plus_formula(U_continuous_parametric)
+      alpha_U <- alpha_formula(U_continuous_parametric, modified_nleqslv)
+      beta_U <- alpha_U / gamma_plus_U
+
+      continuous_parametric_params <- data.table(
+        variable = continuous_parametric_variables,
+        p_0_M = p_0_M,
+        p_0_U = p_0_U,
+        alpha_M = alpha_M,
+        alpha_U = alpha_U,
+        beta_M = beta_M,
+        beta_U = beta_U
+      )
+    }
 
   }
 
@@ -160,16 +190,29 @@ train_rec_lin <- function(
     # M_continuous_nonparametric <- M[, ..continuous_nonparametric_variables]
     # U_continuous_nonparametric <- U[, ..continuous_nonparametric_variables]
     M_continuous_nonparametric <- M[, continuous_nonparametric_variables, with = FALSE]
-    U_continuous_nonparametric <- U[, continuous_nonparametric_variables, with = FALSE]
+    if (prob_ratio == "1") {
+      Omega_continuous_nonparametric <- Omega[, continuous_nonparametric_variables, with = FALSE]
 
-    ratio_kliep <- do.call(
-      densityratio::kliep,
-      c(list(
-        df_numerator = M_continuous_nonparametric,
-        df_denominator = U_continuous_nonparametric
-      ),
-      controls_kliep)
-    )
+      ratio_kliep <- do.call(
+        densityratio::kliep,
+        c(list(
+          df_numerator = M_continuous_nonparametric,
+          df_denominator = Omega_continuous_nonparametric
+        ),
+        controls_kliep)
+      )
+    } else if (prob_ratio == "2") {
+      U_continuous_nonparametric <- U[, continuous_nonparametric_variables, with = FALSE]
+
+      ratio_kliep <- do.call(
+        densityratio::kliep,
+        c(list(
+          df_numerator = M_continuous_nonparametric,
+          df_denominator = U_continuous_nonparametric
+        ),
+        controls_kliep)
+      )
+    }
 
   }
 

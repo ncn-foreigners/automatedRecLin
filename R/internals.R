@@ -53,6 +53,7 @@ hurdle_gamma_density <- function(x, p_0, alpha, beta) {
 
 fixed_n_M <- function(n, ratio_gamma) {
   function(n_M) {
-    sum(n_M * ratio_gamma / (n_M * (ratio_gamma - 1) + n))
+    # sum(n_M * ratio_gamma / (n_M * (ratio_gamma - 1) + n))
+    sum(pmin(n_M * ratio_gamma / (n_M * (ratio_gamma - 1) + n), 1))
   }
 }

@@ -11,6 +11,7 @@ train_rec_lin(
   variables,
   comparators = NULL,
   methods = NULL,
+  prob_ratio = NULL,
   controls_nleqslv = list(),
   controls_kliep = control_kliep()
 )
@@ -27,6 +28,8 @@ train_rec_lin(
 \item{comparators}{A named list of functions for comparing pairs of records.}
 
 \item{methods}{A named list of methods used for estimation (\code{"binary"}, \code{"continuous_parametric"} or \code{"continuous_nonparametric"}).}
+
+\item{prob_ratio}{Probability ratio type (\code{"1"} or \code{"2"}).}
 
 \item{controls_nleqslv}{Controls passed to the \link[nleqslv]{nleqslv} function (only if the \code{"continuous_parametric"} method has been chosen for at least one variable).}
 
@@ -69,6 +72,7 @@ model <- train_rec_lin(A = df_1, B = df_2, matches = matches,
                        variables = c("name", "surname"),
                        comparators = comparators,
                        methods = methods,
+                       prob_ratio = "2",
                        controls_kliep = control_kliep(nfold = 3))
 model
 }

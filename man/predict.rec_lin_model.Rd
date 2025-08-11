@@ -73,6 +73,7 @@ model <- train_rec_lin(A = df_1, B = df_2, matches = matches,
                        variables = c("name", "surname"),
                        comparators = comparators,
                        methods = methods,
+                       prob_ratio = "2",
                        controls_kliep = control_kliep(nfold = 3))
 
 df_new_1 <- data.frame(
