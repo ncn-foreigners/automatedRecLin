@@ -6,8 +6,13 @@
 \usage{
 jarowinkler_complement()
 }
+\value{
+Returns a function taking two string arguments, \code{x} and \code{y},
+and returning the complement of the Jaro-Winkler distance.
+}
 \description{
-Jaro-Winkler Distance Complement
+Creates a function that calculates the complement of the Jaro-Winkler
+distance between two strings (i.e., 1 - Jaro-Winkler distance).
 }
 \author{
 Adam Struzik

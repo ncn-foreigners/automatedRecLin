@@ -61,8 +61,8 @@ df_1 <- data.frame(
   "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
 )
 df_2 <- data.frame(
-  "name" = c("Jon", "Emely", "Marc", "Michael"),
-  "surname" = c("Smitth", "Jonson", "Tailor", "Henderson")
+  "name" = c("John", "Emely", "Marc", "Michael"),
+  "surname" = c("Smith", "Jonson", "Tailor", "Henderson")
 )
 comparators <- list("name" = reclin2::cmp_jarowinkler(),
                     "surname" = reclin2::cmp_jarowinkler())
@@ -77,14 +77,14 @@ model <- train_rec_lin(A = df_1, B = df_2, matches = matches,
                        controls_kliep = control_kliep(nfold = 3))
 
 df_new_1 <- data.frame(
-  "name" = c("Jame", "Lia", "Tomas", "Emma", "Andrew"),
-  "surname" = c("Wilsen", "Thomsson", "Davis", "Harrison", "Scott")
+  "name" = c("Jame", "Lia", "Tomas", "Matthew", "Andrew"),
+  "surname" = c("Wilsen", "Thomsson", "Davis", "Robinson", "Scott")
 )
 df_new_2 <- data.frame(
   "name" = c("James", "Leah", "Thomas", "Sophie", "Mathew", "Andrew"),
-  "surname" = c("Wilson", "Thompson", "Davies", "Clarks", "Robinson", "Scot")
+  "surname" = c("Wilson", "Thompson", "Davies", "Clarks", "Robins", "Scots")
 )
-predict(model, df_new_1, df_new_2, set_construction = "flr")
+predict(model, df_new_1, df_new_2, set_construction = "size")
 }
 \references{
 Lee, D., Zhang, L.-C. and Kim, J. K. (2022). Maximum entropy classification for record linkage.

@@ -53,8 +53,8 @@
 #'   "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
 #' )
 #' df_2 <- data.frame(
-#'   "name" = c("Jon", "Emely", "Marc", "Michael"),
-#'   "surname" = c("Smitth", "Jonson", "Tailor", "Henderson")
+#'   "name" = c("John", "Emely", "Marc", "Michael"),
+#'   "surname" = c("Smith", "Jonson", "Tailor", "Henderson")
 #' )
 #' comparators <- list("name" = reclin2::cmp_jarowinkler(),
 #'                     "surname" = reclin2::cmp_jarowinkler())
@@ -69,14 +69,14 @@
 #'                        controls_kliep = control_kliep(nfold = 3))
 #'
 #' df_new_1 <- data.frame(
-#'   "name" = c("Jame", "Lia", "Tomas", "Emma", "Andrew"),
-#'   "surname" = c("Wilsen", "Thomsson", "Davis", "Harrison", "Scott")
+#'   "name" = c("Jame", "Lia", "Tomas", "Matthew", "Andrew"),
+#'   "surname" = c("Wilsen", "Thomsson", "Davis", "Robinson", "Scott")
 #' )
 #' df_new_2 <- data.frame(
 #'   "name" = c("James", "Leah", "Thomas", "Sophie", "Mathew", "Andrew"),
-#'   "surname" = c("Wilson", "Thompson", "Davies", "Clarks", "Robinson", "Scot")
+#'   "surname" = c("Wilson", "Thompson", "Davies", "Clarks", "Robins", "Scots")
 #' )
-#' predict(model, df_new_1, df_new_2, set_construction = "flr")
+#' predict(model, df_new_1, df_new_2, set_construction = "size")
 #' @export
 predict.rec_lin_model <- function(object,
                                   newdata_A,
@@ -87,7 +87,6 @@ predict.rec_lin_model <- function(object,
                                   tol = 10^(-3),
                                   max_iter = 50,
                                   data_type = c("data.frame", "data.table", "matrix"),
-                                  # controls_ml_predictions = list(),
                                   ...) {
 
   stopifnot("`newdata_A` is required for predictions." =
@@ -146,7 +145,6 @@ predict.rec_lin_model <- function(object,
 
   } else {
 
-    # Omega[, "ratio" := 1]
     data.table::set(Omega, j = "ratio", value = 1)
 
 
@@ -215,9 +213,7 @@ predict.rec_lin_model <- function(object,
   }
 
   # to think
-  # n_M_start <- NROW(merge(newdata_A, newdata_B, by = object$variables, all = FALSE))
   n_M_start <- min(NROW(newdata_A), NROW(newdata_B))
-  # fun_n_M <- fixed_n_M(n = n, ratio_gamma = Omega$ratio)
   fun_n_M <- fixed_n_M(n = n, ratio_gamma = Omega[["ratio"]])
   n_M_original <- FixedPoint::FixedPoint(Function = fun_n_M,
                                          Inputs = n_M_start,
@@ -251,9 +247,7 @@ predict.rec_lin_model <- function(object,
     }
 
     M_est <- head(M_est, round(n_M_est))
-    # return(M_est)
     g_est <- pmin(NROW(M_est) * M_est$ratio / (NROW(M_est) * (M_est$ratio - 1) + n), 1)
-    # return(NROW(M_est) * M_est$ratio / (NROW(M_est) * (M_est$ratio - 1) + n))
     flr_est <- 1 / NROW(M_est) * sum(1 - g_est)
 
     iter <- NULL
@@ -267,7 +261,6 @@ predict.rec_lin_model <- function(object,
     min_treshold <- min(Omega$ratio)
     max_treshold <- max(Omega$ratio)
     treshold <- (min_treshold + max_treshold) / 2
-    # treshold <- (Omega$ratio)[min(NROW(newdata_A), NROW(newdata_B))]
 
     iter <- 0
 
@@ -297,7 +290,10 @@ predict.rec_lin_model <- function(object,
 
     }
 
-    mmr_est <- 1 - sum(M_est$g_est / n_M_original)
+    g_est_to_mmr <- pmin(n_M_original * M_est$ratio / (n_M_original * (M_est$ratio - 1) + n), 1)
+
+    # mmr_est <- 1 - sum(M_est$g_est / n_M_original)
+    mmr_est <- 1 - sum(g_est_to_mmr / n_M_original) # to think
 
   }
 

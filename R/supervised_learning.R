@@ -22,9 +22,9 @@
 #' @return
 #' Returns a list containing:\cr
 #' \itemize{
-#' \item{`binary_variables` -- a character vector of variables chosen for the `"binary"` method (with the prefix `"gamma_"`),}
-#' \item{`continuous_parametric_variables` -- a character vector of variables chosen for the `"continuous_parametric"` method (with the prefix `"gamma_"`),}
-#' \item{`continuous_nonparametric_variables` -- a character vector of variables chosen for the `"continuous_nonparametric"` method (with the prefix `"gamma_"`),}
+#' \item{`binary_variables` -- a character vector of variables used for the `"binary"` method (with the prefix `"gamma_"`),}
+#' \item{`continuous_parametric_variables` -- a character vector of variables used for the `"continuous_parametric"` method (with the prefix `"gamma_"`),}
+#' \item{`continuous_nonparametric_variables` -- a character vector of variables used for the `"continuous_nonparametric"` method (with the prefix `"gamma_"`),}
 #' \item{`binary_params` -- parameters estimated using the `"binary"` method,}
 #' \item{`continuous_parametric_params` -- parameters estimated using the `"continuous_parametric"` method,}
 #' \item{`ratio_kliep` -- a result of the \link[densityratio]{kliep} function,}
@@ -52,8 +52,8 @@
 #'   "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
 #' )
 #' df_2 <- data.frame(
-#'   "name" = c("Jon", "Emely", "Marc", "Michael"),
-#'   "surname" = c("Smitth", "Jonson", "Tailor", "Henderson")
+#'   "name" = c("John", "Emely", "Marc", "Michael"),
+#'   "surname" = c("Smith", "Jonson", "Tailor", "Henderson")
 #' )
 #' comparators <- list("name" = reclin2::cmp_jarowinkler(),
 #'                     "surname" = reclin2::cmp_jarowinkler())
@@ -79,13 +79,74 @@ train_rec_lin <- function(
     controls_nleqslv = list(),
     controls_kliep = control_kliep()) {
 
+  data.table::setDT(A)
+  data.table::setDT(B)
+
+  stopifnot("There are no records with perfect agreement on the key variables. Please provide relevant datasets." =
+              NROW(merge(A, B, by = variables)) > 0)
+
   if (!is.null(methods)) {
     stopifnot("`methods` should be a list." =
                 is.list(methods))
+  } else {
+    methods <- list()
+  }
+
+  missing_variables <- variables[!(variables %in% names(methods))]
+  methods[missing_variables] <- "binary"
+
+  unique_values <- lapply(variables, function(col) {
+    length(unique(c(A[[col]], B[[col]])))
+  })
+  names(unique_values) <- variables
+
+  for (var in variables) {
+    if (unique_values[[var]] == 1) {
+      data.table::set(A, j = substitute(var), value = NULL)
+      data.table::set(B, j = substitute(var), value = NULL)
+      variables <- variables[variables != var]
+      comparators[[var]] <- NULL
+      methods[[var]] <- NULL
+      warning(paste("The variable", var, "has only one unique value and has been removed."))
+    }
   }
 
   if (is.null(prob_ratio)) {
-    prob_ratio <- "2"
+    prob_ratio <- "1"
+  }
+
+  if (any(methods %in% c("binary", "continuous_parametric"))) {
+
+    data.table::setDT(matches)
+
+    if (prob_ratio == "2") {
+      A_temp <- data.table::copy(A)
+      B_temp <- data.table::copy(B)
+      data.table::set(A_temp, j = "a", value = seq_len(nrow(A)))
+      data.table::set(B_temp, j = "b", value = seq_len(nrow(B)))
+      indexes <- data.table::CJ(a = A_temp[["a"]], b = B_temp[["b"]])
+      data.table::setkey(indexes, NULL)
+      indexes_U <- data.table::fsetdiff(indexes, matches)
+      for (var in variables) {
+        common_values <- sum((A_temp[[var]])[indexes_U$a] == (B_temp[[var]])[indexes_U$b])
+        if (common_values == 0) {
+          prob_ratio <- "1"
+          warning("Some variables lack common values between the unmatches. Switching the probability ratio to \"1\".")
+          break
+        }
+      }
+    }
+
+    # if (prob_ratio == "1") {
+    #   common_values <- sapply(variables, function(col) {
+    #     length(intersect(A[[col]], B[[col]]))
+    #   })
+    #
+    #   stopifnot("Some variables lack common values in both datasets.
+    #             Please provide relevant datasets." =
+    #               all(common_values > 0))
+    # }
+
   }
 
   vectors <- comparison_vectors(A = A,
@@ -95,9 +156,6 @@ train_rec_lin <- function(
                                 matches = matches)
   Omega <- vectors$Omega
   comparators <- vectors$comparators
-
-  missing_variables <- variables[!(variables %in% names(methods))]
-  methods[missing_variables] <- "binary"
 
   M <- Omega[match == 1, ]
   U <- Omega[match == 0, ]
@@ -117,8 +175,6 @@ train_rec_lin <- function(
   if (any(methods == "binary")) {
 
     binary_variables <- paste0("gamma_", names(which(methods == "binary")))
-    # M_binary <- M[, ..binary_variables]
-    # U_binary <- U[, ..binary_variables]
     M_binary <- M[, binary_variables, with = FALSE]
     theta_binary <- binary_formula(M_binary)
     if (prob_ratio == "1") {
@@ -140,8 +196,6 @@ train_rec_lin <- function(
   if (any(methods == "continuous_parametric")) {
 
     continuous_parametric_variables <- paste0("gamma_", names(which(methods == "continuous_parametric")))
-    # M_continuous_parametric <- M[, ..continuous_parametric_variables]
-    # U_continuous_parametric <- U[, ..continuous_parametric_variables]
     modified_nleqslv <- purrr::partial(nleqslv::nleqslv, control = controls_nleqslv)
     M_continuous_parametric <- M[, continuous_parametric_variables, with = FALSE]
     p_0_M <- p_0_formula(M_continuous_parametric)
@@ -187,8 +241,6 @@ train_rec_lin <- function(
   if (any(methods == "continuous_nonparametric")) {
 
     continuous_nonparametric_variables <- paste0("gamma_", names(which(methods == "continuous_nonparametric")))
-    # M_continuous_nonparametric <- M[, ..continuous_nonparametric_variables]
-    # U_continuous_nonparametric <- U[, ..continuous_nonparametric_variables]
     M_continuous_nonparametric <- M[, continuous_nonparametric_variables, with = FALSE]
     if (prob_ratio == "1") {
       Omega_continuous_nonparametric <- Omega[, continuous_nonparametric_variables, with = FALSE]
