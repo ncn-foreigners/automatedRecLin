@@ -39,7 +39,7 @@ alpha_formula <- function(df, fun) {
 
 alpha_formula_iterative <- function(df, fun, beta) {
   K <- length(beta)
-  par <- lapply(1:K, function(x) {
+  par <- sapply(1:K, function(x) {
     fun(x = 1, fn = f_alpha_iterative, gamma = df[, as.numeric(x)], beta = beta[x], method = "Newton")$x
   })
   par
