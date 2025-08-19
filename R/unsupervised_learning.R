@@ -17,7 +17,7 @@ mec <- function(A,
                 start_params = NULL,
                 set_construction = c("size", "flr"),
                 delta = 0.5,
-                eps = 0.05, # to think
+                eps = 0.05,
                 controls_nleqslv = list(),
                 controls_kliep = control_kliep()) {
 
@@ -90,8 +90,7 @@ mec <- function(A,
     if (length(binary_variables) > 0) {
       start_params[["binary"]] <- data.table(
         variable = binary_variables,
-        theta = runif(length(binary_variables), min = 0.5)#,
-        # eta = runif(length(binary_variables))
+        theta = runif(length(binary_variables), min = 0.9)
       )
 
     }
@@ -99,12 +98,9 @@ mec <- function(A,
     if (length(continuous_parametric_variables) > 0) {
       start_params[["continuous_parametric"]] <- data.table(
         variable = continuous_parametric_variables,
-        p_0_M = runif(length(continuous_parametric_variables), min = 0.5),
-        # p_0_U = runif(length(continuous_parametric_variables)),
+        p_0_M = runif(length(continuous_parametric_variables), min = 0.9),
         alpha_M = runif(length(continuous_parametric_variables), max = 1),
-        # alpha_U = runif(length(continuous_parametric_variables), max = 1000),
-        beta_M = runif(length(continuous_parametric_variables), max = 10)#,
-        # beta_U = runif(length(continuous_parametric_variables), max = 1000)
+        beta_M = runif(length(continuous_parametric_variables), max = 10)
       )
     }
 
@@ -193,7 +189,7 @@ mec <- function(A,
     M_indexes <- paste0(M[["a"]], "_", M[["b"]])
     ratio_temp <- as.numeric(Omega$ratio)
     ratio_temp[which(Omega_indexes %in% M_indexes)] <- (Omega$ratio)[which(Omega_indexes %in% M_indexes)] * stats::runif(length(which(Omega_indexes %in% M_indexes)),
-                                                                       min = 1, max = 1.1)
+                                                                       min = 500, max = 1000)
     ratio_temp[setdiff(1:n, which(Omega_indexes %in% M_indexes))] <- (Omega$ratio)[setdiff(1:n, which(Omega_indexes %in% M_indexes))] * stats::runif(n - length(which(Omega_indexes %in%M_indexes)),
                                                                                                                                                      min = 0.9, max = 1)
     data.table::set(Omega, j = "ratio", value = ratio_temp)
@@ -211,9 +207,11 @@ mec <- function(A,
 
   }
 
+  iter <- 1
+
   repeat {
 
-    g_est <- pmin(n_M * Omega$ratio / (n_M * (Omega$ratio - 1) + n), 1)
+    g_est <- pmin(NROW(M) * Omega$ratio / (NROW(M) * (Omega$ratio - 1) + n), 1)
     n_M_old <- n_M
     n_M <- sum(g_est)
 
@@ -241,10 +239,45 @@ mec <- function(A,
 
     M <- head(M, round(n_M))
     U <- data.table::fsetdiff(Omega, M)
+
+    if (NROW(M) == 0) {
+      break
+    }
+
+    if (iter >= 2) {
+
+      old_params <- c()
+      params <- c()
+      if (length(binary_variables) > 0) {
+        old_params <- c(old_params, theta_binary_old)
+        params <- c(params, theta_binary)
+      }
+      if (length(continuous_parametric_variables) > 0) {
+        old_params <- c(old_params, p_0_M_old, alpha_M_old, beta_M_old)
+        params <- c(params, p_0_M, alpha_M, beta_M)
+      }
+
+      if (length(continuous_nonparametric_variables) == 0) {
+
+        if ((abs(n_M_old - n_M) < delta) || norm(old_params - params, type = "2") < eps) {
+          break
+        }
+
+      } else {
+
+        if ((abs(n_M_old - n_M) < delta)) {
+          break
+        }
+
+      }
+
+    }
+
     data.table::set(Omega, j = "ratio", value = 1)
 
     if (length(binary_variables) > 0) {
 
+      Omega_binary <- Omega[, binary_variables, with = FALSE]
       M_binary <- M[, binary_variables, with = FALSE]
       U_binary <- U[, binary_variables, with = FALSE]
 
@@ -264,6 +297,7 @@ mec <- function(A,
 
     if (length(continuous_parametric_variables) > 0) {
 
+      Omega_continuous_parametric <- Omega[, continuous_parametric_variables, with = FALSE]
       M_continuous_parametric <- M[, continuous_parametric_variables, with = FALSE]
       U_continuous_parametric <- U[, continuous_parametric_variables, with = FALSE]
       p_0_M_old <- continuous_parametric_params$p_0_M
@@ -284,6 +318,7 @@ mec <- function(A,
                                                                             alpha = as.numeric(continuous_parametric_params[continuous_parametric_params[["variable"]] == col, "alpha_M"]),
                                                                             beta = as.numeric(continuous_parametric_params[continuous_parametric_params[["variable"]] == col, "beta_M"]))
                                                      })
+
       continuous_parametric_numerator <- Reduce(`*`, continuous_parametric_numerator_list)
       data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * continuous_parametric_numerator / Omega[["continuous_parametric_denominator"]])
 
@@ -291,6 +326,7 @@ mec <- function(A,
 
     if (length(continuous_nonparametric_variables) > 0) {
 
+      Omega_continuous_nonparametric <- Omega[, continuous_nonparametric_variables, with = FALSE]
       M_continuous_nonparametric <- M[, continuous_nonparametric_variables, with = FALSE]
       U_continuous_nonparametric <- U[, continuous_nonparametric_variables, with = FALSE]
 
@@ -307,6 +343,19 @@ mec <- function(A,
 
     }
 
+    iter <- iter + 1
+
   }
+
+  structure(
+    list(
+      M = M[, c("a", "b", "ratio")],
+      n_M = n_M,
+      binary_params = if (length(binary_variables) == 0) NULL else binary_params,
+      continuous_parametric_params = if (length(continuous_parametric_variables) == 0) NULL else continuous_parametric_params,
+      Omega = Omega
+    ),
+    class = "mec_rec_lin"
+  )
 
 }
