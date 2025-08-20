@@ -38,11 +38,11 @@ train_rec_lin(
 \value{
 Returns a list containing:\cr
 \itemize{
-\item{\code{binary_variables} -- a character vector of variables used for the \code{"binary"} method (with the prefix \code{"gamma_"}),}
-\item{\code{continuous_parametric_variables} -- a character vector of variables used for the \code{"continuous_parametric"} method (with the prefix \code{"gamma_"}),}
-\item{\code{continuous_nonparametric_variables} -- a character vector of variables used for the \code{"continuous_nonparametric"} method (with the prefix \code{"gamma_"}),}
-\item{\code{binary_params} -- parameters estimated using the \code{"binary"} method,}
-\item{\code{continuous_parametric_params} -- parameters estimated using the \code{"continuous_parametric"} method,}
+\item{\code{b_vars} -- a character vector of variables used for the \code{"binary"} method (with the prefix \code{"gamma_"}),}
+\item{\code{cpar_vars} -- a character vector of variables used for the \code{"continuous_parametric"} method (with the prefix \code{"gamma_"}),}
+\item{\code{cnonpar_vars} -- a character vector of variables used for the \code{"continuous_nonparametric"} method (with the prefix \code{"gamma_"}),}
+\item{\code{b_params} -- parameters estimated using the \code{"binary"} method,}
+\item{\code{cpar_params} -- parameters estimated using the \code{"continuous_parametric"} method,}
 \item{\code{ratio_kliep} -- a result of the \link[densityratio]{kliep} function,}
 \item{\code{ml_model} -- here \code{NULL},}
 \item{\code{pi_est} -- a prior probability of matching,}

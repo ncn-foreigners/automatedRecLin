@@ -14,6 +14,7 @@
   tol = 10^(-3),
   max_iter = 50,
   data_type = c("data.frame", "data.table", "matrix"),
+  true_matches = NULL,
   ...
 )
 }
@@ -38,6 +39,8 @@
 \item{data_type}{Data type for predictions with a custom ML model (\code{"data.frame"}, \code{"data.table"} or \code{"matrix"};
 used only if \code{object} is from the \code{custom_rec_lin_model} function).}
 
+\item{true_matches}{A \code{data.frame} or \code{data.table} indicating true matches.}
+
 \item{...}{Additional controls passed to the \code{predict} function for custom ML model
 (used only if the \code{object} is from the \code{custom_rec_lin_model} function).}
 }
@@ -49,7 +52,9 @@ Returns a list containing:\cr
 \item{\code{n_M_est} -- estimated classification set size,}
 \item{\code{flr_est} -- estimated false link rate (FLR),}
 \item{\code{mmr_est} -- estimated missing match rate (MMR),}
-\item{\code{iter} -- the number of iterations in the bisection procedure.}
+\item{\code{iter} -- the number of iterations in the bisection procedure,}
+\item{\code{eval_metrics} -- metrics for quality assessment, if \code{true_matches} is provided,}
+\item{\code{confusion} -- confusion matrix, if \code{true_matches} is provided.}
 }
 }
 \description{

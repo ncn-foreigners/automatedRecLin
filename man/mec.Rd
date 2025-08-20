@@ -11,11 +11,12 @@ mec(
   comparators = NULL,
   methods = NULL,
   start_params = NULL,
-  set_construction = c("size", "flr"),
+  set_construction = NULL,
   delta = 0.5,
   eps = 0.05,
   controls_nleqslv = list(),
-  controls_kliep = control_kliep()
+  controls_kliep = control_kliep(),
+  true_matches = NULL
 )
 }
 \description{

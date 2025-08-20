@@ -15,11 +15,12 @@ mec <- function(A,
                 comparators = NULL,
                 methods = NULL,
                 start_params = NULL,
-                set_construction = c("size", "flr"),
+                set_construction = NULL,
                 delta = 0.5,
                 eps = 0.05,
                 controls_nleqslv = list(),
-                controls_kliep = control_kliep()) {
+                controls_kliep = control_kliep(),
+                true_matches = NULL) {
 
   if (!is.null(methods)) {
     stopifnot("`methods` should be a list." =
@@ -29,6 +30,10 @@ mec <- function(A,
   if (!is.null(start_params)) {
     stopifnot("`start_params` should be a list." =
                 is.list(start_params))
+  }
+
+  if (is.null(set_construction)) {
+    set_construction <- "size"
   }
 
   data.table::setDT(A)
@@ -67,44 +72,46 @@ mec <- function(A,
   missing_variables <- variables[!(variables %in% names(methods))]
   methods[missing_variables] <- "binary"
 
-  binary_variables <- NULL
-  continuous_parametric_variables <- NULL
-  continuous_nonparametric_variables <- NULL
+  b_vars <- NULL
+  cpar_vars <- NULL
+  cnonpar_vars <- NULL
 
   if (any(methods == "binary")) {
-    binary_variables <- paste0("gamma_", names(which(methods == "binary")))
+    b_vars <- paste0("gamma_", names(which(methods == "binary")))
   }
 
   if (any(methods == "continuous_parametric")) {
-    continuous_parametric_variables <- paste0("gamma_", names(which(methods == "continuous_parametric")))
+    cpar_vars <- paste0("gamma_", names(which(methods == "continuous_parametric")))
   }
 
   if (any(methods == "continuous_nonparametric")) {
-    continuous_nonparametric_variables <- paste0("gamma_", names(which(methods == "continuous_nonparametric")))
+    cnonpar_vars <- paste0("gamma_", names(which(methods == "continuous_nonparametric")))
   }
 
   if (is.null(start_params)) {
 
     start_params <- list()
 
-    if (length(binary_variables) > 0) {
+    if (length(b_vars) > 0) {
       start_params[["binary"]] <- data.table(
-        variable = binary_variables,
-        theta = runif(length(binary_variables), min = 0.9)
+        variable = b_vars,
+        theta = runif(length(b_vars), min = 0.9)
       )
 
     }
 
-    if (length(continuous_parametric_variables) > 0) {
+    if (length(cpar_vars) > 0) {
       start_params[["continuous_parametric"]] <- data.table(
-        variable = continuous_parametric_variables,
-        p_0_M = runif(length(continuous_parametric_variables), min = 0.9),
-        alpha_M = runif(length(continuous_parametric_variables), max = 1),
-        beta_M = runif(length(continuous_parametric_variables), max = 10)
+        variable = cpar_vars,
+        p_0_M = runif(length(cpar_vars), min = 0.9),
+        alpha_M = runif(length(cpar_vars), max = 1),
+        beta_M = runif(length(cpar_vars), max = 10)
       )
     }
 
   }
+
+  ratio_kliep <- NULL
 
   M <- merge(M, Omega, by = c("a", "b"), all = FALSE)
   M <- M[, colnames(Omega), with = FALSE]
@@ -113,77 +120,77 @@ mec <- function(A,
   n_M <- NROW(M)
   data.table::set(Omega, j = "ratio", value = 1)
 
-  if (length(binary_variables) > 0) {
+  if (length(b_vars) > 0) {
 
-    binary_params <- start_params$binary
-    Omega_binary <- Omega[, binary_variables, with = FALSE]
-    M_binary <- M[, binary_variables, with = FALSE]
-    U_binary <- U[, binary_variables, with = FALSE]
+    b_params <- start_params$binary
+    Omega_b <- Omega[, b_vars, with = FALSE]
+    M_b <- M[, b_vars, with = FALSE]
+    U_b <- U[, b_vars, with = FALSE]
 
-    eta_binary <- binary_formula(Omega_binary)
-    binary_params$eta <- eta_binary
+    eta_b <- binary_formula(Omega_b)
+    b_params$eta <- eta_b
 
-    binary_numerator_list <- lapply(binary_variables,
+    b_numerator_list <- lapply(b_vars,
                                     function(col) {
-                                      stats::dbinom(x = Omega_binary[[col]],
+                                      stats::dbinom(x = Omega_b[[col]],
                                                     size = 1,
-                                                    prob = as.numeric(binary_params[binary_params[["variable"]] == col, "theta"]))
+                                                    prob = as.numeric(b_params[b_params[["variable"]] == col, "theta"]))
                                     })
-    binary_numerator <- Reduce(`*`, binary_numerator_list)
-    binary_denominator_list <- lapply(binary_variables,
+    b_numerator <- Reduce(`*`, b_numerator_list)
+    b_denominator_list <- lapply(b_vars,
                                       function(col) {
-                                        stats::dbinom(x = Omega_binary[[col]],
+                                        stats::dbinom(x = Omega_b[[col]],
                                                       size = 1,
-                                                      prob = as.numeric(binary_params[binary_params[["variable"]] == col, "eta"]))
+                                                      prob = as.numeric(b_params[b_params[["variable"]] == col, "eta"]))
                                       })
-    binary_denominator <- Reduce(`*`, binary_denominator_list)
-    data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * binary_numerator / binary_denominator)
-    data.table::set(Omega, j = "binary_denominator", value = binary_denominator)
+    b_denominator <- Reduce(`*`, b_denominator_list)
+    data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * b_numerator / b_denominator)
+    data.table::set(Omega, j = "b_denominator", value = b_denominator)
 
   }
 
-  if (length(continuous_parametric_variables) > 0) {
+  if (length(cpar_vars) > 0) {
 
-    continuous_parametric_params <- start_params$continuous_parametric
-    Omega_continuous_parametric <- Omega[, continuous_parametric_variables, with = FALSE]
-    M_continuous_parametric <- M[, continuous_parametric_variables, with = FALSE]
-    U_continuous_parametric <- U[, continuous_parametric_variables, with = FALSE]
+    cpar_params <- start_params$continuous_parametric
+    Omega_cpar <- Omega[, cpar_vars, with = FALSE]
+    M_cpar <- M[, cpar_vars, with = FALSE]
+    U_cpar <- U[, cpar_vars, with = FALSE]
 
-    p_0_U <- p_0_formula(Omega_continuous_parametric)
-    gamma_plus_U <- gamma_plus_formula(Omega_continuous_parametric)
+    p_0_U <- p_0_formula(Omega_cpar)
+    gamma_plus_U <- gamma_plus_formula(Omega_cpar)
     modified_nleqslv <- purrr::partial(nleqslv::nleqslv, control = controls_nleqslv)
-    alpha_U <- alpha_formula(Omega_continuous_parametric, modified_nleqslv)
+    alpha_U <- alpha_formula(Omega_cpar, modified_nleqslv)
     beta_U <- alpha_U / gamma_plus_U
-    continuous_parametric_params$p_0_U <- p_0_U
-    continuous_parametric_params$alpha_U <- alpha_U
-    continuous_parametric_params$beta_U <- beta_U
+    cpar_params$p_0_U <- p_0_U
+    cpar_params$alpha_U <- alpha_U
+    cpar_params$beta_U <- beta_U
 
-    continuous_parametric_numerator_list <- lapply(continuous_parametric_variables,
+    cpar_numerator_list <- lapply(cpar_vars,
                                                    function(col) {
-                                                     hurdle_gamma_density(x = Omega_continuous_parametric[[col]],
-                                                                          p_0 = as.numeric(continuous_parametric_params[continuous_parametric_params[["variable"]] == col, "p_0_M"]),
-                                                                          alpha = as.numeric(continuous_parametric_params[continuous_parametric_params[["variable"]] == col, "alpha_M"]),
-                                                                          beta = as.numeric(continuous_parametric_params[continuous_parametric_params[["variable"]] == col, "beta_M"]))
+                                                     hurdle_gamma_density(x = Omega_cpar[[col]],
+                                                                          p_0 = as.numeric(cpar_params[cpar_params[["variable"]] == col, "p_0_M"]),
+                                                                          alpha = as.numeric(cpar_params[cpar_params[["variable"]] == col, "alpha_M"]),
+                                                                          beta = as.numeric(cpar_params[cpar_params[["variable"]] == col, "beta_M"]))
                                                    })
-    continuous_parametric_numerator <- Reduce(`*`, continuous_parametric_numerator_list)
-    continuous_parametric_denominator_list <- lapply(continuous_parametric_variables,
+    cpar_numerator <- Reduce(`*`, cpar_numerator_list)
+    cpar_denominator_list <- lapply(cpar_vars,
                                                      function(col) {
-                                                       hurdle_gamma_density(x = Omega_continuous_parametric[[col]],
-                                                                            p_0 = as.numeric(continuous_parametric_params[continuous_parametric_params[["variable"]] == col, "p_0_U"]),
-                                                                            alpha = as.numeric(continuous_parametric_params[continuous_parametric_params[["variable"]] == col, "alpha_U"]),
-                                                                            beta = as.numeric(continuous_parametric_params[continuous_parametric_params[["variable"]] == col, "beta_U"]))
+                                                       hurdle_gamma_density(x = Omega_cpar[[col]],
+                                                                            p_0 = as.numeric(cpar_params[cpar_params[["variable"]] == col, "p_0_U"]),
+                                                                            alpha = as.numeric(cpar_params[cpar_params[["variable"]] == col, "alpha_U"]),
+                                                                            beta = as.numeric(cpar_params[cpar_params[["variable"]] == col, "beta_U"]))
                                                      })
-    continuous_parametric_denominator <- Reduce(`*`, continuous_parametric_denominator_list)
-    data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * continuous_parametric_numerator / continuous_parametric_denominator)
-    data.table::set(Omega, j = "continuous_parametric_denominator", value = continuous_parametric_denominator)
+    cpar_denominator <- Reduce(`*`, cpar_denominator_list)
+    data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * cpar_numerator / cpar_denominator)
+    data.table::set(Omega, j = "cpar_denominator", value = cpar_denominator)
 
   }
 
-  if (length(continuous_nonparametric_variables) > 0) {
+  if (length(cnonpar_vars) > 0) {
 
-    Omega_continuous_nonparametric <- Omega[, continuous_nonparametric_variables, with = FALSE]
-    M_continuous_nonparametric <- M[, continuous_nonparametric_variables, with = FALSE]
-    U_continuous_nonparametric <- U[, continuous_nonparametric_variables, with = FALSE]
+    Omega_cnonpar <- Omega[, cnonpar_vars, with = FALSE]
+    M_cnonpar <- M[, cnonpar_vars, with = FALSE]
+    U_cnonpar <- U[, cnonpar_vars, with = FALSE]
 
     Omega_indexes <- paste0(Omega[["a"]], "_", Omega[["b"]])
     M_indexes <- paste0(M[["a"]], "_", M[["b"]])
@@ -193,17 +200,6 @@ mec <- function(A,
     ratio_temp[setdiff(1:n, which(Omega_indexes %in% M_indexes))] <- (Omega$ratio)[setdiff(1:n, which(Omega_indexes %in% M_indexes))] * stats::runif(n - length(which(Omega_indexes %in%M_indexes)),
                                                                                                                                                      min = 0.9, max = 1)
     data.table::set(Omega, j = "ratio", value = ratio_temp)
-
-    # ratio_kliep <- do.call(
-    #   densityratio::kliep,
-    #   c(list(
-    #     df_numerator = M_continuous_nonparametric,
-    #     df_denominator = U_continuous_nonparametric
-    #   ),
-    #   controls_kliep)
-    # )
-    #
-    # data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * stats::predict(ratio_kliep, Omega_continuous_nonparametric))
 
   }
 
@@ -248,16 +244,16 @@ mec <- function(A,
 
       old_params <- c()
       params <- c()
-      if (length(binary_variables) > 0) {
-        old_params <- c(old_params, theta_binary_old)
-        params <- c(params, theta_binary)
+      if (length(b_vars) > 0) {
+        old_params <- c(old_params, theta_b_old)
+        params <- c(params, theta_b)
       }
-      if (length(continuous_parametric_variables) > 0) {
+      if (length(cpar_vars) > 0) {
         old_params <- c(old_params, p_0_M_old, alpha_M_old, beta_M_old)
         params <- c(params, p_0_M, alpha_M, beta_M)
       }
 
-      if (length(continuous_nonparametric_variables) == 0) {
+      if (length(cnonpar_vars) == 0) {
 
         if ((abs(n_M_old - n_M) < delta) || norm(old_params - params, type = "2") < eps) {
           break
@@ -275,71 +271,71 @@ mec <- function(A,
 
     data.table::set(Omega, j = "ratio", value = 1)
 
-    if (length(binary_variables) > 0) {
+    if (length(b_vars) > 0) {
 
-      Omega_binary <- Omega[, binary_variables, with = FALSE]
-      M_binary <- M[, binary_variables, with = FALSE]
-      U_binary <- U[, binary_variables, with = FALSE]
+      Omega_b <- Omega[, b_vars, with = FALSE]
+      M_b <- M[, b_vars, with = FALSE]
+      U_b <- U[, b_vars, with = FALSE]
 
-      theta_binary_old <- binary_params$theta
-      theta_binary <- binary_formula(M_binary)
-      binary_params$theta <- theta_binary
+      theta_b_old <- b_params$theta
+      theta_b <- binary_formula(M_b)
+      b_params$theta <- theta_b
 
-      binary_numerator_list <- lapply(binary_variables,
+      b_numerator_list <- lapply(b_vars,
                                       function(col) {
-                                        stats::dbinom(x = Omega_binary[[col]],
+                                        stats::dbinom(x = Omega_b[[col]],
                                                       size = 1,
-                                                      prob = as.numeric(binary_params[binary_params[["variable"]] == col, "theta"]))
+                                                      prob = as.numeric(b_params[b_params[["variable"]] == col, "theta"]))
                                       })
-      binary_numerator <- Reduce(`*`, binary_numerator_list)
-      data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * binary_numerator / Omega[["binary_denominator"]])
+      b_numerator <- Reduce(`*`, b_numerator_list)
+      data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * b_numerator / Omega[["b_denominator"]])
     }
 
-    if (length(continuous_parametric_variables) > 0) {
+    if (length(cpar_vars) > 0) {
 
-      Omega_continuous_parametric <- Omega[, continuous_parametric_variables, with = FALSE]
-      M_continuous_parametric <- M[, continuous_parametric_variables, with = FALSE]
-      U_continuous_parametric <- U[, continuous_parametric_variables, with = FALSE]
-      p_0_M_old <- continuous_parametric_params$p_0_M
-      alpha_M_old <- continuous_parametric_params$alpha_M
-      beta_M_old <- continuous_parametric_params$beta_M
-      p_0_M <- p_0_formula(M_continuous_parametric)
-      gamma_plus_M <- gamma_plus_formula(M_continuous_parametric)
-      alpha_M <- alpha_formula_iterative(M_continuous_parametric, modified_nleqslv, beta_M_old)
+      Omega_cpar <- Omega[, cpar_vars, with = FALSE]
+      M_cpar <- M[, cpar_vars, with = FALSE]
+      U_cpar <- U[, cpar_vars, with = FALSE]
+      p_0_M_old <- cpar_params$p_0_M
+      alpha_M_old <- cpar_params$alpha_M
+      beta_M_old <- cpar_params$beta_M
+      p_0_M <- p_0_formula(M_cpar)
+      gamma_plus_M <- gamma_plus_formula(M_cpar)
+      alpha_M <- alpha_formula_iterative(M_cpar, modified_nleqslv, beta_M_old)
       beta_M <- alpha_M / gamma_plus_M
       beta_M[is.nan(beta_M)] <- beta_M_old[is.nan(beta_M)]
-      continuous_parametric_params$p_0_M <- p_0_M
-      continuous_parametric_params$alpha_M <- alpha_M
-      continuous_parametric_params$beta_M <- beta_M
-      continuous_parametric_numerator_list <- lapply(continuous_parametric_variables,
+      cpar_params$p_0_M <- p_0_M
+      cpar_params$alpha_M <- alpha_M
+      cpar_params$beta_M <- beta_M
+      cpar_numerator_list <- lapply(cpar_vars,
                                                      function(col) {
-                                                       hurdle_gamma_density(x = Omega_continuous_parametric[[col]],
-                                                                            p_0 = as.numeric(continuous_parametric_params[continuous_parametric_params[["variable"]] == col, "p_0_M"]),
-                                                                            alpha = as.numeric(continuous_parametric_params[continuous_parametric_params[["variable"]] == col, "alpha_M"]),
-                                                                            beta = as.numeric(continuous_parametric_params[continuous_parametric_params[["variable"]] == col, "beta_M"]))
+                                                       hurdle_gamma_density(x = Omega_cpar[[col]],
+                                                                            p_0 = as.numeric(cpar_params[cpar_params[["variable"]] == col, "p_0_M"]),
+                                                                            alpha = as.numeric(cpar_params[cpar_params[["variable"]] == col, "alpha_M"]),
+                                                                            beta = as.numeric(cpar_params[cpar_params[["variable"]] == col, "beta_M"]))
                                                      })
 
-      continuous_parametric_numerator <- Reduce(`*`, continuous_parametric_numerator_list)
-      data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * continuous_parametric_numerator / Omega[["continuous_parametric_denominator"]])
+      cpar_numerator <- Reduce(`*`, cpar_numerator_list)
+      data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * cpar_numerator / Omega[["cpar_denominator"]])
 
     }
 
-    if (length(continuous_nonparametric_variables) > 0) {
+    if (length(cnonpar_vars) > 0) {
 
-      Omega_continuous_nonparametric <- Omega[, continuous_nonparametric_variables, with = FALSE]
-      M_continuous_nonparametric <- M[, continuous_nonparametric_variables, with = FALSE]
-      U_continuous_nonparametric <- U[, continuous_nonparametric_variables, with = FALSE]
+      Omega_cnonpar <- Omega[, cnonpar_vars, with = FALSE]
+      M_cnonpar <- M[, cnonpar_vars, with = FALSE]
+      U_cnonpar <- U[, cnonpar_vars, with = FALSE]
 
       ratio_kliep <- do.call(
         densityratio::kliep,
         c(list(
-          df_numerator = M_continuous_nonparametric,
-          df_denominator = U_continuous_nonparametric
+          df_numerator = M_cnonpar,
+          df_denominator = U_cnonpar
         ),
         controls_kliep)
       )
 
-      data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * stats::predict(ratio_kliep, Omega_continuous_nonparametric))
+      data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * stats::predict(ratio_kliep, Omega_cnonpar))
 
     }
 
@@ -347,13 +343,40 @@ mec <- function(A,
 
   }
 
+  if (!is.null(true_matches)) {
+
+    data.table::setDT(true_matches)
+
+    eval <- evaluation(M, true_matches, n)
+    eval_metrics <- unlist(get_metrics(
+      TP = eval$TP,
+      FP = eval$FP,
+      FN = eval$FN,
+      TN = eval$TN
+    ))
+    confusion <- get_confusion(
+      TP = eval$TP,
+      FP = eval$FP,
+      FN = eval$FN,
+      TN = eval$TN
+    )
+
+  }
+
   structure(
     list(
-      M = M[, c("a", "b", "ratio")],
-      n_M = n_M,
-      binary_params = if (length(binary_variables) == 0) NULL else binary_params,
-      continuous_parametric_params = if (length(continuous_parametric_variables) == 0) NULL else continuous_parametric_params,
-      Omega = Omega
+      M_est = M[, c("a", "b", "ratio")],
+      n_M_est = n_M,
+      b_vars = if (length(b_vars) == 0) NULL else b_vars,
+      cpar_vars = if (length(cpar_vars) == 0) NULL else cpar_vars,
+      cnonpar_vars = if (length(cnonpar_vars) == 0) NULL else cnonpar_vars,
+      b_params = if (length(b_vars) == 0) NULL else b_params,
+      cpar_params = if (length(cpar_vars) == 0) NULL else cpar_params,
+      ratio_kliep = if (is.null(ratio_kliep)) NULL else ratio_kliep,
+      variables = variables,
+      set_construction = set_construction,
+      eval_metrics = if (is.null(true_matches)) NULL else eval_metrics,
+      confusion = if (is.null(true_matches)) NULL else confusion
     ),
     class = "mec_rec_lin"
   )

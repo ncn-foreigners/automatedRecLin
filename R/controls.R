@@ -8,6 +8,7 @@
 #' @param scale `"numerator"`, `"denominator"` or `NULL`, indicating whether to standardize each numeric variable according
 #' to the numerator means and standard deviations, the denominator means and standard deviations,
 #' or apply no standardization at all.
+#' @param progressbar Logical indicating whether or not to display a progressbar.
 #' @param ... Additional arguments.
 #'
 #' @return
@@ -15,7 +16,8 @@
 #'
 #' @export
 control_kliep <- function(scale = NULL,
+                          progressbar = FALSE,
                           ...) {
-  append(list(scale = scale),
+  append(list(scale = scale, progressbar = progressbar),
          list(...))
 }

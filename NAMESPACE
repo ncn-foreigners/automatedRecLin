@@ -2,6 +2,7 @@
 
 S3method(predict,rec_lin_model)
 S3method(print,comparison_vectors)
+S3method(print,mec_rec_lin)
 S3method(print,rec_lin_model)
 S3method(print,rec_lin_predictions)
 export(abs_distance)

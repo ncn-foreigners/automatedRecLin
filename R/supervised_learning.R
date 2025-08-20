@@ -22,11 +22,11 @@
 #' @return
 #' Returns a list containing:\cr
 #' \itemize{
-#' \item{`binary_variables` -- a character vector of variables used for the `"binary"` method (with the prefix `"gamma_"`),}
-#' \item{`continuous_parametric_variables` -- a character vector of variables used for the `"continuous_parametric"` method (with the prefix `"gamma_"`),}
-#' \item{`continuous_nonparametric_variables` -- a character vector of variables used for the `"continuous_nonparametric"` method (with the prefix `"gamma_"`),}
-#' \item{`binary_params` -- parameters estimated using the `"binary"` method,}
-#' \item{`continuous_parametric_params` -- parameters estimated using the `"continuous_parametric"` method,}
+#' \item{`b_vars` -- a character vector of variables used for the `"binary"` method (with the prefix `"gamma_"`),}
+#' \item{`cpar_vars` -- a character vector of variables used for the `"continuous_parametric"` method (with the prefix `"gamma_"`),}
+#' \item{`cnonpar_vars` -- a character vector of variables used for the `"continuous_nonparametric"` method (with the prefix `"gamma_"`),}
+#' \item{`b_params` -- parameters estimated using the `"binary"` method,}
+#' \item{`cpar_params` -- parameters estimated using the `"continuous_parametric"` method,}
 #' \item{`ratio_kliep` -- a result of the \link[densityratio]{kliep} function,}
 #' \item{`ml_model` -- here `NULL`,}
 #' \item{`pi_est` -- a prior probability of matching,}
@@ -164,53 +164,53 @@ train_rec_lin <- function(
   n_M <- NROW(M)
   pi_est <- n_M / n
 
-  binary_variables <- NULL
-  continuous_parametric_variables <- NULL
-  continuous_nonparametric_variables <- NULL
+  b_vars <- NULL
+  cpar_vars <- NULL
+  cnonpar_vars <- NULL
 
-  binary_params <- NULL
-  continuous_parametric_params <- NULL
+  b_params <- NULL
+  cpar_params <- NULL
   ratio_kliep <- NULL
 
   if (any(methods == "binary")) {
 
-    binary_variables <- paste0("gamma_", names(which(methods == "binary")))
-    M_binary <- M[, binary_variables, with = FALSE]
-    theta_binary <- binary_formula(M_binary)
+    b_vars <- paste0("gamma_", names(which(methods == "binary")))
+    M_b <- M[, b_vars, with = FALSE]
+    theta_b <- binary_formula(M_b)
     if (prob_ratio == "1") {
-      Omega_binary <- Omega[, binary_variables, with = FALSE]
-      eta_binary <- binary_formula(Omega_binary)
+      Omega_b <- Omega[, b_vars, with = FALSE]
+      eta_b <- binary_formula(Omega_b)
     } else if (prob_ratio == "2") {
-      U_binary <- U[, binary_variables, with = FALSE]
-      eta_binary <- binary_formula(U_binary)
+      U_b <- U[, b_vars, with = FALSE]
+      eta_b <- binary_formula(U_b)
     }
 
-    binary_params <- data.table(
-      variable = binary_variables,
-      theta = theta_binary,
-      eta = eta_binary
+    b_params <- data.table(
+      variable = b_vars,
+      theta = theta_b,
+      eta = eta_b
     )
 
   }
 
   if (any(methods == "continuous_parametric")) {
 
-    continuous_parametric_variables <- paste0("gamma_", names(which(methods == "continuous_parametric")))
+    cpar_vars <- paste0("gamma_", names(which(methods == "continuous_parametric")))
     modified_nleqslv <- purrr::partial(nleqslv::nleqslv, control = controls_nleqslv)
-    M_continuous_parametric <- M[, continuous_parametric_variables, with = FALSE]
-    p_0_M <- p_0_formula(M_continuous_parametric)
-    gamma_plus_M <- gamma_plus_formula(M_continuous_parametric)
-    alpha_M <- alpha_formula(M_continuous_parametric, modified_nleqslv)
+    M_cpar <- M[, cpar_vars, with = FALSE]
+    p_0_M <- p_0_formula(M_cpar)
+    gamma_plus_M <- gamma_plus_formula(M_cpar)
+    alpha_M <- alpha_formula(M_cpar, modified_nleqslv)
     beta_M <- alpha_M / gamma_plus_M
     if (prob_ratio == "1") {
-      Omega_continuous_parametric <- Omega[, continuous_parametric_variables, with = FALSE]
-      p_0_Omega <- p_0_formula(Omega_continuous_parametric)
-      gamma_plus_Omega <- gamma_plus_formula(Omega_continuous_parametric)
-      alpha_Omega <- alpha_formula(Omega_continuous_parametric, modified_nleqslv)
+      Omega_cpar <- Omega[, cpar_vars, with = FALSE]
+      p_0_Omega <- p_0_formula(Omega_cpar)
+      gamma_plus_Omega <- gamma_plus_formula(Omega_cpar)
+      alpha_Omega <- alpha_formula(Omega_cpar, modified_nleqslv)
       beta_Omega <- alpha_Omega / gamma_plus_Omega
 
-      continuous_parametric_params <- data.table(
-        variable = continuous_parametric_variables,
+      cpar_params <- data.table(
+        variable = cpar_vars,
         p_0_M = p_0_M,
         p_0_Omega = p_0_Omega,
         alpha_M = alpha_M,
@@ -219,14 +219,14 @@ train_rec_lin <- function(
         beta_Omega = beta_Omega
       )
     } else if (prob_ratio == "2") {
-      U_continuous_parametric <- U[, continuous_parametric_variables, with = FALSE]
-      p_0_U <- p_0_formula(U_continuous_parametric)
-      gamma_plus_U <- gamma_plus_formula(U_continuous_parametric)
-      alpha_U <- alpha_formula(U_continuous_parametric, modified_nleqslv)
+      U_cpar <- U[, cpar_vars, with = FALSE]
+      p_0_U <- p_0_formula(U_cpar)
+      gamma_plus_U <- gamma_plus_formula(U_cpar)
+      alpha_U <- alpha_formula(U_cpar, modified_nleqslv)
       beta_U <- alpha_U / gamma_plus_U
 
-      continuous_parametric_params <- data.table(
-        variable = continuous_parametric_variables,
+      cpar_params <- data.table(
+        variable = cpar_vars,
         p_0_M = p_0_M,
         p_0_U = p_0_U,
         alpha_M = alpha_M,
@@ -240,27 +240,27 @@ train_rec_lin <- function(
 
   if (any(methods == "continuous_nonparametric")) {
 
-    continuous_nonparametric_variables <- paste0("gamma_", names(which(methods == "continuous_nonparametric")))
-    M_continuous_nonparametric <- M[, continuous_nonparametric_variables, with = FALSE]
+    cnonpar_vars <- paste0("gamma_", names(which(methods == "continuous_nonparametric")))
+    M_cnonpar <- M[, cnonpar_vars, with = FALSE]
     if (prob_ratio == "1") {
-      Omega_continuous_nonparametric <- Omega[, continuous_nonparametric_variables, with = FALSE]
+      Omega_cnonpar <- Omega[, cnonpar_vars, with = FALSE]
 
       ratio_kliep <- do.call(
         densityratio::kliep,
         c(list(
-          df_numerator = M_continuous_nonparametric,
-          df_denominator = Omega_continuous_nonparametric
+          df_numerator = M_cnonpar,
+          df_denominator = Omega_cnonpar
         ),
         controls_kliep)
       )
     } else if (prob_ratio == "2") {
-      U_continuous_nonparametric <- U[, continuous_nonparametric_variables, with = FALSE]
+      U_cnonpar <- U[, cnonpar_vars, with = FALSE]
 
       ratio_kliep <- do.call(
         densityratio::kliep,
         c(list(
-          df_numerator = M_continuous_nonparametric,
-          df_denominator = U_continuous_nonparametric
+          df_numerator = M_cnonpar,
+          df_denominator = U_cnonpar
         ),
         controls_kliep)
       )
@@ -270,11 +270,11 @@ train_rec_lin <- function(
 
   structure(
     list(
-      binary_variables = if (is.null(binary_variables)) NULL else binary_variables,
-      continuous_parametric_variables = if (is.null(continuous_parametric_variables)) NULL else continuous_parametric_variables,
-      continuous_nonparametric_variables = if (is.null(continuous_nonparametric_variables)) NULL else continuous_nonparametric_variables,
-      binary_params = if (is.null(binary_params)) NULL else binary_params,
-      continuous_parametric_params = if (is.null(continuous_parametric_params)) NULL else continuous_parametric_params,
+      b_vars = if (is.null(b_vars)) NULL else b_vars,
+      cpar_vars = if (is.null(cpar_vars)) NULL else cpar_vars,
+      cnonpar_vars = if (is.null(cnonpar_vars)) NULL else cnonpar_vars,
+      b_params = if (is.null(b_params)) NULL else b_params,
+      cpar_params = if (is.null(cpar_params)) NULL else cpar_params,
       ratio_kliep = if (is.null(ratio_kliep)) NULL else ratio_kliep,
       ml_model = NULL,
       pi_est = pi_est,
@@ -302,11 +302,11 @@ train_rec_lin <- function(
 #' @return
 #' Returns a list containing:\cr
 #' \itemize{
-#' \item{`binary_variables` -- here `NULL`,}
-#' \item{`continuous_parametric_variables` -- here `NULL`,}
-#' \item{`continuous_nonparametric_variables` -- here `NULL`,}
-#' \item{`binary_params` -- here `NULL`,}
-#' \item{`continuous_parametric_params` -- here `NULL`,}
+#' \item{`b_vars` -- here `NULL`,}
+#' \item{`cpar_vars` -- here `NULL`,}
+#' \item{`cnonpar_vars` -- here `NULL`,}
+#' \item{`b_params` -- here `NULL`,}
+#' \item{`cpar_params` -- here `NULL`,}
 #' \item{`ratio_kliep` -- here `NULL`,}
 #' \item{`ml_model` -- ML model used for creating the record linkage model,}
 #' \item{`pi_est` -- a prior probability of matching,}
@@ -361,11 +361,11 @@ custom_rec_lin_model <- function(ml_model, vectors) {
 
   structure(
     list(
-      binary_variables = NULL,
-      continuous_parametric_variables = NULL,
-      continuous_nonparametric_variables = NULL,
-      binary_params = NULL,
-      continuous_parametric_params = NULL,
+      b_vars = NULL,
+      cpar_vars = NULL,
+      cnonpar_vars = NULL,
+      b_params = NULL,
+      cpar_params = NULL,
       ratio_kliep = NULL,
       ml_model = ml_model,
       pi_est = pi_est,

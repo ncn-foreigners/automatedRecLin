@@ -4,12 +4,14 @@
 \alias{control_kliep}
 \title{Controls for the kliep Function}
 \usage{
-control_kliep(scale = NULL, ...)
+control_kliep(scale = NULL, progressbar = FALSE, ...)
 }
 \arguments{
 \item{scale}{\code{"numerator"}, \code{"denominator"} or \code{NULL}, indicating whether to standardize each numeric variable according
 to the numerator means and standard deviations, the denominator means and standard deviations,
 or apply no standardization at all.}
+
+\item{progressbar}{Logical indicating whether or not to display a progressbar.}
 
 \item{...}{Additional arguments.}
 }

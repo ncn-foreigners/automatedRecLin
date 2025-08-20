@@ -14,11 +14,11 @@ custom_rec_lin_model(ml_model, vectors)
 \value{
 Returns a list containing:\cr
 \itemize{
-\item{\code{binary_variables} -- here \code{NULL},}
-\item{\code{continuous_parametric_variables} -- here \code{NULL},}
-\item{\code{continuous_nonparametric_variables} -- here \code{NULL},}
-\item{\code{binary_params} -- here \code{NULL},}
-\item{\code{continuous_parametric_params} -- here \code{NULL},}
+\item{\code{b_vars} -- here \code{NULL},}
+\item{\code{cpar_vars} -- here \code{NULL},}
+\item{\code{cnonpar_vars} -- here \code{NULL},}
+\item{\code{b_params} -- here \code{NULL},}
+\item{\code{cpar_params} -- here \code{NULL},}
 \item{\code{ratio_kliep} -- here \code{NULL},}
 \item{\code{ml_model} -- ML model used for creating the record linkage model,}
 \item{\code{pi_est} -- a prior probability of matching,}
