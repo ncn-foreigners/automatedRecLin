@@ -10,6 +10,7 @@ mec(
   variables,
   comparators = NULL,
   methods = NULL,
+  nonpar_hurdle = FALSE,
   start_params = NULL,
   set_construction = NULL,
   delta = 0.5,

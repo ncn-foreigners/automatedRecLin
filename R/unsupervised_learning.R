@@ -14,6 +14,7 @@ mec <- function(A,
                 variables,
                 comparators = NULL,
                 methods = NULL,
+                nonpar_hurdle = FALSE,
                 start_params = NULL,
                 set_construction = NULL,
                 delta = 0.5,
@@ -88,6 +89,15 @@ mec <- function(A,
     cnonpar_vars <- paste0("gamma_", names(which(methods == "continuous_nonparametric")))
   }
 
+  ratio_kliep <- NULL
+
+  M <- merge(M, Omega, by = c("a", "b"), all = FALSE)
+  M <- M[, colnames(Omega), with = FALSE]
+  U <- data.table::fsetdiff(Omega, M)
+  n <- NROW(Omega)
+  n_M <- NROW(M)
+  data.table::set(Omega, j = "ratio", value = 1)
+
   if (is.null(start_params)) {
 
     start_params <- list()
@@ -103,22 +113,14 @@ mec <- function(A,
     if (length(cpar_vars) > 0) {
       start_params[["continuous_parametric"]] <- data.table(
         variable = cpar_vars,
-        p_0_M = runif(length(cpar_vars), min = 0.9),
-        alpha_M = runif(length(cpar_vars), max = 1),
-        beta_M = runif(length(cpar_vars), max = 10)
+        p_0_M = runif(length(cpar_vars), min = 0.8, max = 0.9),
+        # p_0_M = n_M / rep(min(NROW(A), NROW(B)), length(cpar_vars)),
+        alpha_M = runif(length(cpar_vars), min = 0.1, max = 1),
+        beta_M = runif(length(cpar_vars), min = 0.5, max = 1)
       )
     }
 
   }
-
-  ratio_kliep <- NULL
-
-  M <- merge(M, Omega, by = c("a", "b"), all = FALSE)
-  M <- M[, colnames(Omega), with = FALSE]
-  U <- data.table::fsetdiff(Omega, M)
-  n <- NROW(Omega)
-  n_M <- NROW(M)
-  data.table::set(Omega, j = "ratio", value = 1)
 
   if (length(b_vars) > 0) {
 
@@ -194,12 +196,40 @@ mec <- function(A,
 
     Omega_indexes <- paste0(Omega[["a"]], "_", Omega[["b"]])
     M_indexes <- paste0(M[["a"]], "_", M[["b"]])
-    ratio_temp <- as.numeric(Omega$ratio)
-    ratio_temp[which(Omega_indexes %in% M_indexes)] <- (Omega$ratio)[which(Omega_indexes %in% M_indexes)] * stats::runif(length(which(Omega_indexes %in% M_indexes)),
-                                                                       min = 500, max = 1000)
-    ratio_temp[setdiff(1:n, which(Omega_indexes %in% M_indexes))] <- (Omega$ratio)[setdiff(1:n, which(Omega_indexes %in% M_indexes))] * stats::runif(n - length(which(Omega_indexes %in%M_indexes)),
-                                                                                                                                                     min = 0.9, max = 1)
-    data.table::set(Omega, j = "ratio", value = ratio_temp)
+
+    if (nonpar_hurdle) {
+
+      p_0_M_cnonpar <- runif(length(cnonpar_vars), min = 0.5)
+      p_0_U_cnonpar <- p_0_formula(Omega_cnonpar)
+      names(p_0_M_cnonpar) <- cnonpar_vars
+
+      ratio_temp <- lapply(cnonpar_vars, function(x) {
+        r <- numeric(n)
+        r[which(Omega_indexes %in% M_indexes)] <- stats::runif(length(which(Omega_indexes %in% M_indexes)),
+                                                               min = 5, max = 10)
+        r[setdiff(1:n, which(Omega_indexes %in% M_indexes))] <- stats::runif(n - length(which(Omega_indexes %in% M_indexes)),
+                                                                             min = 0.1, max = 5)
+        r
+      })
+      names(ratio_temp) <- cnonpar_vars
+      cnonpar_ratio_list <- lapply(cnonpar_vars, function(x) {
+        gamma_vec <- Omega_cnonpar[[x]]
+        ifelse(gamma_vec == 0, p_0_M_cnonpar[x] / p_0_U_cnonpar[x], 1) *
+          ifelse(gamma_vec > 0, (1 - p_0_M_cnonpar[x]) / (1 - p_0_U_cnonpar[x]) * ratio_temp[[x]], 1)
+      })
+      ratio_kliep <- Reduce(`*`, cnonpar_ratio_list)
+      data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * ratio_kliep)
+
+    } else {
+
+      ratio_temp <- as.numeric(Omega$ratio)
+      ratio_temp[which(Omega_indexes %in% M_indexes)] <- (Omega$ratio)[which(Omega_indexes %in% M_indexes)] * stats::runif(length(which(Omega_indexes %in% M_indexes)),
+                                                                                                                           min = 5, max = 10)
+      ratio_temp[setdiff(1:n, which(Omega_indexes %in% M_indexes))] <- (Omega$ratio)[setdiff(1:n, which(Omega_indexes %in% M_indexes))] * stats::runif(n - length(which(Omega_indexes %in% M_indexes)),
+                                                                                                                                                       min = 0.1, max = 5)
+      data.table::set(Omega, j = "ratio", value = ratio_temp)
+
+    }
 
   }
 
@@ -210,6 +240,10 @@ mec <- function(A,
     g_est <- pmin(NROW(M) * Omega$ratio / (NROW(M) * (Omega$ratio - 1) + n), 1)
     n_M_old <- n_M
     n_M <- sum(g_est)
+    print(n_M)
+    if (n_M > min(NROW(A), NROW(B))) {
+      n_M <- min(NROW(A), NROW(B))
+    }
 
     Omega <- Omega[order(-get("ratio")), ]
     M <- data.table("a" = numeric(), "b" = numeric())
@@ -292,7 +326,6 @@ mec <- function(A,
     }
 
     if (length(cpar_vars) > 0) {
-
       Omega_cpar <- Omega[, cpar_vars, with = FALSE]
       M_cpar <- M[, cpar_vars, with = FALSE]
       U_cpar <- U[, cpar_vars, with = FALSE]
@@ -301,7 +334,8 @@ mec <- function(A,
       beta_M_old <- cpar_params$beta_M
       p_0_M <- p_0_formula(M_cpar)
       gamma_plus_M <- gamma_plus_formula(M_cpar)
-      alpha_M <- alpha_formula_iterative(M_cpar, modified_nleqslv, beta_M_old)
+      # alpha_M <- alpha_formula_iterative(M_cpar, modified_nleqslv, beta_M_old)
+      alpha_M <- alpha_formula(M_cpar, modified_nleqslv)
       beta_M <- alpha_M / gamma_plus_M
       beta_M[is.nan(beta_M)] <- beta_M_old[is.nan(beta_M)]
       cpar_params$p_0_M <- p_0_M
@@ -326,16 +360,54 @@ mec <- function(A,
       M_cnonpar <- M[, cnonpar_vars, with = FALSE]
       U_cnonpar <- U[, cnonpar_vars, with = FALSE]
 
-      ratio_kliep <- do.call(
-        densityratio::kliep,
-        c(list(
-          df_numerator = M_cnonpar,
-          df_denominator = U_cnonpar
-        ),
-        controls_kliep)
-      )
+      if (nonpar_hurdle) {
 
-      data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * stats::predict(ratio_kliep, Omega_cnonpar))
+        p_0_M_cnonpar <- p_0_formula(M_cnonpar)
+
+        ratio_kliep_list <- lapply(cnonpar_vars, function (x) {
+          gamma_M <- M_cnonpar[[x]]
+          gamma_M <- data.table::data.table(gamma_M[gamma_M > 0])
+          names(gamma_M) <- x
+          gamma_U <- U_cnonpar[[x]]
+          gamma_U <- data.table::data.table(gamma_U[gamma_U > 0])
+          names(gamma_U) <- x
+          if (length(gamma_M) > 0) {
+            ratio_plus <- do.call(
+              densityratio::kliep,
+              c(list(
+                df_numerator = gamma_M,
+                df_denominator = gamma_U
+              ),
+              controls_kliep)
+            )
+            gamma_vec <- Omega_cnonpar[[x]]
+            gamma_df <- Omega_cnonpar[, x, with = FALSE]
+            kliep_pred <- as.vector(stats::predict(ratio_plus, gamma_df))
+            ifelse(gamma_vec == 0, p_0_M_cnonpar[x] / p_0_U_cnonpar[x], 1) *
+              ifelse(gamma_vec > 0, (1 - p_0_M_cnonpar[x]) * (1 - p_0_U_cnonpar[x]) * kliep_pred, 1)
+          } else {
+            gamma_vec <- Omega_cnonpar[[x]]
+            ifelse(gamma_vec == 0, p_0_M_cnonpar[x] / p_0_U_cnonpar[x], 1)
+          }
+
+        })
+        ratio_kliep <- Reduce(`*`, ratio_kliep_list)
+        data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * ratio_kliep)
+
+      } else {
+
+        ratio_kliep <- do.call(
+          densityratio::kliep,
+          c(list(
+            df_numerator = M_cnonpar,
+            df_denominator = U_cnonpar
+          ),
+          controls_kliep)
+        )
+
+        data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * stats::predict(ratio_kliep, Omega_cnonpar))
+
+      }
 
     }
 
