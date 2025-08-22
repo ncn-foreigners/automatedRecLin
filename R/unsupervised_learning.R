@@ -33,6 +33,17 @@ mec <- function(A,
                 is.list(start_params))
   }
 
+  if (!is.null(true_matches)) {
+
+    if (!(is.data.frame(true_matches) || is.data.table(true_matches))) {
+      warning("`true_matches` should be a data.frame or a data.table. Setting `true_matches` to `NULL`.")
+      true_matches <- NULL
+    } else if (!(length(colnames(true_matches)) == 2 && all(colnames(true_matches) == c("a", "b")))) {
+      warning("`true_matches` should consist of two columns: a, b. Setting `true_matches` to `NULL`.")
+    }
+
+  }
+
   if (is.null(set_construction)) {
     set_construction <- "size"
   }
@@ -72,6 +83,7 @@ mec <- function(A,
 
   missing_variables <- variables[!(variables %in% names(methods))]
   methods[missing_variables] <- "binary"
+  methods <- methods[variables]
 
   b_vars <- NULL
   cpar_vars <- NULL
@@ -116,7 +128,7 @@ mec <- function(A,
         p_0_M = runif(length(cpar_vars), min = 0.8, max = 0.9),
         # p_0_M = n_M / rep(min(NROW(A), NROW(B)), length(cpar_vars)),
         alpha_M = runif(length(cpar_vars), min = 0.1, max = 1),
-        beta_M = runif(length(cpar_vars), min = 0.5, max = 1)
+        beta_M = runif(length(cpar_vars), min = 10, max = 20)
       )
     }
 
@@ -240,7 +252,7 @@ mec <- function(A,
     g_est <- pmin(NROW(M) * Omega$ratio / (NROW(M) * (Omega$ratio - 1) + n), 1)
     n_M_old <- n_M
     n_M <- sum(g_est)
-    print(n_M)
+
     if (n_M > min(NROW(A), NROW(B))) {
       n_M <- min(NROW(A), NROW(B))
     }
@@ -263,6 +275,9 @@ mec <- function(A,
         M <- rbind(M, Omega[i, ])
         used_a <- c(used_a, current_a)
         used_b <- c(used_b, current_b)
+      }
+      if (NROW(M) >= n_M) {
+        break
       }
 
     }

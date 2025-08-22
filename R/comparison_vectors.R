@@ -77,6 +77,7 @@ comparison_vectors <- function(
   missing_variables <- variables[!(variables %in% names(comparators))]
   comparators[missing_variables] <- rep(list(reclin2::cmp_identical()),
                                         length(missing_variables))
+  comparators <- comparators[variables]
 
   data.table::setDT(A)
   data.table::setDT(B)

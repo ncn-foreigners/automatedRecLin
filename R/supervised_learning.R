@@ -94,6 +94,7 @@ train_rec_lin <- function(
 
   missing_variables <- variables[!(variables %in% names(methods))]
   methods[missing_variables] <- "binary"
+  methods <- methods[variables]
 
   unique_values <- lapply(variables, function(col) {
     length(unique(c(A[[col]], B[[col]])))
