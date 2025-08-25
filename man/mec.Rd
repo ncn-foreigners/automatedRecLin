@@ -10,9 +10,12 @@ mec(
   variables,
   comparators = NULL,
   methods = NULL,
-  nonpar_hurdle = FALSE,
   start_params = NULL,
+  nonpar_hurdle = FALSE,
   set_construction = NULL,
+  target_flr = 0.03,
+  max_iter_bisection = 100,
+  tol = 0.005,
   delta = 0.5,
   eps = 0.05,
   controls_nleqslv = list(),
@@ -20,8 +23,129 @@ mec(
   true_matches = NULL
 )
 }
+\arguments{
+\item{A}{A duplicate-free \code{data.frame} or \code{data.table}.}
+
+\item{B}{A duplicate-free \code{data.frame} or \code{data.table}.}
+
+\item{variables}{A character vector of key variables used to create comparison vectors.}
+
+\item{comparators}{A named list of functions for comparing pairs of records.}
+
+\item{methods}{A named list of methods used for estimation (\code{"binary"}, \code{"continuous_parametric"} or \code{"continuous_nonparametric"}).}
+
+\item{start_params}{Start parameters for the \code{binary} and \code{continuous_parametric} methods.}
+
+\item{nonpar_hurdle}{Logical indicating whether to use a hurdle model or not
+(used only if the \code{"continuous_nonparametric"} method has been chosen for at least one variable).}
+
+\item{set_construction}{A method for constructing the predicted set of matches (\code{"size"} or \code{"flr"}).}
+
+\item{target_flr}{A target false link rate (FLR) (used only if \code{set_construction == "flr"}).}
+
+\item{max_iter_bisection}{A maximum number of iterations for the bisection procedure (used only if \code{set_construction == "flr"}).}
+
+\item{tol}{Error tolerance in the bisection procedure (used only if \code{set_construction == "flr"}).}
+
+\item{delta}{A numeric value specifying the tolerance for the change in the estimated number of matches between iterations.}
+
+\item{eps}{A numeric value specifying the tolerance for the change in model parameters between iterations.}
+
+\item{controls_nleqslv}{Controls passed to the \link[nleqslv]{nleqslv} function
+(only if the \code{"continuous_parametric"} method has been chosen for at least one variable).}
+
+\item{controls_kliep}{Controls passed to the \link[densityratio]{kliep} function
+(only if the \code{"continuous_nonparametric"} method has been chosen for at least one variable).}
+
+\item{true_matches}{A \code{data.frame} or \code{data.table} indicating known matches.}
+}
+\value{
+Returns a list containing:\cr
+\itemize{
+\item{\code{M_est} -- a \code{data.table} with predicted matches,}
+\item{\code{n_M_est} -- estimated classification set size,}
+\item{\code{flr_est} -- estimated false link rate (FLR),}
+\item{\code{mmr_est} -- estimated missing match rate (MMR),}
+\item{\code{iter_bisection} -- the number of iterations in the bisection procedure,}
+\item{\code{b_vars} -- a character vector of variables used for the \code{"binary"} method (with the prefix \code{"gamma_"}),}
+\item{\code{cpar_vars} -- a character vector of variables used for the \code{"continuous_parametric"} method (with the prefix \code{"gamma_"}),}
+\item{\code{cnonpar_vars} -- a character vector of variables used for the \code{"continuous_nonparametric"} method (with the prefix \code{"gamma_"}),}
+\item{\code{b_params} -- parameters estimated using the \code{"binary"} method,}
+\item{\code{cpar_params} -- parameters estimated using the \code{"continuous_parametric"} method,}
+\item{\code{ratio_kliep} -- a result of the \link[densityratio]{kliep} function,}
+\item{\code{variables} -- a character vector of key variables used for comparison,}
+\item{\code{set_construction} -- a method for constructing the predicted set of matches,}
+\item{\code{eval_metrics} -- metrics for quality assessment (if \code{true_matches} is provided),}
+\item{\code{confusion} -- confusion matrix (if \code{true_matches} is provided).}
+}
+}
 \description{
-Unsupervised Maximum Entropy Classifier for Record Linkage
+Implements an unsupervised maximum entropy classification algorithm for record linkage,
+iteratively estimating probability / density ratios to classify record pairs into matches and non-matches
+based on comparison vectors.
+}
+\examples{
+df_1 <- data.frame(
+  name = c("Emma", "Liam", "Olivia", "Noah", "Ava",
+           "Ethan", "Sophia", "Mason", "Isabella", "James"),
+  surname = c("Smith", "Johnson", "Williams", "Brown", "Jones",
+              "Garcia", "Miller", "Davis", "Rodriguez", "Wilson"),
+  city = c("New York", "Los Angeles", "Chicago", "Houston", "Phoenix",
+           "Philadelphia", "San Antonio", "San Diego", "Dallas", "San Jose")
+)
+
+df_2 <- data.frame(
+  name = c(
+    "Emma", "Liam", "Olivia", "Noah",
+    "Ava", "Ehtan", "Sopia", "Mson",
+    "Charlotte", "Benjamin", "Amelia", "Lucas"
+  ),
+  surname = c(
+     "Smith", "Johnson", "Williams", "Brown",
+    "Jnes", "Garca", "Miler", "Dvis",
+    "Martinez", "Lee", "Hernandez", "Clark"
+  ),
+  city = c(
+    "New York", "Los Angeles", "Chicago", "Houston",
+    "Phonix", "Philadelpia", "San Antnio", "San Dieg",
+    "Seattle", "Miami", "Boston", "Denver"
+  )
+)
+true_matches <- data.frame(
+  "a" = 1:8,
+  "b" = 1:8
+)
+
+variables <- c("name", "surname", "city")
+comparators <- list(
+  "name" = jarowinkler_complement(),
+  "surname" = jarowinkler_complement(),
+  "city" = jarowinkler_complement()
+)
+methods <- list(
+  "name" = "continuous_parametric",
+  "surname" = "continuous_parametric",
+  "city" = "continuous_parametric"
+)
+
+set.seed(1)
+result <- mec(A = df_1, B = df_2,
+              variables = variables,
+              comparators = comparators,
+              methods = methods,
+              true_matches = true_matches)
+result
+}
+\references{
+Lee, D., Zhang, L.-C. and Kim, J. K. (2022). Maximum entropy classification for record linkage.
+Survey Methodology, Statistics Canada, Catalogue No. 12-001-X, Vol. 48, No. 1.
+
+Vo, T. H., Chauvet, G., Happe, A., Oger, E., Paquelet, S., and Garès, V. (2023).
+Extending the Fellegi-Sunter record linkage model for mixed-type data with application to the French national health data system.
+Computational Statistics & Data Analysis, 179, 107656.
+
+Sugiyama, M., Suzuki, T., Nakajima, S. et al. Direct importance estimation for covariate shift adaptation.
+Ann Inst Stat Math 60, 699–746 (2008). \doi{10.1007/s10463-008-0197-x}
 }
 \author{
 Adam Struzik

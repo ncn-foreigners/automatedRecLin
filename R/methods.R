@@ -70,9 +70,9 @@ print.rec_lin_predictions <- function(x, ...) {
       cat("The construction of the classification set was based on the target false link rate (FLR).\n")
       cat("The bisection procedure ended after", x$iter, "iterations.\n")
     }
-    cat("Estimated false link rate (FLR): ", x$flr_est, ".\n", sep = "")
+    cat("Estimated false link rate (FLR): ", sprintf("%.4f", x$flr_est * 100), " %.\n", sep = "")
     if (x$n_M_est != 0) {
-      cat("Estimated missing match rate (MMR): ", x$mmr_est, ".\n", sep = "")
+      cat("Estimated missing match rate (MMR): ", sprintf("%.4f", x$mmr_est * 100), " %.\n", sep = "")
     } else {
       # cat("Estimated classification set size is 0.\n")
       cat("Missing match rate (MMR) cannot be estimated because the estimated classification set size is equal to 0.")
@@ -111,10 +111,16 @@ print.mec_rec_lin <- function(x, ...) {
   }
   if (x$set_construction == "size") {
     cat("The construction of the classification set was based on estimates of its size.\n")
-  } # else if (x$set_construction == "flr") {
-    # cat("The construction of the classification set was based on the target false link rate (FLR).\n")
-    # cat("The bisection procedure ended after", x$iter, "iterations.\n")
-  # }
+  } else if (x$set_construction == "flr") {
+  cat("The construction of the classification set was based on the target false link rate (FLR).\n")
+  cat("The bisection procedure ended after", x$iter_bisection, "iterations.\n")
+  }
+  # cat("Estimated false link rate (FLR): ", x$flr_est, ".\n", sep = "")
+  cat("Estimated false link rate (FLR): ", sprintf("%.4f", x$flr_est * 100), " %.\n", sep = "")
+  if (!is.null(x$mmr_est)) {
+    # cat("Estimated missing match rate (MMR): ", x$mmr_est, ".\n", sep = "")
+    cat("Estimated missing match rate (MMR): ", sprintf("%.4f", x$mmr_est * 100), " %.\n", sep = "")
+  }
 
   if (!is.null(x$b_vars)) {
     cat("========================================================\n")

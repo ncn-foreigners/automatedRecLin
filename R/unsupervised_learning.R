@@ -8,15 +8,125 @@
 #'
 #' @author Adam Struzik
 #'
+#' @description
+#' Implements an unsupervised maximum entropy classification algorithm for record linkage,
+#' iteratively estimating probability / density ratios to classify record pairs into matches and non-matches
+#' based on comparison vectors.
+#'
+#' @param A A duplicate-free `data.frame` or `data.table`.
+#' @param B A duplicate-free `data.frame` or `data.table`.
+#' @param variables A character vector of key variables used to create comparison vectors.
+#' @param comparators A named list of functions for comparing pairs of records.
+#' @param methods A named list of methods used for estimation (`"binary"`, `"continuous_parametric"` or `"continuous_nonparametric"`).
+#' @param start_params Start parameters for the `binary` and `continuous_parametric` methods.
+#' @param nonpar_hurdle Logical indicating whether to use a hurdle model or not
+#' (used only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
+#' @param set_construction A method for constructing the predicted set of matches (`"size"` or `"flr"`).
+#' @param target_flr A target false link rate (FLR) (used only if `set_construction == "flr"`).
+#' @param max_iter_bisection A maximum number of iterations for the bisection procedure (used only if `set_construction == "flr"`).
+#' @param tol Error tolerance in the bisection procedure (used only if `set_construction == "flr"`).
+#' @param delta A numeric value specifying the tolerance for the change in the estimated number of matches between iterations.
+#' @param eps A numeric value specifying the tolerance for the change in model parameters between iterations.
+#' @param controls_nleqslv Controls passed to the \link[nleqslv]{nleqslv} function
+#' (only if the `"continuous_parametric"` method has been chosen for at least one variable).
+#' @param controls_kliep Controls passed to the \link[densityratio]{kliep} function
+#' (only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
+#' @param true_matches A `data.frame` or `data.table` indicating known matches.
+#'
+#' @return
+#' Returns a list containing:\cr
+#' \itemize{
+#' \item{`M_est` -- a `data.table` with predicted matches,}
+#' \item{`n_M_est` -- estimated classification set size,}
+#' \item{`flr_est` -- estimated false link rate (FLR),}
+#' \item{`mmr_est` -- estimated missing match rate (MMR),}
+#' \item{`iter_bisection` -- the number of iterations in the bisection procedure,}
+#' \item{`b_vars` -- a character vector of variables used for the `"binary"` method (with the prefix `"gamma_"`),}
+#' \item{`cpar_vars` -- a character vector of variables used for the `"continuous_parametric"` method (with the prefix `"gamma_"`),}
+#' \item{`cnonpar_vars` -- a character vector of variables used for the `"continuous_nonparametric"` method (with the prefix `"gamma_"`),}
+#' \item{`b_params` -- parameters estimated using the `"binary"` method,}
+#' \item{`cpar_params` -- parameters estimated using the `"continuous_parametric"` method,}
+#' \item{`ratio_kliep` -- a result of the \link[densityratio]{kliep} function,}
+#' \item{`variables` -- a character vector of key variables used for comparison,}
+#' \item{`set_construction` -- a method for constructing the predicted set of matches,}
+#' \item{`eval_metrics` -- metrics for quality assessment (if `true_matches` is provided),}
+#' \item{`confusion` -- confusion matrix (if `true_matches` is provided).}
+#' }
+#'
+#' @references
+#' Lee, D., Zhang, L.-C. and Kim, J. K. (2022). Maximum entropy classification for record linkage.
+#' Survey Methodology, Statistics Canada, Catalogue No. 12-001-X, Vol. 48, No. 1.
+#'
+#' Vo, T. H., Chauvet, G., Happe, A., Oger, E., Paquelet, S., and Garès, V. (2023).
+#' Extending the Fellegi-Sunter record linkage model for mixed-type data with application to the French national health data system.
+#' Computational Statistics & Data Analysis, 179, 107656.
+#'
+#' Sugiyama, M., Suzuki, T., Nakajima, S. et al. Direct importance estimation for covariate shift adaptation.
+#' Ann Inst Stat Math 60, 699–746 (2008). \doi{10.1007/s10463-008-0197-x}
+#'
+#' @examples
+#' df_1 <- data.frame(
+#'   name = c("Emma", "Liam", "Olivia", "Noah", "Ava",
+#'            "Ethan", "Sophia", "Mason", "Isabella", "James"),
+#'   surname = c("Smith", "Johnson", "Williams", "Brown", "Jones",
+#'               "Garcia", "Miller", "Davis", "Rodriguez", "Wilson"),
+#'   city = c("New York", "Los Angeles", "Chicago", "Houston", "Phoenix",
+#'            "Philadelphia", "San Antonio", "San Diego", "Dallas", "San Jose")
+#' )
+#'
+#' df_2 <- data.frame(
+#'   name = c(
+#'     "Emma", "Liam", "Olivia", "Noah",
+#'     "Ava", "Ehtan", "Sopia", "Mson",
+#'     "Charlotte", "Benjamin", "Amelia", "Lucas"
+#'   ),
+#'   surname = c(
+#'      "Smith", "Johnson", "Williams", "Brown",
+#'     "Jnes", "Garca", "Miler", "Dvis",
+#'     "Martinez", "Lee", "Hernandez", "Clark"
+#'   ),
+#'   city = c(
+#'     "New York", "Los Angeles", "Chicago", "Houston",
+#'     "Phonix", "Philadelpia", "San Antnio", "San Dieg",
+#'     "Seattle", "Miami", "Boston", "Denver"
+#'   )
+#' )
+#' true_matches <- data.frame(
+#'   "a" = 1:8,
+#'   "b" = 1:8
+#' )
+#'
+#' variables <- c("name", "surname", "city")
+#' comparators <- list(
+#'   "name" = jarowinkler_complement(),
+#'   "surname" = jarowinkler_complement(),
+#'   "city" = jarowinkler_complement()
+#' )
+#' methods <- list(
+#'   "name" = "continuous_parametric",
+#'   "surname" = "continuous_parametric",
+#'   "city" = "continuous_parametric"
+#' )
+#'
+#' set.seed(1)
+#' result <- mec(A = df_1, B = df_2,
+#'               variables = variables,
+#'               comparators = comparators,
+#'               methods = methods,
+#'               true_matches = true_matches)
+#' result
 #' @export
 mec <- function(A,
                 B,
                 variables,
                 comparators = NULL,
                 methods = NULL,
-                nonpar_hurdle = FALSE,
                 start_params = NULL,
+                nonpar_hurdle = FALSE,
                 set_construction = NULL,
+                target_flr = 0.03,
+                max_iter_bisection = 100,
+                tol = 0.005,
                 delta = 0.5,
                 eps = 0.05,
                 controls_nleqslv = list(),
@@ -220,7 +330,7 @@ mec <- function(A,
         r[which(Omega_indexes %in% M_indexes)] <- stats::runif(length(which(Omega_indexes %in% M_indexes)),
                                                                min = 5, max = 10)
         r[setdiff(1:n, which(Omega_indexes %in% M_indexes))] <- stats::runif(n - length(which(Omega_indexes %in% M_indexes)),
-                                                                             min = 0.1, max = 5)
+                                                                             min = 0.1, max = 1)
         r
       })
       names(ratio_temp) <- cnonpar_vars
@@ -257,7 +367,24 @@ mec <- function(A,
       n_M <- min(NROW(A), NROW(B))
     }
 
+    data.table::set(Omega, j = "g_est", value = g_est)
     Omega <- Omega[order(-get("ratio")), ]
+
+    # if (set_construction == "size") {
+
+
+
+    # } else if (set_construction == "flr") {
+    #
+    #   M <- Omega[ratio >= treshold, ]
+    #   U <- data.table::fsetdiff(Omega, M)
+    #
+    #   n_M_treshold <- NROW(M)
+    #
+    #   flr <-
+    #
+    # }
+
     M <- data.table("a" = numeric(), "b" = numeric())
     for (var in colnames(Omega)) {
       M[[var]] <- numeric()
@@ -430,6 +557,54 @@ mec <- function(A,
 
   }
 
+  n_M_est <- n_M
+  iter_bisection <- NULL
+
+  if (set_construction == "flr") {
+
+    min_treshold <- min(Omega$ratio)
+    max_treshold <- max(Omega$ratio)
+    treshold <- (min_treshold + max_treshold) / 2
+
+    iter_bisection <- 0
+
+    while (iter_bisection < max_iter_bisection) {
+
+      M <- Omega[get("ratio") >= treshold, ]
+      flr_est <- 1 / NROW(M) * sum(1 - M[["g_est"]])
+
+      if (abs(flr_est - target_flr) <= tol) {
+
+        iter_bisection <- iter_bisection + 1
+        break
+
+      } else if (flr_est < target_flr) {
+
+        max_treshold <- treshold
+        treshold <- (min_treshold + max_treshold) / 2
+
+      } else {
+
+        min_treshold <- treshold
+        treshold <- (min_treshold + max_treshold) / 2
+
+      }
+
+      iter_bisection <- iter_bisection + 1
+
+    }
+
+  } else if (set_construction == "size") {
+
+    flr_est <- 1 / NROW(M) * sum(1 - M[["g_est"]])
+
+  }
+
+  mmr_est <- 1 - sum(M[["g_est"]] / n_M_est)
+  if (mmr_est < 0) {
+    mmr_est <- NULL
+  }
+
   if (!is.null(true_matches)) {
 
     data.table::setDT(true_matches)
@@ -453,7 +628,10 @@ mec <- function(A,
   structure(
     list(
       M_est = M[, c("a", "b", "ratio")],
-      n_M_est = n_M,
+      n_M_est = n_M_est,
+      flr_est = flr_est,
+      mmr_est = if (is.null(mmr_est)) NULL else mmr_est,
+      iter_bisection = iter_bisection,
       b_vars = if (length(b_vars) == 0) NULL else b_vars,
       cpar_vars = if (length(cpar_vars) == 0) NULL else cpar_vars,
       cnonpar_vars = if (length(cnonpar_vars) == 0) NULL else cnonpar_vars,
