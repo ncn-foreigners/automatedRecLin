@@ -77,7 +77,7 @@
 #'   "name" = c("James", "Leah", "Thomas", "Sophie", "Mathew", "Andrew"),
 #'   "surname" = c("Wilson", "Thompson", "Davies", "Clarks", "Robins", "Scots")
 #' )
-#' predict(model, df_new_1, df_new_2, set_construction = "size")
+#' predict(model, df_new_1, df_new_2)
 #' @export
 predict.rec_lin_model <- function(object,
                                   newdata_A,

@@ -87,7 +87,7 @@ df_new_2 <- data.frame(
   "name" = c("James", "Leah", "Thomas", "Sophie", "Mathew", "Andrew"),
   "surname" = c("Wilson", "Thompson", "Davies", "Clarks", "Robins", "Scots")
 )
-predict(model, df_new_1, df_new_2, set_construction = "size")
+predict(model, df_new_1, df_new_2)
 }
 \references{
 Lee, D., Zhang, L.-C. and Kim, J. K. (2022). Maximum entropy classification for record linkage.

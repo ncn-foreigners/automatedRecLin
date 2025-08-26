@@ -42,7 +42,6 @@ df_1 <- data.frame(
   city = c("New York", "Los Angeles", "Chicago", "Houston", "Phoenix",
            "Philadelphia", "San Antonio", "San Diego", "Dallas", "San Jose")
 )
-
 df_2 <- data.frame(
   name = c(
     "Emma", "Liam", "Olivia", "Noah",
@@ -88,7 +87,7 @@ df_2
 #> 12     Lucas     Clark      Denver
 ```
 
-Specify key variables used for record linkage. Select a comparison
+Specify the key variables used for record linkage. Select a comparison
 function (i.e. a function to compare pairs of records) for each
 variable. For example, use the `jarowinkler_complement` function from
 the `automatedRecLin` package (1 - Jaro-Winkler distance). Choose a
@@ -121,7 +120,7 @@ following information:
   `"size"`),
 - estimated false link rate (FLR),
 - estimated missing match rate (MMR),
-- estimated parameters for variables using the `"binary"` or
+- estimated parameters for the variables using the `"binary"` or
   `"continuous_parametric"` methods.
 
 ``` r
@@ -246,7 +245,8 @@ Predict matches using the `predict` function. The output has a similar
 structure to that of the `mec` function.
 
 ``` r
-predict(model, df_1_new, df_2_new)
+result_sup <- predict(model, df_1_new, df_2_new)
+result_sup
 #> The algorithm predicted 5 matches.
 #> The first 5 predicted matches are:
 #>        a     b ratio / 1000

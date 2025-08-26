@@ -111,7 +111,7 @@ train_rec_lin <- function(
   }
 
   if (is.null(prob_ratio)) {
-    prob_ratio <- "1"
+    prob_ratio <- "2"
   }
 
   if (any(methods %in% c("binary", "continuous_parametric"))) {
