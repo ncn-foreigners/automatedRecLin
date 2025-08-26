@@ -37,7 +37,7 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">control_kliep</span><span class="op">(</span>scale <span class="op">=</span> <span class="cn">NULL</span>, progressbar <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">control_kliep</span><span class="op">(</span>scale <span class="op">=</span> <span class="cn">NULL</span>, progressbar <span class="op">=</span> <span class="cn">FALSE</span>, nfold <span class="op">=</span> <span class="fl">3</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -52,6 +52,10 @@ or apply no standardization at all.</p></dd>
 
 <dt id="arg-progressbar">progressbar<a class="anchor" aria-label="anchor" href="#arg-progressbar"></a></dt>
 <dd><p>Logical indicating whether or not to display a progressbar.</p></dd>
+
+
+<dt id="arg-nfold">nfold<a class="anchor" aria-label="anchor" href="#arg-nfold"></a></dt>
+<dd><p>Number of cross-validation folds used in order to calculate the optimal sigma value (default is 5-fold cv).</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

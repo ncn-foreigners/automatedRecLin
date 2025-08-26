@@ -140,17 +140,15 @@ Ann Inst Stat Math 60, 699–746 (2008). <a href="https://doi.org/10.1007/s10463
 <span class="r-in"><span>  <span class="st">"name"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"John"</span>, <span class="st">"Emely"</span>, <span class="st">"Marc"</span>, <span class="st">"Michael"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  <span class="st">"surname"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Smith"</span>, <span class="st">"Jonson"</span>, <span class="st">"Tailor"</span>, <span class="st">"Henderson"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">comparators</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"name"</span> <span class="op">=</span> <span class="fu">reclin2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/reclin2/man/comparators.html" class="external-link">cmp_jarowinkler</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>                    <span class="st">"surname"</span> <span class="op">=</span> <span class="fu">reclin2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/reclin2/man/comparators.html" class="external-link">cmp_jarowinkler</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">comparators</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"name"</span> <span class="op">=</span> <span class="fu"><a href="jarowinkler_complement.html">jarowinkler_complement</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>                    <span class="st">"surname"</span> <span class="op">=</span> <span class="fu"><a href="jarowinkler_complement.html">jarowinkler_complement</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">matches</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="st">"a"</span> <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="st">"b"</span> <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">methods</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"name"</span> <span class="op">=</span> <span class="st">"continuous_nonparametric"</span>,</span></span>
 <span class="r-in"><span>                <span class="st">"surname"</span> <span class="op">=</span> <span class="st">"continuous_nonparametric"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="train_rec_lin.html">train_rec_lin</a></span><span class="op">(</span>A <span class="op">=</span> <span class="va">df_1</span>, B <span class="op">=</span> <span class="va">df_2</span>, matches <span class="op">=</span> <span class="va">matches</span>,</span></span>
 <span class="r-in"><span>                       variables <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"surname"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                       comparators <span class="op">=</span> <span class="va">comparators</span>,</span></span>
-<span class="r-in"><span>                       methods <span class="op">=</span> <span class="va">methods</span>,</span></span>
-<span class="r-in"><span>                       prob_ratio <span class="op">=</span> <span class="st">"2"</span>,</span></span>
-<span class="r-in"><span>                       controls_kliep <span class="op">=</span> <span class="fu"><a href="control_kliep.html">control_kliep</a></span><span class="op">(</span>nfold <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>                       methods <span class="op">=</span> <span class="va">methods</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">df_new_1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="st">"name"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Jame"</span>, <span class="st">"Lia"</span>, <span class="st">"Tomas"</span>, <span class="st">"Matthew"</span>, <span class="st">"Andrew"</span><span class="op">)</span>,</span></span>
@@ -161,19 +159,7 @@ Ann Inst Stat Math 60, 699–746 (2008). <a href="https://doi.org/10.1007/s10463
 <span class="r-in"><span>  <span class="st">"surname"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Wilson"</span>, <span class="st">"Thompson"</span>, <span class="st">"Davies"</span>, <span class="st">"Clarks"</span>, <span class="st">"Robins"</span>, <span class="st">"Scots"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">model</span>, <span class="va">df_new_1</span>, <span class="va">df_new_2</span>, set_construction <span class="op">=</span> <span class="st">"size"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> The algorithm predicted 5 matches.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> The first 5 predicted matches are:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        a     b ratio / 1000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;num&gt; &lt;num&gt;        &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     3     3    0.6466869</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:     4     5    0.5865049</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:     1     1    0.5696382</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4:     5     6    0.3103742</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5:     2     2    0.2935612</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ========================================================</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> The construction of the classification set was based on estimates of its size.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Estimated false link rate (FLR): 1.1486 %.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Estimated missing match rate (MMR): 1.1486 %.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> No matches were predicted.</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
