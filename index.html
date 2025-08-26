@@ -82,7 +82,6 @@
 <span>  city <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"New York"</span>, <span class="st">"Los Angeles"</span>, <span class="st">"Chicago"</span>, <span class="st">"Houston"</span>, <span class="st">"Phoenix"</span>,</span>
 <span>           <span class="st">"Philadelphia"</span>, <span class="st">"San Antonio"</span>, <span class="st">"San Diego"</span>, <span class="st">"Dallas"</span>, <span class="st">"San Jose"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span></span>
 <span><span class="va">df_2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>    <span class="st">"Emma"</span>, <span class="st">"Liam"</span>, <span class="st">"Olivia"</span>, <span class="st">"Noah"</span>,</span>
@@ -126,7 +125,7 @@
 <span><span class="co">#&gt; 10  Benjamin       Lee       Miami</span></span>
 <span><span class="co">#&gt; 11    Amelia Hernandez      Boston</span></span>
 <span><span class="co">#&gt; 12     Lucas     Clark      Denver</span></span></code></pre></div>
-<p>Specify key variables used for record linkage. Select a comparison function (i.e. a function to compare pairs of records) for each variable. For example, use the <code>jarowinkler_complement</code> function from the <code>automatedRecLin</code> package (1 - Jaro-Winkler distance). Choose a method for estimating the probability or density ratio for each variable. The available methods are: <code>"binary"</code>, <code>"continuous_parametric"</code> and <code>"continuous_nonparametric"</code>.</p>
+<p>Specify the key variables used for record linkage. Select a comparison function (i.e. a function to compare pairs of records) for each variable. For example, use the <code>jarowinkler_complement</code> function from the <code>automatedRecLin</code> package (1 - Jaro-Winkler distance). Choose a method for estimating the probability or density ratio for each variable. The available methods are: <code>"binary"</code>, <code>"continuous_parametric"</code> and <code>"continuous_nonparametric"</code>.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">variables</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"surname"</span>, <span class="st">"city"</span><span class="op">)</span></span>
 <span><span class="va">comparators</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -147,7 +146,7 @@
 <li>the method for constructing the predicted set of matches (default: <code>"size"</code>),</li>
 <li>estimated false link rate (FLR),</li>
 <li>estimated missing match rate (MMR),</li>
-<li>estimated parameters for variables using the <code>"binary"</code> or <code>"continuous_parametric"</code> methods.</li>
+<li>estimated parameters for the variables using the <code>"binary"</code> or <code>"continuous_parametric"</code> methods.</li>
 </ul>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
@@ -254,7 +253,8 @@
 <span><span class="co">#&gt; 6 Sophie   Clarks</span></span></code></pre></div>
 <p>Predict matches using the <code>predict</code> function. The output has a similar structure to that of the <code>mec</code> function.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">model</span>, <span class="va">df_1_new</span>, <span class="va">df_2_new</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">result_sup</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">model</span>, <span class="va">df_1_new</span>, <span class="va">df_2_new</span><span class="op">)</span></span>
+<span><span class="va">result_sup</span></span>
 <span><span class="co">#&gt; The algorithm predicted 5 matches.</span></span>
 <span><span class="co">#&gt; The first 5 predicted matches are:</span></span>
 <span><span class="co">#&gt;        a     b ratio / 1000</span></span>
