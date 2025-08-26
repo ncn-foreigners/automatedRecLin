@@ -1,8 +1,0 @@
-pandoc: '3.4'
-pkgdown: 2.1.3
-pkgdown_sha: ~
-articles: {}
-last_built: 2025-08-26T10:37Z
-urls:
-  reference: https://ncn-foreigners.github.io/automatedRecLin/reference
-  article: https://ncn-foreigners.github.io/automatedRecLin/articles
