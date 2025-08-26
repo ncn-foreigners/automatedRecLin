@@ -9,6 +9,7 @@
 #' to the numerator means and standard deviations, the denominator means and standard deviations,
 #' or apply no standardization at all.
 #' @param progressbar Logical indicating whether or not to display a progressbar.
+#' @param nfold Number of cross-validation folds used in order to calculate the optimal sigma value (default is 5-fold cv).
 #' @param ... Additional arguments.
 #'
 #' @return
@@ -17,7 +18,8 @@
 #' @export
 control_kliep <- function(scale = NULL,
                           progressbar = FALSE,
+                          nfold = 3,
                           ...) {
-  append(list(scale = scale, progressbar = progressbar),
+  append(list(scale = scale, progressbar = progressbar, nfold = nfold),
          list(...))
 }

@@ -59,17 +59,15 @@
 #'   "name" = c("John", "Emely", "Marc", "Michael"),
 #'   "surname" = c("Smith", "Jonson", "Tailor", "Henderson")
 #' )
-#' comparators <- list("name" = reclin2::cmp_jarowinkler(),
-#'                     "surname" = reclin2::cmp_jarowinkler())
+#' comparators <- list("name" = jarowinkler_complement(),
+#'                     "surname" = jarowinkler_complement())
 #' matches <- data.frame("a" = 1:3, "b" = 1:3)
 #' methods <- list("name" = "continuous_nonparametric",
 #'                 "surname" = "continuous_nonparametric")
 #' model <- train_rec_lin(A = df_1, B = df_2, matches = matches,
 #'                        variables = c("name", "surname"),
 #'                        comparators = comparators,
-#'                        methods = methods,
-#'                        prob_ratio = "2",
-#'                        controls_kliep = control_kliep(nfold = 3))
+#'                        methods = methods)
 #'
 #' df_new_1 <- data.frame(
 #'   "name" = c("Jame", "Lia", "Tomas", "Matthew", "Andrew"),
@@ -101,6 +99,17 @@ predict.rec_lin_model <- function(object,
 
   stopifnot("`set_construction` should be `size` or `flr`." =
               set_construction %in% c("size", "flr"))
+
+  if (!is.null(true_matches)) {
+
+    if (!(is.data.frame(true_matches) || is.data.table(true_matches))) {
+      warning("`true_matches` should be a data.frame or a data.table. Setting `true_matches` to `NULL`.")
+      true_matches <- NULL
+    } else if (!(length(colnames(true_matches)) == 2 && all(colnames(true_matches) == c("a", "b")))) {
+      warning("`true_matches` should consist of two columns: a, b. Setting `true_matches` to `NULL`.")
+    }
+
+  }
 
   if (missing(set_construction)) set_construction <- "size"
 

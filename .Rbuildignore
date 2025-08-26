@@ -1,2 +1,6 @@
 ^automatedRecLin\.Rproj$
 ^\.Rproj\.user$
+^_pkgdown\.yml$
+^docs$
+^Readme\.Rmd$
+^\.github$

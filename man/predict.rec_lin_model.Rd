@@ -69,17 +69,15 @@ df_2 <- data.frame(
   "name" = c("John", "Emely", "Marc", "Michael"),
   "surname" = c("Smith", "Jonson", "Tailor", "Henderson")
 )
-comparators <- list("name" = reclin2::cmp_jarowinkler(),
-                    "surname" = reclin2::cmp_jarowinkler())
+comparators <- list("name" = jarowinkler_complement(),
+                    "surname" = jarowinkler_complement())
 matches <- data.frame("a" = 1:3, "b" = 1:3)
 methods <- list("name" = "continuous_nonparametric",
                 "surname" = "continuous_nonparametric")
 model <- train_rec_lin(A = df_1, B = df_2, matches = matches,
                        variables = c("name", "surname"),
                        comparators = comparators,
-                       methods = methods,
-                       prob_ratio = "2",
-                       controls_kliep = control_kliep(nfold = 3))
+                       methods = methods)
 
 df_new_1 <- data.frame(
   "name" = c("Jame", "Lia", "Tomas", "Matthew", "Andrew"),

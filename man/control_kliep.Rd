@@ -4,7 +4,7 @@
 \alias{control_kliep}
 \title{Controls for the kliep Function}
 \usage{
-control_kliep(scale = NULL, progressbar = FALSE, ...)
+control_kliep(scale = NULL, progressbar = FALSE, nfold = 3, ...)
 }
 \arguments{
 \item{scale}{\code{"numerator"}, \code{"denominator"} or \code{NULL}, indicating whether to standardize each numeric variable according
@@ -12,6 +12,8 @@ to the numerator means and standard deviations, the denominator means and standa
 or apply no standardization at all.}
 
 \item{progressbar}{Logical indicating whether or not to display a progressbar.}
+
+\item{nfold}{Number of cross-validation folds used in order to calculate the optimal sigma value (default is 5-fold cv).}
 
 \item{...}{Additional arguments.}
 }
