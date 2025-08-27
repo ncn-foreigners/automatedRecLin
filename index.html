@@ -271,6 +271,66 @@
 </div>
 </div>
 <div class="section level2">
+<h2 id="integration-with-a-custom-machine-learning-model">Integration with a custom machine learning model<a class="anchor" aria-label="anchor" href="#integration-with-a-custom-machine-learning-model"></a>
+</h2>
+<p>The <code>automatedRecLin</code> package supports supervised record linkage using a custom machine learning (ML) model that predicts the probability of matching based on comparison vectors (e.g., XGBoost, logistic regression). For example, install and load the <code>xgboost</code> package.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># install.packages("xgboost") # uncomment if needed</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/dmlc/xgboost" class="external-link">xgboost</a></span><span class="op">)</span></span></code></pre></div>
+<p>Use the same data, variables, and comparators as in the previous example. First, use the <code>comparison_vectors</code> function to create comparison vectors that the model will be trained on.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">vectors</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/comparison_vectors.html">comparison_vectors</a></span><span class="op">(</span>A <span class="op">=</span> <span class="va">df_1_train</span>, B <span class="op">=</span> <span class="va">df_2_train</span>,</span>
+<span>                              variables <span class="op">=</span> <span class="va">variables_train</span>,</span>
+<span>                              comparators <span class="op">=</span> <span class="va">comparators_train</span>,</span>
+<span>                              matches <span class="op">=</span> <span class="va">matches_train</span><span class="op">)</span></span>
+<span><span class="va">vectors</span></span>
+<span><span class="co">#&gt; Comparison based on the following variables: name, surname.</span></span>
+<span><span class="co">#&gt; ========================================================</span></span>
+<span><span class="co">#&gt;        a     b gamma_name gamma_surname match</span></span>
+<span><span class="co">#&gt;    &lt;int&gt; &lt;int&gt;      &lt;num&gt;         &lt;num&gt; &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:     1     1  0.0000000    0.00000000     1</span></span>
+<span><span class="co">#&gt; 2:     1     2  1.0000000    1.00000000     0</span></span>
+<span><span class="co">#&gt; 3:     1     3  1.0000000    0.54444444     0</span></span>
+<span><span class="co">#&gt; 4:     1     4  0.5357143    1.00000000     0</span></span>
+<span><span class="co">#&gt; 5:     2     1  1.0000000    0.55238095     0</span></span>
+<span><span class="co">#&gt; 6:     2     2  0.1333333    0.04761905     1</span></span></code></pre></div>
+<p>Construct the <code>xgb.DMatrix</code> object, specify the model parameters, and train the XGBoost model.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">train_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/xgboost/man/xgb.DMatrix.html" class="external-link">xgb.DMatrix</a></span><span class="op">(</span></span>
+<span>  data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">vectors</span><span class="op">$</span><span class="va">Omega</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"gamma_name"</span>, <span class="st">"gamma_surname"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  label <span class="op">=</span> <span class="va">vectors</span><span class="op">$</span><span class="va">Omega</span><span class="op">$</span><span class="va">match</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">params</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>objective <span class="op">=</span> <span class="st">"binary:logistic"</span>,</span>
+<span>               eval_metric <span class="op">=</span> <span class="st">"logloss"</span><span class="op">)</span></span>
+<span><span class="va">model_xgb</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/xgboost/man/xgb.train.html" class="external-link">xgboost</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">train_data</span>, params <span class="op">=</span> <span class="va">params</span>,</span>
+<span>                     nrounds <span class="op">=</span> <span class="fl">100</span>, verbose <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
+<p>Create the XGBoost-based record linkage model.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">custom_xgb_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/custom_rec_lin_model.html">custom_rec_lin_model</a></span><span class="op">(</span><span class="va">model_xgb</span>, <span class="va">vectors</span><span class="op">)</span></span>
+<span><span class="va">custom_xgb_model</span></span>
+<span><span class="co">#&gt; Record linkage model based on the following variables: name, surname.</span></span>
+<span><span class="co">#&gt; A custom ML model was used.</span></span>
+<span><span class="co">#&gt; The prior probability of matching is 0.15.</span></span></code></pre></div>
+<p>Use the model for predictions. Note that the <code>xgboost</code> package requires a matrix as input for the <code>predict</code> function and that needs to be specified in the <code>data_type</code> argument. Set <code>type = "prob"</code> to ensure the XGBoost model predicts the probability of matching (this argument may vary depending on the model or library used).</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">result_xgb</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">custom_xgb_model</span>, <span class="va">df_1_new</span>, <span class="va">df_2_new</span>,</span>
+<span>                      data_type <span class="op">=</span> <span class="st">"matrix"</span>, type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span></span>
+<span><span class="va">result_xgb</span></span>
+<span><span class="co">#&gt; The algorithm predicted 5 matches.</span></span>
+<span><span class="co">#&gt; The first 5 predicted matches are:</span></span>
+<span><span class="co">#&gt;        a     b ratio / 1000</span></span>
+<span><span class="co">#&gt;    &lt;num&gt; &lt;num&gt;        &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:     1     1  0.009718068</span></span>
+<span><span class="co">#&gt; 2:     2     2  0.009718068</span></span>
+<span><span class="co">#&gt; 3:     3     3  0.009718068</span></span>
+<span><span class="co">#&gt; 4:     4     4  0.009718068</span></span>
+<span><span class="co">#&gt; 5:     5     5  0.009718068</span></span>
+<span><span class="co">#&gt; ========================================================</span></span>
+<span><span class="co">#&gt; The construction of the classification set was based on estimates of its size.</span></span>
+<span><span class="co">#&gt; Estimated false link rate (FLR): 33.9719 %.</span></span>
+<span><span class="co">#&gt; Estimated missing match rate (MMR): 33.9719 %.</span></span></code></pre></div>
+</div>
+<div class="section level2">
 <h2 id="funding">Funding<a class="anchor" aria-label="anchor" href="#funding"></a>
 </h2>
 <p>Work on this package is supported by the National Science Centre, OPUS 20 grant no. 2020/39/B/HS4/00941 (Towards census-like statistics for foreign-born populations – quality, data integration and estimation).</p>

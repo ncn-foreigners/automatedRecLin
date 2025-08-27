@@ -89,37 +89,22 @@ including optional match information,</p></li>
 <span class="r-in"><span>  <span class="st">"name"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Jon"</span>, <span class="st">"Emely"</span>, <span class="st">"Marc"</span>, <span class="st">"Michael"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  <span class="st">"surname"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Smitth"</span>, <span class="st">"Jonson"</span>, <span class="st">"Tailor"</span>, <span class="st">"Henderson"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">comparators</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"name"</span> <span class="op">=</span> <span class="fu">reclin2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/reclin2/man/comparators.html" class="external-link">cmp_jarowinkler</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>                    <span class="st">"surname"</span> <span class="op">=</span> <span class="fu">reclin2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/reclin2/man/comparators.html" class="external-link">cmp_jarowinkler</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">comparators</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"name"</span> <span class="op">=</span> <span class="fu"><a href="jarowinkler_complement.html">jarowinkler_complement</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>                    <span class="st">"surname"</span> <span class="op">=</span> <span class="fu"><a href="jarowinkler_complement.html">jarowinkler_complement</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">matches</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="st">"a"</span> <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="st">"b"</span> <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">comparison_vectors</span><span class="op">(</span>A <span class="op">=</span> <span class="va">df_1</span>, B <span class="op">=</span> <span class="va">df_2</span>, variables <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"surname"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                             comparators <span class="op">=</span> <span class="va">comparators</span>, matches <span class="op">=</span> <span class="va">matches</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">result</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Comparison based on the following variables: name, surname.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ========================================================</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         a     b gamma_name gamma_surname match</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     &lt;int&gt; &lt;int&gt;      &lt;num&gt;         &lt;num&gt; &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1:     1     1  0.9166667     0.9444444     1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  2:     1     2  0.0000000     0.0000000     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3:     1     3  0.0000000     0.4555556     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  4:     1     4  0.4642857     0.0000000     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  5:     2     1  0.0000000     0.0000000     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  6:     2     2  0.8666667     0.9523810     1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  7:     2     3  0.0000000     0.4365079     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  8:     2     4  0.4476190     0.6719577     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  9:     3     1  0.0000000     0.0000000     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10:     3     2  0.0000000     0.4444444     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11:     3     3  0.8333333     0.8888889     1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12:     3     4  0.4642857     0.3518519     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13:     4     1  0.5277778     0.4305556     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14:     4     2  0.0000000     0.0000000     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15:     4     3  0.0000000     0.5277778     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16:     4     4  0.4642857     0.4120370     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17:     5     1  0.0000000     0.0000000     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18:     5     2  0.0000000     0.5777778     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19:     5     3  0.4833333     0.4555556     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20:     5     4  0.4476190     0.4370370     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         a     b gamma_name gamma_surname match</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        a     b gamma_name gamma_surname match</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;      &lt;num&gt;         &lt;num&gt; &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 0.08333333    0.05555556     1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:     1     2 1.00000000    1.00000000     0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:     1     3 1.00000000    0.54444444     0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4:     1     4 0.53571429    1.00000000     0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5:     2     1 1.00000000    1.00000000     0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6:     2     2 0.13333333    0.04761905     1</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
