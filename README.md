@@ -262,6 +262,89 @@ result_sup
 #> Estimated missing match rate (MMR): 1.1486 %.
 ```
 
+## Integration with a custom machine learning model
+
+The `automatedRecLin` package supports supervised record linkage using a
+custom machine learning (ML) model that predicts the probability of
+matching based on comparison vectors (e.g., XGBoost, logistic
+regression). For example, install and load the `xgboost` package.
+
+``` r
+# install.packages("xgboost") # uncomment if needed
+library(xgboost)
+```
+
+Use the same data, variables, and comparators as in the previous
+example. First, use the `comparison_vectors` function to create
+comparison vectors that the model will be trained on.
+
+``` r
+vectors <- comparison_vectors(A = df_1_train, B = df_2_train,
+                              variables = variables_train,
+                              comparators = comparators_train,
+                              matches = matches_train)
+vectors
+#> Comparison based on the following variables: name, surname.
+#> ========================================================
+#>        a     b gamma_name gamma_surname match
+#>    <int> <int>      <num>         <num> <num>
+#> 1:     1     1  0.0000000    0.00000000     1
+#> 2:     1     2  1.0000000    1.00000000     0
+#> 3:     1     3  1.0000000    0.54444444     0
+#> 4:     1     4  0.5357143    1.00000000     0
+#> 5:     2     1  1.0000000    0.55238095     0
+#> 6:     2     2  0.1333333    0.04761905     1
+```
+
+Construct the `xgb.DMatrix` object, specify the model parameters, and
+train the XGBoost model.
+
+``` r
+train_data <- xgb.DMatrix(
+  data = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
+  label = vectors$Omega$match
+)
+params <- list(objective = "binary:logistic",
+               eval_metric = "logloss")
+model_xgb <- xgboost(data = train_data, params = params,
+                     nrounds = 100, verbose = 0)
+```
+
+Create the XGBoost-based record linkage model.
+
+``` r
+custom_xgb_model <- custom_rec_lin_model(model_xgb, vectors)
+custom_xgb_model
+#> Record linkage model based on the following variables: name, surname.
+#> A custom ML model was used.
+#> The prior probability of matching is 0.15.
+```
+
+Use the model for predictions. Note that the `xgboost` package requires
+a matrix as input for the `predict` function and that needs to be
+specified in the `data_type` argument. Set `type = "prob"` to ensure the
+XGBoost model predicts the probability of matching (this argument may
+vary depending on the model or library used).
+
+``` r
+result_xgb <- predict(custom_xgb_model, df_1_new, df_2_new,
+                      data_type = "matrix", type = "prob")
+result_xgb
+#> The algorithm predicted 5 matches.
+#> The first 5 predicted matches are:
+#>        a     b ratio / 1000
+#>    <num> <num>        <num>
+#> 1:     1     1  0.009718068
+#> 2:     2     2  0.009718068
+#> 3:     3     3  0.009718068
+#> 4:     4     4  0.009718068
+#> 5:     5     5  0.009718068
+#> ========================================================
+#> The construction of the classification set was based on estimates of its size.
+#> Estimated false link rate (FLR): 33.9719 %.
+#> Estimated missing match rate (MMR): 33.9719 %.
+```
+
 ## Funding
 
 Work on this package is supported by the National Science Centre, OPUS

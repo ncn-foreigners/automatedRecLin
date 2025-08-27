@@ -324,8 +324,8 @@ train_rec_lin <- function(
 #'     "name" = c("Jon", "Emely", "Marc", "Michael"),
 #'     "surname" = c("Smitth", "Jonson", "Tailor", "Henderson")
 #'   )
-#'   comparators <- list("name" = reclin2::cmp_jarowinkler(),
-#'                       "surname" = reclin2::cmp_jarowinkler())
+#'   comparators <- list("name" = jarowinkler_complement(),
+#'                       "surname" = jarowinkler_complement())
 #'   matches <- data.frame("a" = 1:3, "b" = 1:3)
 #'   vectors <- comparison_vectors(A = df_1, B = df_2, variables = c("name", "surname"),
 #'                                comparators = comparators, matches = matches)

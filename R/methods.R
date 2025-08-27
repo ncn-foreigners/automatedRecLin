@@ -1,3 +1,4 @@
+#' @importFrom utils head
 #' @method print comparison_vectors
 #' @exportS3Method
 print.comparison_vectors <- function(x, ...) {
@@ -7,10 +8,11 @@ print.comparison_vectors <- function(x, ...) {
     cat("True matches are unknown.\n")
   }
   cat("========================================================\n")
-  print(x$Omega)
+  print(head(x$Omega))
 
 }
 
+#' @importFrom utils head
 #' @method print rec_lin_model
 #' @exportS3Method
 print.rec_lin_model <- function(x, ...) {
@@ -44,8 +46,8 @@ print.rec_lin_model <- function(x, ...) {
 
 }
 
-#'
 #' @import data.table
+#' @importFrom utils head
 #' @method print rec_lin_predictions
 #' @exportS3Method
 print.rec_lin_predictions <- function(x, ...) {
@@ -90,7 +92,7 @@ print.rec_lin_predictions <- function(x, ...) {
 }
 
 #' @import data.table
-#'
+#' @importFrom utils head
 #' @method print mec_rec_lin
 #' @exportS3Method
 print.mec_rec_lin <- function(x, ...) {

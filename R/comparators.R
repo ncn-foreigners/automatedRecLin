@@ -18,7 +18,7 @@ abs_distance <- function() {
   }
 }
 
-#' @import reclin2
+#' @importFrom reclin2 cmp_jarowinkler
 #'
 #' @title Jaro-Winkler Distance Complement
 #'

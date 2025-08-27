@@ -1,5 +1,5 @@
 #' @import data.table
-#' @import reclin2
+#' @importFrom reclin2 cmp_identical
 #'
 #' @title Create Comparison Vectors for Record Linkage
 #'
@@ -33,8 +33,8 @@
 #'   "name" = c("Jon", "Emely", "Marc", "Michael"),
 #'   "surname" = c("Smitth", "Jonson", "Tailor", "Henderson")
 #' )
-#' comparators <- list("name" = reclin2::cmp_jarowinkler(),
-#'                     "surname" = reclin2::cmp_jarowinkler())
+#' comparators <- list("name" = jarowinkler_complement(),
+#'                     "surname" = jarowinkler_complement())
 #' matches <- data.frame("a" = 1:3, "b" = 1:3)
 #' result <- comparison_vectors(A = df_1, B = df_2, variables = c("name", "surname"),
 #'                              comparators = comparators, matches = matches)
@@ -83,21 +83,15 @@ comparison_vectors <- function(
   data.table::setDT(B)
   A <- A[, variables, with = FALSE]
   B <- B[, variables, with = FALSE]
-  # A[, a := .I]
-  # B[, b := .I]
   data.table::set(A, j = "a", value = seq_len(nrow(A)))
   data.table::set(B, j = "b", value = seq_len(nrow(B)))
 
-  # Omega <- data.table::CJ(a = A$a, b = B$b)
   Omega <- data.table::CJ(a = A[["a"]], b = B[["b"]])
   data.table::setkey(Omega, NULL)
   A_values <- A[Omega$a, ]
   B_values <- B[Omega$b, ]
-  # A_values[, a := NULL]
-  # B_values[, b := NULL]
   data.table::set(A, j = "a", value = NULL)
   data.table::set(B, j = "b", value = NULL)
-
 
   gamma_names <- paste0("gamma_", variables)
   gamma_list <- lapply(1:K, function(x) {
@@ -109,7 +103,6 @@ comparison_vectors <- function(
 
   if(!is.null(matches)) {
     data.table::setDT(matches)
-    # Omega[, match := as.numeric(paste(a, b) %in% paste(matches$a, matches$b))]
     Omega[, match := as.numeric(paste(.SD[["a"]], .SD[["b"]]) %in% paste(matches[["a"]], matches[["b"]]))]
   }
 
