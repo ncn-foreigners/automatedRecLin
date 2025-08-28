@@ -1,3 +1,5 @@
+#' @title Evaluation for Record Linkage
+#'
 #' @export
 evaluation <- function(pred_matches, true_matches, n) {
 
@@ -17,6 +19,8 @@ evaluation <- function(pred_matches, true_matches, n) {
   )
 }
 
+#' @title Evaluation Metrics for Record Linkage
+#'
 #' @export
 get_metrics <- function(TP, FP, FN, TN) {
 
@@ -38,6 +42,9 @@ get_metrics <- function(TP, FP, FN, TN) {
 
 }
 
+#' @title Confusion Matrix for Record Linkage
+#'
+#' @export
 get_confusion <- function(TP, FP, FN, TN) {
 
   cm <- matrix(c(TP, FP, FN, TN), nrow = 2)
