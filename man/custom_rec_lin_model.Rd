@@ -22,6 +22,7 @@ Returns a list containing:\cr
 \item{\code{ratio_kliep} -- here \code{NULL},}
 \item{\code{ml_model} -- ML model used for creating the record linkage model,}
 \item{\code{pi_est} -- a prior probability of matching,}
+\item{\code{match_prop} -- proportion of matches in the smaller dataset,}
 \item{\code{variables} -- a character vector of key variables used for comparison,}
 \item{\code{comparators} -- a list of functions used to compare pairs of records,}
 \item{\code{methods} -- here \code{NULL}.}

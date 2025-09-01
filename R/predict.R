@@ -153,7 +153,10 @@ predict.rec_lin_model <- function(object,
       controls_ml_predictions)
     )
 
-    predicted_ratio <- predicted_probs * (1 - object$pi_est) / ((1 - predicted_probs) * object$pi_est)
+    prob_est <- object$match_prop / max(NROW(newdata_A), NROW(newdata_B))
+
+    # predicted_ratio <- predicted_probs * (1 - object$pi_est) / ((1 - predicted_probs) * object$pi_est)
+    predicted_ratio <- predicted_probs * (1 - prob_est) / ((1 - predicted_probs) * prob_est)
     data.table::set(Omega, j = "ratio", value = predicted_ratio)
 
   } else {

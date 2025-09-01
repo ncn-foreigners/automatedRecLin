@@ -30,6 +30,7 @@
 #' \item{`ratio_kliep` -- a result of the \link[densityratio]{kliep} function,}
 #' \item{`ml_model` -- here `NULL`,}
 #' \item{`pi_est` -- a prior probability of matching,}
+#' \item{`match_prop` -- proportion of matches in the smaller dataset,}
 #' \item{`variables` -- a character vector of key variables used for comparison,}
 #' \item{`comparators` -- a list of functions used to compare pairs of records,}
 #' \item{`methods` -- a list of methods used for estimation.}
@@ -277,6 +278,7 @@ train_rec_lin <- function(
       ratio_kliep = if (is.null(ratio_kliep)) NULL else ratio_kliep,
       ml_model = NULL,
       pi_est = pi_est,
+      match_prop = vectors$match_prop,
       variables = variables,
       comparators = comparators,
       methods = methods
@@ -309,6 +311,7 @@ train_rec_lin <- function(
 #' \item{`ratio_kliep` -- here `NULL`,}
 #' \item{`ml_model` -- ML model used for creating the record linkage model,}
 #' \item{`pi_est` -- a prior probability of matching,}
+#' \item{`match_prop` -- proportion of matches in the smaller dataset,}
 #' \item{`variables` -- a character vector of key variables used for comparison,}
 #' \item{`comparators` -- a list of functions used to compare pairs of records,}
 #' \item{`methods` -- here `NULL`.}
@@ -368,6 +371,7 @@ custom_rec_lin_model <- function(ml_model, vectors) {
       ratio_kliep = NULL,
       ml_model = ml_model,
       pi_est = pi_est,
+      match_prop = vectors$match_prop,
       variables = variables,
       comparators = vectors$comparators,
       methods = NULL

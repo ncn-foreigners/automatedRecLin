@@ -334,15 +334,15 @@ result_xgb
 #> The first 5 predicted matches are:
 #>        a     b ratio / 1000
 #>    <num> <num>        <num>
-#> 1:     1     1  0.009718068
-#> 2:     2     2  0.009718068
-#> 3:     3     3  0.009718068
-#> 4:     4     4  0.009718068
-#> 5:     5     5  0.009718068
+#> 1:     1     1   0.01200467
+#> 2:     2     2   0.01200467
+#> 3:     3     3   0.01200467
+#> 4:     4     4   0.01200467
+#> 5:     5     5   0.01200467
 #> ========================================================
 #> The construction of the classification set was based on estimates of its size.
-#> Estimated false link rate (FLR): 33.9719 %.
-#> Estimated missing match rate (MMR): 33.9719 %.
+#> Estimated false link rate (FLR): 29.4037 %.
+#> Estimated missing match rate (MMR): 29.4037 %.
 ```
 
 ## Funding

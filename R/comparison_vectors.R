@@ -21,7 +21,8 @@
 #' \item{`Omega` -- a `data.table` with comparison vectors between all records from both datasets,
 #' including optional match information,}
 #' \item{`variables` -- a character vector of key variables used for comparison,}
-#' \item{`comparators` -- a list of functions used to compare pairs of records.}
+#' \item{`comparators` -- a list of functions used to compare pairs of records,}
+#' \item{`match_prop` -- proportion of matches in the smaller dataset.}
 #' }
 #'
 #' @examples
@@ -110,7 +111,8 @@ comparison_vectors <- function(
     list(
       Omega = data.table(Omega),
       variables = variables,
-      comparators = comparators
+      comparators = comparators,
+      match_prop = if (is.null(matches)) NULL else NROW(matches) / NROW(Omega) * max(NROW(A), NROW(B))
     ),
     class = "comparison_vectors"
   )

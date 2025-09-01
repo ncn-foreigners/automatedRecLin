@@ -23,7 +23,8 @@ Returns a list containing:\cr
 \item{\code{Omega} -- a \code{data.table} with comparison vectors between all records from both datasets,
 including optional match information,}
 \item{\code{variables} -- a character vector of key variables used for comparison,}
-\item{\code{comparators} -- a list of functions used to compare pairs of records.}
+\item{\code{comparators} -- a list of functions used to compare pairs of records,}
+\item{\code{match_prop} -- proportion of matches in the smaller dataset.}
 }
 }
 \description{
