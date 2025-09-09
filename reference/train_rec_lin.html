@@ -45,6 +45,7 @@
 <span>  comparators <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  methods <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  prob_ratio <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  nonpar_hurdle <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  controls_nleqslv <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  controls_kliep <span class="op">=</span> <span class="fu"><a href="control_kliep.html">control_kliep</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -82,6 +83,11 @@
 <dd><p>Probability ratio type (<code>"1"</code> or <code>"2"</code>).</p></dd>
 
 
+<dt id="arg-nonpar-hurdle">nonpar_hurdle<a class="anchor" aria-label="anchor" href="#arg-nonpar-hurdle"></a></dt>
+<dd><p>Logical indicating whether to use a hurdle model or not
+(used only if the <code>"continuous_nonparametric"</code> method has been chosen for at least one variable).</p></dd>
+
+
 <dt id="arg-controls-nleqslv">controls_nleqslv<a class="anchor" aria-label="anchor" href="#arg-controls-nleqslv"></a></dt>
 <dd><p>Controls passed to the <a href="https://rdrr.io/pkg/nleqslv/man/nleqslv.html" class="external-link">nleqslv</a> function (only if the <code>"continuous_parametric"</code> method has been chosen for at least one variable).</p></dd>
 
@@ -97,7 +103,9 @@
 <li><p><code>cnonpar_vars</code> – a character vector of variables used for the <code>"continuous_nonparametric"</code> method (with the prefix <code>"gamma_"</code>),</p></li>
 <li><p><code>b_params</code> – parameters estimated using the <code>"binary"</code> method,</p></li>
 <li><p><code>cpar_params</code> – parameters estimated using the <code>"continuous_parametric"</code> method,</p></li>
+<li><p><code>cnonpar_params</code> – probability of exact matching estimated using the <code>"continuous_nonparametric"</code> method,</p></li>
 <li><p><code>ratio_kliep</code> – a result of the <a href="https://thomvolker.github.io/densityratio/reference/kliep.html" class="external-link">kliep</a> function,</p></li>
+<li><p><code>ratio_kliep_list</code> – an object containing the results of the <a href="https://thomvolker.github.io/densityratio/reference/kliep.html" class="external-link">kliep</a> function,</p></li>
 <li><p><code>ml_model</code> – here <code>NULL</code>,</p></li>
 <li><p><code>pi_est</code> – a prior probability of matching,</p></li>
 <li><p><code>match_prop</code> – proportion of matches in the smaller dataset,</p></li>
@@ -123,25 +131,31 @@ Ann Inst Stat Math 60, 699–746 (2008). <a href="https://doi.org/10.1007/s10463
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">df_1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  <span class="st">"name"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"John"</span>, <span class="st">"Emily"</span>, <span class="st">"Mark"</span>, <span class="st">"Anna"</span>, <span class="st">"David"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  <span class="st">"surname"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Smith"</span>, <span class="st">"Johnson"</span>, <span class="st">"Taylor"</span>, <span class="st">"Williams"</span>, <span class="st">"Brown"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="st">"name"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"James"</span>, <span class="st">"Emma"</span>, <span class="st">"William"</span>, <span class="st">"Olivia"</span>, <span class="st">"Thomas"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"Sophie"</span>, <span class="st">"Harry"</span>, <span class="st">"Amelia"</span>, <span class="st">"George"</span>, <span class="st">"Isabella"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"surname"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Smith"</span>, <span class="st">"Johnson"</span>, <span class="st">"Brown"</span>, <span class="st">"Taylor"</span>, <span class="st">"Wilson"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"Davis"</span>, <span class="st">"Clark"</span>, <span class="st">"Harris"</span>, <span class="st">"Lewis"</span>, <span class="st">"Walker"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">df_2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  <span class="st">"name"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"John"</span>, <span class="st">"Emely"</span>, <span class="st">"Marc"</span>, <span class="st">"Michael"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  <span class="st">"surname"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Smith"</span>, <span class="st">"Jonson"</span>, <span class="st">"Tailor"</span>, <span class="st">"Henderson"</span><span class="op">)</span></span></span>
+<span class="r-in"><span> <span class="va">df_2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="st">"name"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"James"</span>, <span class="st">"Ema"</span>, <span class="st">"Wimliam"</span>, <span class="st">"Olivia"</span>, <span class="st">"Charlotte"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"Henry"</span>, <span class="st">"Lucy"</span>, <span class="st">"Edward"</span>, <span class="st">"Alice"</span>, <span class="st">"Jack"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"surname"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Smith"</span>, <span class="st">"Johnson"</span>, <span class="st">"Bron"</span>, <span class="st">"Tailor"</span>, <span class="st">"Moore"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"Evans"</span>, <span class="st">"Hall"</span>, <span class="st">"Wright"</span>, <span class="st">"Green"</span>, <span class="st">"King"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">comparators</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"name"</span> <span class="op">=</span> <span class="fu"><a href="jarowinkler_complement.html">jarowinkler_complement</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                    <span class="st">"surname"</span> <span class="op">=</span> <span class="fu"><a href="jarowinkler_complement.html">jarowinkler_complement</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">matches</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="st">"a"</span> <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="st">"b"</span> <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">matches</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="st">"a"</span> <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="st">"b"</span> <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">methods</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"name"</span> <span class="op">=</span> <span class="st">"continuous_nonparametric"</span>,</span></span>
 <span class="r-in"><span>                <span class="st">"surname"</span> <span class="op">=</span> <span class="st">"continuous_nonparametric"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">train_rec_lin</span><span class="op">(</span>A <span class="op">=</span> <span class="va">df_1</span>, B <span class="op">=</span> <span class="va">df_2</span>, matches <span class="op">=</span> <span class="va">matches</span>,</span></span>
 <span class="r-in"><span>                       variables <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"surname"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                       comparators <span class="op">=</span> <span class="va">comparators</span>,</span></span>
 <span class="r-in"><span>                       methods <span class="op">=</span> <span class="va">methods</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>There are duplicate values in 'sigma', only the unique values are used.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>There are duplicate values in 'sigma', only the unique values are used.</span>
 <span class="r-in"><span><span class="va">model</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Record linkage model based on the following variables: name, surname.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> The prior probability of matching is 0.15.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> The prior probability of matching is 0.04.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ========================================================</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Variables selected for the continuous nonparametric method: name, surname.</span>
 </code></pre></div>
