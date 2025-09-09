@@ -18,7 +18,7 @@
 #' @export
 control_kliep <- function(scale = NULL,
                           progressbar = FALSE,
-                          nfold = 3,
+                          nfold = 2,
                           ...) {
   append(list(scale = scale, progressbar = progressbar, nfold = nfold),
          list(...))

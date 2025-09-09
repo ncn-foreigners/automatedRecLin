@@ -16,6 +16,8 @@
 #' @param comparators A named list of functions for comparing pairs of records.
 #' @param methods A named list of methods used for estimation (`"binary"`, `"continuous_parametric"` or `"continuous_nonparametric"`).
 #' @param prob_ratio Probability ratio type (`"1"` or `"2"`).
+#' @param nonpar_hurdle Logical indicating whether to use a hurdle model or not
+#' (used only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
 #' @param controls_nleqslv Controls passed to the \link[nleqslv]{nleqslv} function (only if the `"continuous_parametric"` method has been chosen for at least one variable).
 #' @param controls_kliep Controls passed to the \link[densityratio]{kliep} function (only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
 #'
@@ -27,7 +29,9 @@
 #' \item{`cnonpar_vars` -- a character vector of variables used for the `"continuous_nonparametric"` method (with the prefix `"gamma_"`),}
 #' \item{`b_params` -- parameters estimated using the `"binary"` method,}
 #' \item{`cpar_params` -- parameters estimated using the `"continuous_parametric"` method,}
+#' \item{`cnonpar_params` -- probability of exact matching estimated using the `"continuous_nonparametric"` method,}
 #' \item{`ratio_kliep` -- a result of the \link[densityratio]{kliep} function,}
+#' \item{`ratio_kliep_list` -- an object containing the results of the \link[densityratio]{kliep} function,}
 #' \item{`ml_model` -- here `NULL`,}
 #' \item{`pi_est` -- a prior probability of matching,}
 #' \item{`match_prop` -- proportion of matches in the smaller dataset,}
@@ -49,16 +53,20 @@
 #'
 #' @examples
 #' df_1 <- data.frame(
-#'   "name" = c("John", "Emily", "Mark", "Anna", "David"),
-#'   "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
+#'   "name" = c("James", "Emma", "William", "Olivia", "Thomas",
+#'   "Sophie", "Harry", "Amelia", "George", "Isabella"),
+#'   "surname" = c("Smith", "Johnson", "Brown", "Taylor", "Wilson",
+#'   "Davis", "Clark", "Harris", "Lewis", "Walker")
 #' )
-#' df_2 <- data.frame(
-#'   "name" = c("John", "Emely", "Marc", "Michael"),
-#'   "surname" = c("Smith", "Jonson", "Tailor", "Henderson")
+#'  df_2 <- data.frame(
+#'   "name" = c("James", "Ema", "Wimliam", "Olivia", "Charlotte",
+#'   "Henry", "Lucy", "Edward", "Alice", "Jack"),
+#'   "surname" = c("Smith", "Johnson", "Bron", "Tailor", "Moore",
+#'   "Evans", "Hall", "Wright", "Green", "King")
 #' )
 #' comparators <- list("name" = jarowinkler_complement(),
 #'                     "surname" = jarowinkler_complement())
-#' matches <- data.frame("a" = 1:3, "b" = 1:3)
+#' matches <- data.frame("a" = 1:4, "b" = 1:4)
 #' methods <- list("name" = "continuous_nonparametric",
 #'                 "surname" = "continuous_nonparametric")
 #' model <- train_rec_lin(A = df_1, B = df_2, matches = matches,
@@ -75,6 +83,7 @@ train_rec_lin <- function(
     comparators = NULL,
     methods = NULL,
     prob_ratio = NULL,
+    nonpar_hurdle = TRUE,
     controls_nleqslv = list(),
     controls_kliep = control_kliep()) {
 
@@ -112,10 +121,10 @@ train_rec_lin <- function(
   }
 
   if (is.null(prob_ratio)) {
-    prob_ratio <- "2"
+    prob_ratio <- "1"
   }
 
-  if (any(methods %in% c("binary", "continuous_parametric"))) {
+  # if (any(methods %in% c("binary", "continuous_parametric"))) {
 
     data.table::setDT(matches)
 
@@ -137,17 +146,7 @@ train_rec_lin <- function(
       }
     }
 
-    # if (prob_ratio == "1") {
-    #   common_values <- sapply(variables, function(col) {
-    #     length(intersect(A[[col]], B[[col]]))
-    #   })
-    #
-    #   stopifnot("Some variables lack common values in both datasets.
-    #             Please provide relevant datasets." =
-    #               all(common_values > 0))
-    # }
-
-  }
+  # }
 
   vectors <- comparison_vectors(A = A,
                                 B = B,
@@ -170,7 +169,9 @@ train_rec_lin <- function(
 
   b_params <- NULL
   cpar_params <- NULL
+  cnonpar_params <- NULL
   ratio_kliep <- NULL
+  ratio_kliep_list <- NULL
 
   if (any(methods == "binary")) {
 
@@ -245,25 +246,101 @@ train_rec_lin <- function(
     if (prob_ratio == "1") {
       Omega_cnonpar <- Omega[, cnonpar_vars, with = FALSE]
 
-      ratio_kliep <- do.call(
-        densityratio::kliep,
-        c(list(
-          df_numerator = M_cnonpar,
-          df_denominator = Omega_cnonpar
-        ),
-        controls_kliep)
-      )
+      if (nonpar_hurdle) {
+
+        p_0_M_cnonpar <- p_0_formula(M_cnonpar)
+        p_0_U_cnonpar <- p_0_formula(Omega_cnonpar)
+
+        ratio_kliep_list <- lapply(cnonpar_vars, function(x) {
+          gamma_M <- M_cnonpar[[x]]
+          gamma_M <- data.table::data.table(gamma_M[gamma_M > 0])
+          names(gamma_M) <- x
+          gamma_Omega <- Omega_cnonpar[[x]]
+          gamma_Omega <- data.table::data.table(gamma_Omega[gamma_Omega > 0])
+          names(gamma_Omega) <- x
+          if (length(gamma_M) > 0) {
+            ratio_plus <- do.call(
+              densityratio::kliep,
+              c(list(
+                df_numerator = gamma_M,
+                df_denominator = gamma_Omega
+              ),
+              controls_kliep)
+            )
+          } else {
+            NULL
+          }
+        })
+        names(ratio_kliep_list) <- cnonpar_vars
+
+        cnonpar_params <- data.table(
+          variable = cnonpar_vars,
+          p_0_M_cnonpar = p_0_M_cnonpar,
+          p_0_U_cnonpar = p_0_U_cnonpar
+        )
+
+      } else {
+
+        ratio_kliep <- do.call(
+          densityratio::kliep,
+          c(list(
+            df_numerator = M_cnonpar,
+            df_denominator = Omega_cnonpar
+          ),
+          controls_kliep)
+        )
+
+      }
+
     } else if (prob_ratio == "2") {
       U_cnonpar <- U[, cnonpar_vars, with = FALSE]
 
-      ratio_kliep <- do.call(
-        densityratio::kliep,
-        c(list(
-          df_numerator = M_cnonpar,
-          df_denominator = U_cnonpar
-        ),
-        controls_kliep)
-      )
+      if (nonpar_hurdle) {
+
+        p_0_M_cnonpar <- p_0_formula(M_cnonpar)
+        p_0_U_cnonpar <- p_0_formula(U_cnonpar)
+
+        ratio_kliep_list <- lapply(cnonpar_vars, function(x) {
+          gamma_M <- M_cnonpar[[x]]
+          gamma_M <- data.table::data.table(gamma_M[gamma_M > 0])
+          names(gamma_M) <- x
+          gamma_U <- U_cnonpar[[x]]
+          gamma_U <- data.table::data.table(gamma_U[gamma_U > 0])
+          names(gamma_U) <- x
+          if (length(gamma_M) > 0) {
+            ratio_plus <- do.call(
+              densityratio::kliep,
+              c(list(
+                df_numerator = gamma_M,
+                df_denominator = gamma_U
+              ),
+              controls_kliep)
+            )
+          } else {
+            NULL
+          }
+        })
+        names(ratio_kliep_list) <- cnonpar_vars
+
+        cnonpar_params <- data.table(
+          variable = cnonpar_vars,
+          p_0_M_cnonpar = p_0_M_cnonpar,
+          p_0_U_cnonpar = p_0_U_cnonpar
+        )
+
+      } else {
+
+        ratio_kliep <- do.call(
+          densityratio::kliep,
+          c(list(
+            df_numerator = M_cnonpar,
+            df_denominator = U_cnonpar
+          ),
+          controls_kliep)
+        )
+
+      }
+
     }
 
   }
@@ -275,7 +352,9 @@ train_rec_lin <- function(
       cnonpar_vars = if (is.null(cnonpar_vars)) NULL else cnonpar_vars,
       b_params = if (is.null(b_params)) NULL else b_params,
       cpar_params = if (is.null(cpar_params)) NULL else cpar_params,
+      cnonpar_params = if (is.null(cnonpar_params)) NULL else cnonpar_params,
       ratio_kliep = if (is.null(ratio_kliep)) NULL else ratio_kliep,
+      ratio_kliep_list = if (is.null(ratio_kliep_list)) NULL else ratio_kliep_list,
       ml_model = NULL,
       pi_est = pi_est,
       match_prop = vectors$match_prop,
@@ -308,7 +387,9 @@ train_rec_lin <- function(
 #' \item{`cnonpar_vars` -- here `NULL`,}
 #' \item{`b_params` -- here `NULL`,}
 #' \item{`cpar_params` -- here `NULL`,}
+#' \item{`cnonpar_params` -- here `NULL`,}
 #' \item{`ratio_kliep` -- here `NULL`,}
+#' \item{`ratio_kliep_list` -- here `NULL`,}
 #' \item{`ml_model` -- ML model used for creating the record linkage model,}
 #' \item{`pi_est` -- a prior probability of matching,}
 #' \item{`match_prop` -- proportion of matches in the smaller dataset,}
@@ -320,16 +401,20 @@ train_rec_lin <- function(
 #' @examples
 #' if (requireNamespace("xgboost", quietly = TRUE)) {
 #'   df_1 <- data.frame(
-#'     "name" = c("John", "Emily", "Mark", "Anna", "David"),
-#'     "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
+#'     "name" = c("James", "Emma", "William", "Olivia", "Thomas",
+#'     "Sophie", "Harry", "Amelia", "George", "Isabella"),
+#'     "surname" = c("Smith", "Johnson", "Brown", "Taylor", "Wilson",
+#'     "Davis", "Clark", "Harris", "Lewis", "Walker")
 #'   )
 #'   df_2 <- data.frame(
-#'     "name" = c("Jon", "Emely", "Marc", "Michael"),
-#'     "surname" = c("Smitth", "Jonson", "Tailor", "Henderson")
+#'     "name" = c("James", "Ema", "Wimliam", "Olivia", "Charlotte",
+#'     "Henry", "Lucy", "Edward", "Alice", "Jack"),
+#'     "surname" = c("Smith", "Johnson", "Bron", "Tailor", "Moore",
+#'     "Evans", "Hall", "Wright", "Green", "King")
 #'   )
 #'   comparators <- list("name" = jarowinkler_complement(),
 #'                       "surname" = jarowinkler_complement())
-#'   matches <- data.frame("a" = 1:3, "b" = 1:3)
+#'   matches <- data.frame("a" = 1:4, "b" = 1:4)
 #'   vectors <- comparison_vectors(A = df_1, B = df_2, variables = c("name", "surname"),
 #'                                comparators = comparators, matches = matches)
 #'   train_data <- xgboost::xgb.DMatrix(
@@ -339,7 +424,7 @@ train_rec_lin <- function(
 #'   params <- list(objective = "binary:logistic",
 #'                  eval_metric = "logloss")
 #'   model_xgb <- xgboost::xgboost(data = train_data, params = params,
-#'                                 nrounds = 50, verbose = 0)
+#'                                 nrounds = 100, verbose = 0)
 #'   custom_xgb_model <- custom_rec_lin_model(model_xgb, vectors)
 #'   custom_xgb_model
 #' }
@@ -368,7 +453,9 @@ custom_rec_lin_model <- function(ml_model, vectors) {
       cnonpar_vars = NULL,
       b_params = NULL,
       cpar_params = NULL,
+      cnonpar_params = NULL,
       ratio_kliep = NULL,
+      ratio_kliep_list = NULL,
       ml_model = ml_model,
       pi_est = pi_est,
       match_prop = vectors$match_prop,

@@ -12,6 +12,7 @@ train_rec_lin(
   comparators = NULL,
   methods = NULL,
   prob_ratio = NULL,
+  nonpar_hurdle = TRUE,
   controls_nleqslv = list(),
   controls_kliep = control_kliep()
 )
@@ -31,6 +32,9 @@ train_rec_lin(
 
 \item{prob_ratio}{Probability ratio type (\code{"1"} or \code{"2"}).}
 
+\item{nonpar_hurdle}{Logical indicating whether to use a hurdle model or not
+(used only if the \code{"continuous_nonparametric"} method has been chosen for at least one variable).}
+
 \item{controls_nleqslv}{Controls passed to the \link[nleqslv]{nleqslv} function (only if the \code{"continuous_parametric"} method has been chosen for at least one variable).}
 
 \item{controls_kliep}{Controls passed to the \link[densityratio]{kliep} function (only if the \code{"continuous_nonparametric"} method has been chosen for at least one variable).}
@@ -43,7 +47,9 @@ Returns a list containing:\cr
 \item{\code{cnonpar_vars} -- a character vector of variables used for the \code{"continuous_nonparametric"} method (with the prefix \code{"gamma_"}),}
 \item{\code{b_params} -- parameters estimated using the \code{"binary"} method,}
 \item{\code{cpar_params} -- parameters estimated using the \code{"continuous_parametric"} method,}
+\item{\code{cnonpar_params} -- probability of exact matching estimated using the \code{"continuous_nonparametric"} method,}
 \item{\code{ratio_kliep} -- a result of the \link[densityratio]{kliep} function,}
+\item{\code{ratio_kliep_list} -- an object containing the results of the \link[densityratio]{kliep} function,}
 \item{\code{ml_model} -- here \code{NULL},}
 \item{\code{pi_est} -- a prior probability of matching,}
 \item{\code{match_prop} -- proportion of matches in the smaller dataset,}
@@ -57,16 +63,20 @@ Trains a supervised record linkage model using probability or density ratio esti
 }
 \examples{
 df_1 <- data.frame(
-  "name" = c("John", "Emily", "Mark", "Anna", "David"),
-  "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
+  "name" = c("James", "Emma", "William", "Olivia", "Thomas",
+  "Sophie", "Harry", "Amelia", "George", "Isabella"),
+  "surname" = c("Smith", "Johnson", "Brown", "Taylor", "Wilson",
+  "Davis", "Clark", "Harris", "Lewis", "Walker")
 )
-df_2 <- data.frame(
-  "name" = c("John", "Emely", "Marc", "Michael"),
-  "surname" = c("Smith", "Jonson", "Tailor", "Henderson")
+ df_2 <- data.frame(
+  "name" = c("James", "Ema", "Wimliam", "Olivia", "Charlotte",
+  "Henry", "Lucy", "Edward", "Alice", "Jack"),
+  "surname" = c("Smith", "Johnson", "Bron", "Tailor", "Moore",
+  "Evans", "Hall", "Wright", "Green", "King")
 )
 comparators <- list("name" = jarowinkler_complement(),
                     "surname" = jarowinkler_complement())
-matches <- data.frame("a" = 1:3, "b" = 1:3)
+matches <- data.frame("a" = 1:4, "b" = 1:4)
 methods <- list("name" = "continuous_nonparametric",
                 "surname" = "continuous_nonparametric")
 model <- train_rec_lin(A = df_1, B = df_2, matches = matches,

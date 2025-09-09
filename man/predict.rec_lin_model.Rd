@@ -62,16 +62,20 @@ Predicts matches between records in two datasets based on a given record linkage
 }
 \examples{
 df_1 <- data.frame(
-  "name" = c("John", "Emily", "Mark", "Anna", "David"),
-  "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
+  "name" = c("James", "Emma", "William", "Olivia", "Thomas",
+  "Sophie", "Harry", "Amelia", "George", "Isabella"),
+  "surname" = c("Smith", "Johnson", "Brown", "Taylor", "Wilson",
+  "Davis", "Clark", "Harris", "Lewis", "Walker")
 )
-df_2 <- data.frame(
-  "name" = c("John", "Emely", "Marc", "Michael"),
-  "surname" = c("Smith", "Jonson", "Tailor", "Henderson")
+ df_2 <- data.frame(
+  "name" = c("James", "Ema", "Wimliam", "Olivia", "Charlotte",
+  "Henry", "Lucy", "Edward", "Alice", "Jack"),
+  "surname" = c("Smith", "Johnson", "Bron", "Tailor", "Moore",
+  "Evans", "Hall", "Wright", "Green", "King")
 )
 comparators <- list("name" = jarowinkler_complement(),
                     "surname" = jarowinkler_complement())
-matches <- data.frame("a" = 1:3, "b" = 1:3)
+matches <- data.frame("a" = 1:4, "b" = 1:4)
 methods <- list("name" = "continuous_nonparametric",
                 "surname" = "continuous_nonparametric")
 model <- train_rec_lin(A = df_1, B = df_2, matches = matches,
@@ -80,12 +84,12 @@ model <- train_rec_lin(A = df_1, B = df_2, matches = matches,
                        methods = methods)
 
 df_new_1 <- data.frame(
-  "name" = c("Jame", "Lia", "Tomas", "Matthew", "Andrew"),
-  "surname" = c("Wilsen", "Thomsson", "Davis", "Robinson", "Scott")
+  "name" = c("John", "Emily", "Mark", "Anna", "David"),
+  "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
 )
 df_new_2 <- data.frame(
-  "name" = c("James", "Leah", "Thomas", "Sophie", "Mathew", "Andrew"),
-  "surname" = c("Wilson", "Thompson", "Davies", "Clarks", "Robins", "Scots")
+  "name" = c("John", "Emely", "Mark", "Michael"),
+  "surname" = c("Smitth", "Johnson", "Tailor", "Henders")
 )
 predict(model, df_new_1, df_new_2)
 }

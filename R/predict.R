@@ -52,16 +52,20 @@
 #'
 #' @examples
 #' df_1 <- data.frame(
-#'   "name" = c("John", "Emily", "Mark", "Anna", "David"),
-#'   "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
+#'   "name" = c("James", "Emma", "William", "Olivia", "Thomas",
+#'   "Sophie", "Harry", "Amelia", "George", "Isabella"),
+#'   "surname" = c("Smith", "Johnson", "Brown", "Taylor", "Wilson",
+#'   "Davis", "Clark", "Harris", "Lewis", "Walker")
 #' )
-#' df_2 <- data.frame(
-#'   "name" = c("John", "Emely", "Marc", "Michael"),
-#'   "surname" = c("Smith", "Jonson", "Tailor", "Henderson")
+#'  df_2 <- data.frame(
+#'   "name" = c("James", "Ema", "Wimliam", "Olivia", "Charlotte",
+#'   "Henry", "Lucy", "Edward", "Alice", "Jack"),
+#'   "surname" = c("Smith", "Johnson", "Bron", "Tailor", "Moore",
+#'   "Evans", "Hall", "Wright", "Green", "King")
 #' )
 #' comparators <- list("name" = jarowinkler_complement(),
 #'                     "surname" = jarowinkler_complement())
-#' matches <- data.frame("a" = 1:3, "b" = 1:3)
+#' matches <- data.frame("a" = 1:4, "b" = 1:4)
 #' methods <- list("name" = "continuous_nonparametric",
 #'                 "surname" = "continuous_nonparametric")
 #' model <- train_rec_lin(A = df_1, B = df_2, matches = matches,
@@ -70,12 +74,12 @@
 #'                        methods = methods)
 #'
 #' df_new_1 <- data.frame(
-#'   "name" = c("Jame", "Lia", "Tomas", "Matthew", "Andrew"),
-#'   "surname" = c("Wilsen", "Thomsson", "Davis", "Robinson", "Scott")
+#'   "name" = c("John", "Emily", "Mark", "Anna", "David"),
+#'   "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
 #' )
 #' df_new_2 <- data.frame(
-#'   "name" = c("James", "Leah", "Thomas", "Sophie", "Mathew", "Andrew"),
-#'   "surname" = c("Wilson", "Thompson", "Davies", "Clarks", "Robins", "Scots")
+#'   "name" = c("John", "Emely", "Mark", "Michael"),
+#'   "surname" = c("Smitth", "Johnson", "Tailor", "Henders")
 #' )
 #' predict(model, df_new_1, df_new_2)
 #' @export
@@ -154,7 +158,6 @@ predict.rec_lin_model <- function(object,
     )
 
     prob_est <- object$match_prop / max(NROW(newdata_A), NROW(newdata_B))
-
     # predicted_ratio <- predicted_probs * (1 - object$pi_est) / ((1 - predicted_probs) * object$pi_est)
     predicted_ratio <- predicted_probs * (1 - prob_est) / ((1 - predicted_probs) * prob_est)
     data.table::set(Omega, j = "ratio", value = predicted_ratio)
@@ -220,9 +223,38 @@ predict.rec_lin_model <- function(object,
     if (!is.null(object$cnonpar_vars)) {
 
       cnonpar_vars <- object$cnonpar_vars
-      ratio_kliep <- object$ratio_kliep
       Omega_cnonpar <- Omega[, cnonpar_vars, with = FALSE]
-      data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * stats::predict(ratio_kliep, Omega_cnonpar))
+
+      if (!is.null(object$ratio_kliep_list)) {
+
+        ratio_kliep_list <- object$ratio_kliep_list
+        p_0_M_cnonpar <- object$cnonpar_params[["p_0_M_cnonpar"]]
+        p_0_U_cnonpar <- object$cnonpar_params[["p_0_U_cnonpar"]]
+        names(p_0_M_cnonpar) <- cnonpar_vars
+        names(p_0_U_cnonpar) <- cnonpar_vars
+
+        pred_ratio_list <- lapply(cnonpar_vars, function(x) {
+          gamma_vec <- Omega_cnonpar[[x]]
+          gamma_df <- Omega_cnonpar[, x, with = FALSE]
+          if (!is.null(ratio_kliep_list[x])) {
+            kliep_pred <- as.vector(stats::predict(ratio_kliep_list[[x]], gamma_df))
+            ifelse(gamma_vec == 0, p_0_M_cnonpar[x] / p_0_U_cnonpar[x], 1) *
+              ifelse(gamma_vec > 0, (1 - p_0_M_cnonpar[x]) * (1 - p_0_U_cnonpar[x]) * kliep_pred, 1)
+          } else {
+            ifelse(gamma_vec == 0, p_0_M_cnonpar[x] / p_0_U_cnonpar[x], 1)
+          }
+
+        })
+
+        ratio_kliep <- Reduce(`*`, pred_ratio_list)
+        data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * ratio_kliep)
+
+      } else {
+
+        ratio_kliep <- object$ratio_kliep
+        data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * stats::predict(ratio_kliep, Omega_cnonpar))
+
+      }
 
     }
 
@@ -239,7 +271,6 @@ predict.rec_lin_model <- function(object,
   #                                       Method = fixed_method)$FixedPoint,
   #                min(NROW(newdata_A), NROW(newdata_B)))
   n_M_est <- min(n_M_original, n_M_start)
-
   n_M_est <- max(n_M_est, 0)
   n_M_est <- round(n_M_est)
 

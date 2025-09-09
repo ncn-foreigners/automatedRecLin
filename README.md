@@ -163,26 +163,49 @@ with typos in some cases.
 
 ``` r
 df_1_train <- data.frame(
-        "name" = c("John", "Emily", "Mark", "Anna", "David"),
-        "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
+        name = c(
+          "James", "Emma", "William", "Olivia", "Thomas",
+          "Sophie", "Harry", "Amelia", "George", "Isabella"
+          ),
+        surname = c(
+          "Smith", "Johnson", "Brown", "Taylor", "Wilson",
+          "Davis", "Clark", "Harris", "Lewis", "Walker"
+          )
 )
 df_2_train <- data.frame(
-        "name" = c("John", "Emely", "Marc", "Michael"),
-        "surname" = c("Smith", "Jonson", "Tailor", "Henderson")
+        name = c(
+          "James", "Ema", "Wimliam", "Olivia", "Charlotte",
+          "Henry", "Lucy", "Edward", "Alice", "Jack"
+          ),
+        surname = c(
+          "Smith", "Johnson", "Bron", "Tailor", "Moore",
+          "Evans", "Hall", "Wright", "Green", "King"
+          )
 )
 df_1_train
-#>    name  surname
-#> 1  John    Smith
-#> 2 Emily  Johnson
-#> 3  Mark   Taylor
-#> 4  Anna Williams
-#> 5 David    Brown
+#>        name surname
+#> 1     James   Smith
+#> 2      Emma Johnson
+#> 3   William   Brown
+#> 4    Olivia  Taylor
+#> 5    Thomas  Wilson
+#> 6    Sophie   Davis
+#> 7     Harry   Clark
+#> 8    Amelia  Harris
+#> 9    George   Lewis
+#> 10 Isabella  Walker
 df_2_train
-#>      name   surname
-#> 1    John     Smith
-#> 2   Emely    Jonson
-#> 3    Marc    Tailor
-#> 4 Michael Henderson
+#>         name surname
+#> 1      James   Smith
+#> 2        Ema Johnson
+#> 3    Wimliam    Bron
+#> 4     Olivia  Tailor
+#> 5  Charlotte   Moore
+#> 6      Henry   Evans
+#> 7       Lucy    Hall
+#> 8     Edward  Wright
+#> 9      Alice   Green
+#> 10      Jack    King
 ```
 
 Specify the key variables, select comparison functions and choose
@@ -195,7 +218,7 @@ comparators_train <- list("name" = jarowinkler_complement(),
                           "surname" = jarowinkler_complement())
 methods_train <- list("name" = "continuous_nonparametric",
                       "surname" = "continuous_nonparametric")
-matches_train <- data.frame("a" = 1:3, "b" = 1:3)
+matches_train <- data.frame("a" = 1:4, "b" = 1:4)
 ```
 
 Train a record linkage model using the `train_rec_lin` function.
@@ -206,9 +229,11 @@ model <- train_rec_lin(A = df_1_train, B = df_2_train,
                        variables = variables_train,
                        comparators = comparators_train,
                        methods = methods_train)
+#> Warning in check.sigma(nsigma, sigma_quantile, sigma, dist_nu): There are duplicate values in 'sigma', only the unique values are used.
+#> Warning in check.sigma(nsigma, sigma_quantile, sigma, dist_nu): There are duplicate values in 'sigma', only the unique values are used.
 model
 #> Record linkage model based on the following variables: name, surname.
-#> The prior probability of matching is 0.15.
+#> The prior probability of matching is 0.04.
 #> ========================================================
 #> Variables selected for the continuous nonparametric method: name, surname.
 ```
@@ -217,28 +242,26 @@ Generate two new datasets for record linkage prediction.
 
 ``` r
 df_1_new <- data.frame(
-  "name" = c("Jame", "Lia", "Tomas", "Matthew", "Andrew"),
-  "surname" = c("Wilsen", "Thomsson", "Davis", "Robinson", "Scott")
+  "name" = c("John", "Emily", "Mark", "Anna", "David"),
+  "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
 )
 df_2_new <- data.frame(
-  "name" = c("James", "Leah", "Thomas", "Mathew", "Andrew", "Sophie"),
-  "surname" = c("Wilson", "Thompson", "Davies", "Robins", "Scots", "Clarks")
+  "name" = c("John", "Emely", "Mark", "Michael"),
+  "surname" = c("Smitth", "Johnson", "Tailor", "Henders")
 )
 df_1_new
-#>      name  surname
-#> 1    Jame   Wilsen
-#> 2     Lia Thomsson
-#> 3   Tomas    Davis
-#> 4 Matthew Robinson
-#> 5  Andrew    Scott
+#>    name  surname
+#> 1  John    Smith
+#> 2 Emily  Johnson
+#> 3  Mark   Taylor
+#> 4  Anna Williams
+#> 5 David    Brown
 df_2_new
-#>     name  surname
-#> 1  James   Wilson
-#> 2   Leah Thompson
-#> 3 Thomas   Davies
-#> 4 Mathew   Robins
-#> 5 Andrew    Scots
-#> 6 Sophie   Clarks
+#>      name surname
+#> 1    John  Smitth
+#> 2   Emely Johnson
+#> 3    Mark  Tailor
+#> 4 Michael Henders
 ```
 
 Predict matches using the `predict` function. The output has a similar
@@ -247,19 +270,17 @@ structure to that of the `mec` function.
 ``` r
 result_sup <- predict(model, df_1_new, df_2_new)
 result_sup
-#> The algorithm predicted 5 matches.
-#> The first 5 predicted matches are:
+#> The algorithm predicted 3 matches.
+#> The first 3 predicted matches are:
 #>        a     b ratio / 1000
 #>    <num> <num>        <num>
-#> 1:     3     3    0.6466869
-#> 2:     4     4    0.5865049
-#> 3:     1     1    0.5696382
-#> 4:     5     5    0.3103742
-#> 5:     2     2    0.2935612
+#> 1:     2     2   0.04572852
+#> 2:     3     3   0.02813814
+#> 3:     1     1   0.02560156
 #> ========================================================
 #> The construction of the classification set was based on estimates of its size.
-#> Estimated false link rate (FLR): 1.1486 %.
-#> Estimated missing match rate (MMR): 1.1486 %.
+#> Estimated false link rate (FLR): 15.3038 %.
+#> Estimated missing match rate (MMR): 15.3038 %.
 ```
 
 ## Integration with a custom machine learning model
@@ -288,12 +309,12 @@ vectors
 #> ========================================================
 #>        a     b gamma_name gamma_surname match
 #>    <int> <int>      <num>         <num> <num>
-#> 1:     1     1  0.0000000    0.00000000     1
-#> 2:     1     2  1.0000000    1.00000000     0
-#> 3:     1     3  1.0000000    0.54444444     0
-#> 4:     1     4  0.5357143    1.00000000     0
-#> 5:     2     1  1.0000000    0.55238095     0
-#> 6:     2     2  0.1333333    0.04761905     1
+#> 1:     1     1  0.0000000     0.0000000     1
+#> 2:     1     2  0.4777778     0.5523810     0
+#> 3:     1     3  0.5523810     1.0000000     0
+#> 4:     1     4  1.0000000     0.5444444     0
+#> 5:     1     5  0.5629630     1.0000000     0
+#> 6:     1     6  1.0000000     1.0000000     0
 ```
 
 Construct the `xgb.DMatrix` object, specify the model parameters, and
@@ -317,7 +338,7 @@ custom_xgb_model <- custom_rec_lin_model(model_xgb, vectors)
 custom_xgb_model
 #> Record linkage model based on the following variables: name, surname.
 #> A custom ML model was used.
-#> The prior probability of matching is 0.15.
+#> The prior probability of matching is 0.04.
 ```
 
 Use the model for predictions. Note that the `xgboost` package requires
@@ -330,19 +351,17 @@ vary depending on the model or library used).
 result_xgb <- predict(custom_xgb_model, df_1_new, df_2_new,
                       data_type = "matrix", type = "prob")
 result_xgb
-#> The algorithm predicted 5 matches.
-#> The first 5 predicted matches are:
+#> The algorithm predicted 3 matches.
+#> The first 3 predicted matches are:
 #>        a     b ratio / 1000
 #>    <num> <num>        <num>
-#> 1:     1     1   0.01200467
-#> 2:     2     2   0.01200467
-#> 3:     3     3   0.01200467
-#> 4:     4     4   0.01200467
-#> 5:     5     5   0.01200467
+#> 1:     1     1   0.03702279
+#> 2:     2     2   0.03702279
+#> 3:     3     3   0.03702279
 #> ========================================================
 #> The construction of the classification set was based on estimates of its size.
-#> Estimated false link rate (FLR): 29.4037 %.
-#> Estimated missing match rate (MMR): 29.4037 %.
+#> Estimated false link rate (FLR): 13.2742 %.
+#> Estimated missing match rate (MMR): 13.2742 %.
 ```
 
 ## Funding

@@ -4,7 +4,7 @@
 \alias{control_kliep}
 \title{Controls for the kliep Function}
 \usage{
-control_kliep(scale = NULL, progressbar = FALSE, nfold = 3, ...)
+control_kliep(scale = NULL, progressbar = FALSE, nfold = 2, ...)
 }
 \arguments{
 \item{scale}{\code{"numerator"}, \code{"denominator"} or \code{NULL}, indicating whether to standardize each numeric variable according

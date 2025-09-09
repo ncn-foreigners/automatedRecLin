@@ -19,7 +19,9 @@ Returns a list containing:\cr
 \item{\code{cnonpar_vars} -- here \code{NULL},}
 \item{\code{b_params} -- here \code{NULL},}
 \item{\code{cpar_params} -- here \code{NULL},}
+\item{\code{cnonpar_params} -- here \code{NULL},}
 \item{\code{ratio_kliep} -- here \code{NULL},}
+\item{\code{ratio_kliep_list} -- here \code{NULL},}
 \item{\code{ml_model} -- ML model used for creating the record linkage model,}
 \item{\code{pi_est} -- a prior probability of matching,}
 \item{\code{match_prop} -- proportion of matches in the smaller dataset,}
@@ -34,16 +36,20 @@ Creates a supervised record linkage model using a custom machine learning (ML) c
 \examples{
 if (requireNamespace("xgboost", quietly = TRUE)) {
   df_1 <- data.frame(
-    "name" = c("John", "Emily", "Mark", "Anna", "David"),
-    "surname" = c("Smith", "Johnson", "Taylor", "Williams", "Brown")
+    "name" = c("James", "Emma", "William", "Olivia", "Thomas",
+    "Sophie", "Harry", "Amelia", "George", "Isabella"),
+    "surname" = c("Smith", "Johnson", "Brown", "Taylor", "Wilson",
+    "Davis", "Clark", "Harris", "Lewis", "Walker")
   )
   df_2 <- data.frame(
-    "name" = c("Jon", "Emely", "Marc", "Michael"),
-    "surname" = c("Smitth", "Jonson", "Tailor", "Henderson")
+    "name" = c("James", "Ema", "Wimliam", "Olivia", "Charlotte",
+    "Henry", "Lucy", "Edward", "Alice", "Jack"),
+    "surname" = c("Smith", "Johnson", "Bron", "Tailor", "Moore",
+    "Evans", "Hall", "Wright", "Green", "King")
   )
   comparators <- list("name" = jarowinkler_complement(),
                       "surname" = jarowinkler_complement())
-  matches <- data.frame("a" = 1:3, "b" = 1:3)
+  matches <- data.frame("a" = 1:4, "b" = 1:4)
   vectors <- comparison_vectors(A = df_1, B = df_2, variables = c("name", "surname"),
                                comparators = comparators, matches = matches)
   train_data <- xgboost::xgb.DMatrix(
@@ -53,7 +59,7 @@ if (requireNamespace("xgboost", quietly = TRUE)) {
   params <- list(objective = "binary:logistic",
                  eval_metric = "logloss")
   model_xgb <- xgboost::xgboost(data = train_data, params = params,
-                                nrounds = 50, verbose = 0)
+                                nrounds = 100, verbose = 0)
   custom_xgb_model <- custom_rec_lin_model(model_xgb, vectors)
   custom_xgb_model
 }
