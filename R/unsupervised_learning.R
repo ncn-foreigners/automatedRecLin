@@ -227,7 +227,7 @@ mec <- function(A,
     if (length(b_vars) > 0) {
       start_params[["binary"]] <- data.table(
         variable = b_vars,
-        theta = runif(length(b_vars), min = 0.9, max = 0.95)
+        theta = runif(length(b_vars), min = 0.9)
       )
 
     }
