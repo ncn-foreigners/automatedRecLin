@@ -363,9 +363,9 @@ mec <- function(A,
     n_M_old <- n_M
     n_M <- sum(g_est)
 
-    if (n_M > min(NROW(A), NROW(B))) {
-      n_M <- min(NROW(A), NROW(B))
-    }
+    # if (n_M > min(NROW(A), NROW(B))) {
+    #   n_M <- min(NROW(A), NROW(B))
+    # }
 
     data.table::set(Omega, j = "g_est", value = g_est)
     Omega <- Omega[order(-get("ratio")), ]
