@@ -198,6 +198,7 @@ mec <- function(A,
   b_vars <- NULL
   cpar_vars <- NULL
   cnonpar_vars <- NULL
+  hm_vars <- NULL
 
   if (any(methods == "binary")) {
     b_vars <- paste0("gamma_", names(which(methods == "binary")))
@@ -211,7 +212,12 @@ mec <- function(A,
     cnonpar_vars <- paste0("gamma_", names(which(methods == "continuous_nonparametric")))
   }
 
+  if (any(methods == "hit_miss")) {
+    hm_vars <- paste0("gamma_", names(which(methods == "hit_miss")))
+  }
+
   ratio_kliep <- NULL
+  B_values <- NULL
 
   M <- merge(M, Omega, by = c("a", "b"), all = FALSE)
   M <- M[, colnames(Omega), with = FALSE]
@@ -240,6 +246,14 @@ mec <- function(A,
         alpha_M = runif(length(cpar_vars), min = 0.1, max = 1),
         beta_M = runif(length(cpar_vars), min = 10, max = 20)
       )
+    }
+
+    if (length(hm_vars) > 0) {
+      start_params[["hit_miss"]] <- data.table(
+        variable = hm_vars,
+        theta = runif(length(hm_vars), min = 0.9)
+      )
+
     }
 
   }
@@ -355,6 +369,48 @@ mec <- function(A,
 
   }
 
+  if (length(hm_vars) > 0) {
+
+    hm_params <- start_params$hit_miss
+    Omega_hm <- Omega[, hm_vars, with = FALSE]
+    M_hm <- M[, hm_vars, with = FALSE]
+    U_hm <- U[, hm_vars, with = FALSE]
+
+    eta_hm <- binary_formula(Omega_hm)
+    hm_params$eta <- eta_hm
+
+    hm_numerator_list <- lapply(hm_vars,
+                               function(col) {
+                                 stats::dbinom(x = Omega_hm[[col]],
+                                               size = 1,
+                                               prob = as.numeric(hm_params[hm_params[["variable"]] == col, "theta"]))
+                               })
+    hm_numerator <- Reduce(`*`, hm_numerator_list)
+    hm_denominator_list <- lapply(hm_vars,
+                                 function(col) {
+                                   stats::dbinom(x = Omega_hm[[col]],
+                                                 size = 1,
+                                                 prob = as.numeric(hm_params[hm_params[["variable"]] == col, "eta"]))
+                                 })
+    hm_denominator <- Reduce(`*`, hm_denominator_list)
+    data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * hm_numerator / hm_denominator)
+    data.table::set(Omega, j = "hm_denominator", value = hm_denominator)
+
+    values_list <- lapply(hm_vars, function(x) {
+      name <- substr(x, 7, nchar(x))
+      values <- unique(c(A[[name]], B[[name]]))
+      m_est <- sapply(values, function(y) sum(A[[name]] == y) / NROW(A))
+      u_est <- numeric(length(values))
+      data.table::data.table(
+        "value" = values,
+        "m_est" = m_est,
+        "u_est" = u_est
+      )
+    })
+    names(values_list) <- hm_vars
+
+  }
+
   iter <- 1
 
   repeat {
@@ -417,6 +473,30 @@ mec <- function(A,
     }
 
     if (iter >= 2) {
+      # old_params <- c()
+      # params <- c()
+      # if (length(b_vars) > 0) {
+      #   old_params <- c(old_params, theta_b_old)
+      #   params <- c(params, theta_b)
+      # }
+      # if (length(cpar_vars) > 0) {
+      #   old_params <- c(old_params, p_0_M_old, alpha_M_old, beta_M_old)
+      #   params <- c(params, p_0_M, alpha_M, beta_M)
+      # }
+      #
+      # if (length(cnonpar_vars) == 0) {
+      #
+      #   if ((abs(n_M_old - n_M) < delta) || norm(old_params - params, type = "2") < eps) {
+      #     break
+      #   }
+      #
+      # } else {
+      #
+      #   if ((abs(n_M_old - n_M) < delta)) {
+      #     break
+      #   }
+      #
+      # }
 
       old_params <- c()
       params <- c()
@@ -427,6 +507,10 @@ mec <- function(A,
       if (length(cpar_vars) > 0) {
         old_params <- c(old_params, p_0_M_old, alpha_M_old, beta_M_old)
         params <- c(params, p_0_M, alpha_M, beta_M)
+      }
+      if (length(hm_vars) > 0) {
+        old_params <- c(old_params, theta_hm_old)
+        params <- c(params, theta_hm)
       }
 
       if (length(cnonpar_vars) == 0) {
@@ -551,6 +635,35 @@ mec <- function(A,
 
       }
 
+    }
+
+    if (length(hm_vars) > 0) {
+
+      Omega_hm <- Omega[, hm_vars, with = FALSE]
+      M_hm <- M[, hm_vars, with = FALSE]
+      U_hm <- U[, hm_vars, with = FALSE]
+
+      theta_hm_old <- hm_params$theta
+      theta_hm <- binary_formula(M_hm)
+      hm_params$theta <- theta_hm
+
+      p_est <- n_M / max(NROW(A), NROW(B))
+      u_est_list <- lapply(hm_vars, function(x) {
+        u_est <- runif(NROW(values_list[[x]]), 0, 1)
+        u_est <- u_est / sum(u_est)
+      })
+      names(u_est_list) <- hm_vars
+
+      # TODO EM
+
+      hm_numerator_list <- lapply(hm_vars,
+                                 function(col) {
+                                   stats::dbinom(x = Omega_hm[[col]],
+                                                 size = 1,
+                                                 prob = as.numeric(hm_params[hm_params[["variable"]] == col, "theta"]))
+                                 })
+      hm_numerator <- Reduce(`*`, hm_numerator_list)
+      data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * hm_numerator / Omega[["hm_denominator"]])
     }
 
     iter <- iter + 1
