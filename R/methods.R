@@ -143,6 +143,13 @@ print.mec_rec_lin <- function(x, ...) {
     cat("Variables selected for the continuous nonparametric method: ", paste(substring(x$cnonpar_vars, 7), collapse = ", "), ".\n", sep = "")
   }
 
+  if (!is.null(x$hm_params)) {
+    cat("========================================================\n")
+    cat("Variables selected for the hit-miss method: ", paste(substring(x$hm_vars, 7), collapse = ", "), ".\n", sep = "")
+    cat("Estimated parameters for the hit-miss method:\n")
+    print(x$hm_params)
+  }
+
   if (!is.null(x$eval_metrics)) {
     cat("========================================================\n")
     cat("Evaluation metrics (presented in percentages):\n")

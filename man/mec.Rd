@@ -18,6 +18,8 @@ mec(
   tol = 0.005,
   delta = 0.5,
   eps = 0.05,
+  max_iter_em = 10,
+  tol_em = 1,
   controls_nleqslv = list(),
   controls_kliep = control_kliep(),
   true_matches = NULL
@@ -32,9 +34,9 @@ mec(
 
 \item{comparators}{A named list of functions for comparing pairs of records.}
 
-\item{methods}{A named list of methods used for estimation (\code{"binary"}, \code{"continuous_parametric"} or \code{"continuous_nonparametric"}).}
+\item{methods}{A named list of methods used for estimation (\code{"binary"}, \code{"continuous_parametric"}, \code{"continuous_nonparametric"} or \code{"hit_miss"}).}
 
-\item{start_params}{Start parameters for the \code{binary} and \code{continuous_parametric} methods.}
+\item{start_params}{Start parameters for the \code{"binary"}, \code{"continuous_parametric"} and \code{"hit_miss"} methods.}
 
 \item{nonpar_hurdle}{Logical indicating whether to use a hurdle model or not
 (used only if the \code{"continuous_nonparametric"} method has been chosen for at least one variable).}
@@ -50,6 +52,12 @@ mec(
 \item{delta}{A numeric value specifying the tolerance for the change in the estimated number of matches between iterations.}
 
 \item{eps}{A numeric value specifying the tolerance for the change in model parameters between iterations.}
+
+\item{max_iter_em}{A maximum number of iterations for the EM algorithm
+(used only if the \code{"hit_miss"} method has been chosen for at least one variable).}
+
+\item{tol_em}{Error tolerance in the EM algorithm
+(used only if the \code{"hit_miss"} method has been chosen for at least one variable).}
 
 \item{controls_nleqslv}{Controls passed to the \link[nleqslv]{nleqslv} function
 (only if the \code{"continuous_parametric"} method has been chosen for at least one variable).}
@@ -70,8 +78,10 @@ Returns a list containing:\cr
 \item{\code{b_vars} -- a character vector of variables used for the \code{"binary"} method (with the prefix \code{"gamma_"}),}
 \item{\code{cpar_vars} -- a character vector of variables used for the \code{"continuous_parametric"} method (with the prefix \code{"gamma_"}),}
 \item{\code{cnonpar_vars} -- a character vector of variables used for the \code{"continuous_nonparametric"} method (with the prefix \code{"gamma_"}),}
+\item{\code{hm_vars} -- a character vector of variables used for the \code{"hit_miss"} method (with the prefix \code{"gamma_"}),}
 \item{\code{b_params} -- parameters estimated using the \code{"binary"} method,}
 \item{\code{cpar_params} -- parameters estimated using the \code{"continuous_parametric"} method,}
+\item{\code{hm_params} -- parameters estimated using the \code{"hit_miss"} method,}
 \item{\code{ratio_kliep} -- a result of the \link[densityratio]{kliep} function,}
 \item{\code{variables} -- a character vector of key variables used for comparison,}
 \item{\code{set_construction} -- a method for constructing the predicted set of matches,}

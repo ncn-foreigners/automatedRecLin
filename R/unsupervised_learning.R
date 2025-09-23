@@ -17,8 +17,8 @@
 #' @param B A duplicate-free `data.frame` or `data.table`.
 #' @param variables A character vector of key variables used to create comparison vectors.
 #' @param comparators A named list of functions for comparing pairs of records.
-#' @param methods A named list of methods used for estimation (`"binary"`, `"continuous_parametric"` or `"continuous_nonparametric"`).
-#' @param start_params Start parameters for the `binary` and `continuous_parametric` methods.
+#' @param methods A named list of methods used for estimation (`"binary"`, `"continuous_parametric"`, `"continuous_nonparametric"` or `"hit_miss"`).
+#' @param start_params Start parameters for the `"binary"`, `"continuous_parametric"` and `"hit_miss"` methods.
 #' @param nonpar_hurdle Logical indicating whether to use a hurdle model or not
 #' (used only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
 #' @param set_construction A method for constructing the predicted set of matches (`"size"` or `"flr"`).
@@ -27,6 +27,10 @@
 #' @param tol Error tolerance in the bisection procedure (used only if `set_construction == "flr"`).
 #' @param delta A numeric value specifying the tolerance for the change in the estimated number of matches between iterations.
 #' @param eps A numeric value specifying the tolerance for the change in model parameters between iterations.
+#' @param max_iter_em A maximum number of iterations for the EM algorithm
+#' (used only if the `"hit_miss"` method has been chosen for at least one variable).
+#' @param tol_em Error tolerance in the EM algorithm
+#' (used only if the `"hit_miss"` method has been chosen for at least one variable).
 #' @param controls_nleqslv Controls passed to the \link[nleqslv]{nleqslv} function
 #' (only if the `"continuous_parametric"` method has been chosen for at least one variable).
 #' @param controls_kliep Controls passed to the \link[densityratio]{kliep} function
@@ -44,8 +48,10 @@
 #' \item{`b_vars` -- a character vector of variables used for the `"binary"` method (with the prefix `"gamma_"`),}
 #' \item{`cpar_vars` -- a character vector of variables used for the `"continuous_parametric"` method (with the prefix `"gamma_"`),}
 #' \item{`cnonpar_vars` -- a character vector of variables used for the `"continuous_nonparametric"` method (with the prefix `"gamma_"`),}
+#' \item{`hm_vars` -- a character vector of variables used for the `"hit_miss"` method (with the prefix `"gamma_"`),}
 #' \item{`b_params` -- parameters estimated using the `"binary"` method,}
 #' \item{`cpar_params` -- parameters estimated using the `"continuous_parametric"` method,}
+#' \item{`hm_params` -- parameters estimated using the `"hit_miss"` method,}
 #' \item{`ratio_kliep` -- a result of the \link[densityratio]{kliep} function,}
 #' \item{`variables` -- a character vector of key variables used for comparison,}
 #' \item{`set_construction` -- a method for constructing the predicted set of matches,}
@@ -129,6 +135,8 @@ mec <- function(A,
                 tol = 0.005,
                 delta = 0.5,
                 eps = 0.05,
+                max_iter_em = 10,
+                tol_em = 1,
                 controls_nleqslv = list(),
                 controls_kliep = control_kliep(),
                 true_matches = NULL) {
@@ -396,18 +404,16 @@ mec <- function(A,
     data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * hm_numerator / hm_denominator)
     data.table::set(Omega, j = "hm_denominator", value = hm_denominator)
 
-    values_list <- lapply(hm_vars, function(x) {
+    values_list_m <- lapply(hm_vars, function(x) {
       name <- substr(x, 7, nchar(x))
       values <- unique(c(A[[name]], B[[name]]))
       m_est <- sapply(values, function(y) sum(A[[name]] == y) / NROW(A))
-      u_est <- numeric(length(values))
       data.table::data.table(
         "value" = values,
-        "m_est" = m_est,
-        "u_est" = u_est
+        "m_est" = m_est
       )
     })
-    names(values_list) <- hm_vars
+    names(values_list_m) <- hm_vars
 
   }
 
@@ -425,21 +431,6 @@ mec <- function(A,
 
     data.table::set(Omega, j = "g_est", value = g_est)
     Omega <- Omega[order(-get("ratio")), ]
-
-    # if (set_construction == "size") {
-
-
-
-    # } else if (set_construction == "flr") {
-    #
-    #   M <- Omega[ratio >= treshold, ]
-    #   U <- data.table::fsetdiff(Omega, M)
-    #
-    #   n_M_treshold <- NROW(M)
-    #
-    #   flr <-
-    #
-    # }
 
     M <- data.table("a" = numeric(), "b" = numeric())
     for (var in colnames(Omega)) {
@@ -473,30 +464,6 @@ mec <- function(A,
     }
 
     if (iter >= 2) {
-      # old_params <- c()
-      # params <- c()
-      # if (length(b_vars) > 0) {
-      #   old_params <- c(old_params, theta_b_old)
-      #   params <- c(params, theta_b)
-      # }
-      # if (length(cpar_vars) > 0) {
-      #   old_params <- c(old_params, p_0_M_old, alpha_M_old, beta_M_old)
-      #   params <- c(params, p_0_M, alpha_M, beta_M)
-      # }
-      #
-      # if (length(cnonpar_vars) == 0) {
-      #
-      #   if ((abs(n_M_old - n_M) < delta) || norm(old_params - params, type = "2") < eps) {
-      #     break
-      #   }
-      #
-      # } else {
-      #
-      #   if ((abs(n_M_old - n_M) < delta)) {
-      #     break
-      #   }
-      #
-      # }
 
       old_params <- c()
       params <- c()
@@ -649,12 +616,82 @@ mec <- function(A,
 
       p_est <- n_M / max(NROW(A), NROW(B))
       u_est_list <- lapply(hm_vars, function(x) {
-        u_est <- runif(NROW(values_list[[x]]), 0, 1)
+        u_est <- runif(NROW(values_list_m[[x]]), 0, 1)
         u_est <- u_est / sum(u_est)
       })
       names(u_est_list) <- hm_vars
 
-      # TODO EM
+      m_bk_prod <- sapply(1:NROW(B), function(x) {
+        m_bk_list <- lapply(hm_vars, function(y) {
+          var_name <- substr(y, 7, nchar(y))
+          d_value <- (B[[var_name]])[x]
+          m_kd <- as.vector((values_list_m[[y]])[(values_list_m[[y]])[["value"]] == d_value, ][["m_est"]])
+        })
+        names(m_bk_list) <- hm_vars
+        Reduce(`*`, m_bk_list)
+      })
+
+      iter_em <- 1
+      while (iter_em <= max_iter_em + 1) {
+
+        if (iter_em >= 2) {
+          delta_b_old <- em_params[["delta_b"]]
+        }
+
+        delta_m_u <- lapply(1:NROW(B), function(x) {
+
+          u_bk_list <- lapply(hm_vars, function(y) {
+            var_name <- substr(y, 7, nchar(y))
+            values <- cbind(values_list_m[[y]], u_est_list[[y]])
+            colnames(values) <- c("value", "m_est", "u_est")
+            d_value <- (B[[var_name]])[x]
+            u_kd <- as.vector(values[values[["value"]] == d_value, ][["u_est"]])
+          })
+          names(u_bk_list) <- hm_vars
+          u_bk_prod <- Reduce(`*`, u_bk_list)
+
+          data.table::data.table(delta_b = p_est * m_bk_prod[x] / (p_est * m_bk_prod[x] + (1 - p_est) * u_bk_prod),
+                                 m_bk_prod = m_bk_prod[x], u_bk_prod = u_bk_prod)
+
+        })
+
+        em_params <- data.table::rbindlist(delta_m_u)
+
+        if (iter_em >= 3) {
+          log_lik_old <- log_lik
+        }
+
+        if (iter_em >= 2) {
+          log_lik <- sum(
+            ifelse(delta_b_old == 0,
+                   0,
+                   delta_b_old * log(p_est * em_params[["m_bk_prod"]]))
+          ) +
+            sum(ifelse(em_params[["u_bk_prod"]] == 0,
+                       0,
+                       (1 - delta_b_old) * log((1 - p_est) * em_params[["u_bk_prod"]]))
+                )
+        }
+
+        if (iter_em >= 3) {
+          if (abs(log_lik - log_lik_old) <= tol_em) break
+        }
+
+        u_est_list <- lapply(hm_vars, function(x) {
+
+          var_name <- substr(x, 7, nchar(x))
+          z_bk <- B[[var_name]]
+
+          sapply((values_list_m[[x]])[["value"]], function(y) {
+            sum((1 - em_params[["delta_b"]]) * (z_bk == y)) / sum(1 - em_params[["delta_b"]])
+          })
+
+        })
+        names(u_est_list) <- hm_vars
+
+        iter_em <- iter_em + 1
+
+      }
 
       hm_numerator_list <- lapply(hm_vars,
                                  function(col) {
@@ -663,6 +700,21 @@ mec <- function(A,
                                                  prob = as.numeric(hm_params[hm_params[["variable"]] == col, "theta"]))
                                  })
       hm_numerator <- Reduce(`*`, hm_numerator_list)
+      eta_hm <- sapply(hm_vars, function(col) {
+        ((1 - p_est) * sum(u_est_list[[col]] * (values_list_m[[col]])[["m_est"]]) +
+           p_est * (1 - 1 / NROW(A)) * sum(((values_list_m[[col]])[["m_est"]]) ^ 2)) /
+          (1 - p_est / NROW(A))
+      })
+      hm_params$eta <- eta_hm
+      hm_denominator_list <- lapply(hm_vars,
+                                    function(col) {
+                                      stats::dbinom(x = Omega_hm[[col]],
+                                                    size = 1,
+                                                    prob = as.numeric(hm_params[hm_params[["variable"]] == col, "eta"]))
+                                    })
+      hm_denominator <- Reduce(`*`, hm_denominator_list)
+      data.table::set(Omega, j = "hm_denominator", value = hm_denominator)
+
       data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * hm_numerator / Omega[["hm_denominator"]])
     }
 
@@ -748,8 +800,10 @@ mec <- function(A,
       b_vars = if (length(b_vars) == 0) NULL else b_vars,
       cpar_vars = if (length(cpar_vars) == 0) NULL else cpar_vars,
       cnonpar_vars = if (length(cnonpar_vars) == 0) NULL else cnonpar_vars,
+      hm_vars = if (length(hm_vars) == 0) NULL else hm_vars,
       b_params = if (length(b_vars) == 0) NULL else b_params,
       cpar_params = if (length(cpar_vars) == 0) NULL else cpar_params,
+      hm_params = if (length(hm_vars) == 0) NULL else hm_params,
       ratio_kliep = if (is.null(ratio_kliep)) NULL else ratio_kliep,
       variables = variables,
       set_construction = set_construction,
