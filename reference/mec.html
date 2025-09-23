@@ -57,6 +57,8 @@ based on comparison vectors.</p>
 <span>  tol <span class="op">=</span> <span class="fl">0.005</span>,</span>
 <span>  delta <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  eps <span class="op">=</span> <span class="fl">0.05</span>,</span>
+<span>  max_iter_em <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  tol_em <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  controls_nleqslv <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  controls_kliep <span class="op">=</span> <span class="fu"><a href="control_kliep.html">control_kliep</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  true_matches <span class="op">=</span> <span class="cn">NULL</span></span>
@@ -84,11 +86,11 @@ based on comparison vectors.</p>
 
 
 <dt id="arg-methods">methods<a class="anchor" aria-label="anchor" href="#arg-methods"></a></dt>
-<dd><p>A named list of methods used for estimation (<code>"binary"</code>, <code>"continuous_parametric"</code> or <code>"continuous_nonparametric"</code>).</p></dd>
+<dd><p>A named list of methods used for estimation (<code>"binary"</code>, <code>"continuous_parametric"</code>, <code>"continuous_nonparametric"</code> or <code>"hit_miss"</code>).</p></dd>
 
 
 <dt id="arg-start-params">start_params<a class="anchor" aria-label="anchor" href="#arg-start-params"></a></dt>
-<dd><p>Start parameters for the <code>binary</code> and <code>continuous_parametric</code> methods.</p></dd>
+<dd><p>Start parameters for the <code>"binary"</code>, <code>"continuous_parametric"</code> and <code>"hit_miss"</code> methods.</p></dd>
 
 
 <dt id="arg-nonpar-hurdle">nonpar_hurdle<a class="anchor" aria-label="anchor" href="#arg-nonpar-hurdle"></a></dt>
@@ -120,6 +122,16 @@ based on comparison vectors.</p>
 <dd><p>A numeric value specifying the tolerance for the change in model parameters between iterations.</p></dd>
 
 
+<dt id="arg-max-iter-em">max_iter_em<a class="anchor" aria-label="anchor" href="#arg-max-iter-em"></a></dt>
+<dd><p>A maximum number of iterations for the EM algorithm
+(used only if the <code>"hit_miss"</code> method has been chosen for at least one variable).</p></dd>
+
+
+<dt id="arg-tol-em">tol_em<a class="anchor" aria-label="anchor" href="#arg-tol-em"></a></dt>
+<dd><p>Error tolerance in the EM algorithm
+(used only if the <code>"hit_miss"</code> method has been chosen for at least one variable).</p></dd>
+
+
 <dt id="arg-controls-nleqslv">controls_nleqslv<a class="anchor" aria-label="anchor" href="#arg-controls-nleqslv"></a></dt>
 <dd><p>Controls passed to the <a href="https://rdrr.io/pkg/nleqslv/man/nleqslv.html" class="external-link">nleqslv</a> function
 (only if the <code>"continuous_parametric"</code> method has been chosen for at least one variable).</p></dd>
@@ -144,8 +156,10 @@ based on comparison vectors.</p>
 <li><p><code>b_vars</code> – a character vector of variables used for the <code>"binary"</code> method (with the prefix <code>"gamma_"</code>),</p></li>
 <li><p><code>cpar_vars</code> – a character vector of variables used for the <code>"continuous_parametric"</code> method (with the prefix <code>"gamma_"</code>),</p></li>
 <li><p><code>cnonpar_vars</code> – a character vector of variables used for the <code>"continuous_nonparametric"</code> method (with the prefix <code>"gamma_"</code>),</p></li>
+<li><p><code>hm_vars</code> – a character vector of variables used for the <code>"hit_miss"</code> method (with the prefix <code>"gamma_"</code>),</p></li>
 <li><p><code>b_params</code> – parameters estimated using the <code>"binary"</code> method,</p></li>
 <li><p><code>cpar_params</code> – parameters estimated using the <code>"continuous_parametric"</code> method,</p></li>
+<li><p><code>hm_params</code> – parameters estimated using the <code>"hit_miss"</code> method,</p></li>
 <li><p><code>ratio_kliep</code> – a result of the <a href="https://thomvolker.github.io/densityratio/reference/kliep.html" class="external-link">kliep</a> function,</p></li>
 <li><p><code>variables</code> – a character vector of key variables used for comparison,</p></li>
 <li><p><code>set_construction</code> – a method for constructing the predicted set of matches,</p></li>
