@@ -1,6 +1,6 @@
 #' @title Evaluation for Record Linkage
 #'
-#' @export
+#' @noRd
 evaluation <- function(pred_matches, true_matches, n) {
 
   pred_matches <- paste0(pred_matches[["a"]], "_", pred_matches[["b"]])
@@ -21,7 +21,7 @@ evaluation <- function(pred_matches, true_matches, n) {
 
 #' @title Evaluation Metrics for Record Linkage
 #'
-#' @export
+#' @noRd
 get_metrics <- function(TP, FP, FN, TN) {
 
   recall <- if (TP + FN != 0) TP / (TP + FN) else 0
@@ -44,7 +44,7 @@ get_metrics <- function(TP, FP, FN, TN) {
 
 #' @title Confusion Matrix for Record Linkage
 #'
-#' @export
+#' @noRd
 get_confusion <- function(TP, FP, FN, TN) {
 
   cm <- matrix(c(TP, FP, FN, TN), nrow = 2)
