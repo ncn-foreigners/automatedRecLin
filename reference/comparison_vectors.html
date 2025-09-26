@@ -76,6 +76,19 @@ including optional match information,</p></li>
 <li><p><code>match_prop</code> – proportion of matches in the smaller dataset.</p></li>
 </ul></div>
     <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Consider two datasets: \(A\) and \(B\).
+For each pair of records \((a,b) \in \Omega\),
+the function creates a comparison vector
+\(\pmb{\gamma}_{ab} = (\gamma_{ab}^1,\gamma_{ab}^2,\ldots,\gamma_{ab}^K)'\)
+based on specified \(K\) variables and comparison functions.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="note">Note<a class="anchor" aria-label="anchor" href="#note"></a></h2>
+    <p>Each comparison function must return another function,
+which serves as the actual comparator.</p>
+    </div>
+    <div class="section level2">
     <h2 id="author">Author<a class="anchor" aria-label="anchor" href="#author"></a></h2>
     <p>Adam Struzik</p>
     </div>

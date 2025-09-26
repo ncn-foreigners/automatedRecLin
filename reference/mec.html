@@ -166,7 +166,7 @@ based on comparison vectors.</p>
 <li><p><code>ratio_kliep</code> – a result of the <a href="https://thomvolker.github.io/densityratio/reference/kliep.html" class="external-link">kliep</a> function,</p></li>
 <li><p><code>variables</code> – a character vector of key variables used for comparison,</p></li>
 <li><p><code>set_construction</code> – a method for constructing the predicted set of matches,</p></li>
-<li><p><code>eval_metrics</code> – metrics for quality assessment (if <code>true_matches</code> is provided),</p></li>
+<li><p><code>eval_metrics</code> – standard metrics for quality assessment (if <code>true_matches</code> is provided),</p></li>
 <li><p><code>confusion</code> – confusion matrix (if <code>true_matches</code> is provided).</p></li>
 </ul></div>
     <div class="section level2">
@@ -332,6 +332,7 @@ Ann Inst Stat Math 60, 699–746 (2008). <a href="https://doi.org/10.1007/s10463
 <span class="r-out co"><span class="r-pr">#&gt;</span>         100         100           0           0         100         100 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    f1_score </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         100 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Note that precision = 1 - flr, and fnr = mmr.</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
