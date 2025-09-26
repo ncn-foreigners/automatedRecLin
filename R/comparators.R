@@ -26,7 +26,8 @@ abs_distance <- function() {
 #'
 #' @description
 #' Creates a function that calculates the complement of the Jaro-Winkler
-#' distance between two strings (i.e., 1 - Jaro-Winkler distance).
+#' distance between two strings (i.e.,
+#' \eqn{1 - \text{Jaro-Winkler distance}}).
 #'
 #' @return
 #' Returns a function taking two string arguments, `x` and `y`,

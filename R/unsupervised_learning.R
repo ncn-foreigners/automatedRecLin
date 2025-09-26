@@ -128,7 +128,7 @@
 #' \item{`ratio_kliep` -- a result of the \link[densityratio]{kliep} function,}
 #' \item{`variables` -- a character vector of key variables used for comparison,}
 #' \item{`set_construction` -- a method for constructing the predicted set of matches,}
-#' \item{`eval_metrics` -- metrics for quality assessment (if `true_matches` is provided),}
+#' \item{`eval_metrics` -- standard metrics for quality assessment (if `true_matches` is provided),}
 #' \item{`confusion` -- confusion matrix (if `true_matches` is provided).}
 #' }
 #'

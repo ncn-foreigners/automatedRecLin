@@ -85,7 +85,7 @@ Returns a list containing:\cr
 \item{\code{ratio_kliep} -- a result of the \link[densityratio]{kliep} function,}
 \item{\code{variables} -- a character vector of key variables used for comparison,}
 \item{\code{set_construction} -- a method for constructing the predicted set of matches,}
-\item{\code{eval_metrics} -- metrics for quality assessment (if \code{true_matches} is provided),}
+\item{\code{eval_metrics} -- standard metrics for quality assessment (if \code{true_matches} is provided),}
 \item{\code{confusion} -- confusion matrix (if \code{true_matches} is provided).}
 }
 }

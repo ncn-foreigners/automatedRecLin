@@ -53,7 +53,7 @@ Returns a list containing:\cr
 \item{\code{flr_est} -- estimated false link rate (FLR),}
 \item{\code{mmr_est} -- estimated missing match rate (MMR),}
 \item{\code{iter} -- the number of iterations in the bisection procedure,}
-\item{\code{eval_metrics} -- metrics for quality assessment, if \code{true_matches} is provided,}
+\item{\code{eval_metrics} -- standard metrics for quality assessment, if \code{true_matches} is provided,}
 \item{\code{confusion} -- confusion matrix, if \code{true_matches} is provided.}
 }
 }

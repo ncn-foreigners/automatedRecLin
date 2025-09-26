@@ -15,6 +15,17 @@
 #' @param comparators A named list of functions for comparing pairs of records.
 #' @param matches Optional. A `data.frame` or `data.table` indicating known matches.
 #'
+#' @details
+#' Consider two datasets: \eqn{A} and \eqn{B}.
+#' For each pair of records \eqn{(a,b) \in \Omega},
+#' the function creates a comparison vector
+#' \eqn{\pmb{\gamma}_{ab} = (\gamma_{ab}^1,\gamma_{ab}^2,\ldots,\gamma_{ab}^K)'}
+#' based on specified \eqn{K} variables and comparison functions.
+#'
+#' @note
+#' Each comparison function must return another function,
+#' which serves as the actual comparator.
+#'
 #' @return
 #' Returns a list containing:\cr
 #' \itemize{

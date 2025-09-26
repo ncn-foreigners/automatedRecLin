@@ -35,7 +35,7 @@
 #' \item{`flr_est` -- estimated false link rate (FLR),}
 #' \item{`mmr_est` -- estimated missing match rate (MMR),}
 #' \item{`iter` -- the number of iterations in the bisection procedure,}
-#' \item{`eval_metrics` -- metrics for quality assessment, if `true_matches` is provided,}
+#' \item{`eval_metrics` -- standard metrics for quality assessment, if `true_matches` is provided,}
 #' \item{`confusion` -- confusion matrix, if `true_matches` is provided.}
 #' }
 #'

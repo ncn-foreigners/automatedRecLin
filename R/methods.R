@@ -87,6 +87,7 @@ print.rec_lin_predictions <- function(x, ...) {
     eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics * 100))
     names(eval_metrics) <- names(x$eval_metrics)
     print(eval_metrics)
+    cat("Note that precision = 1 - flr, and fnr = mmr.")
   }
 
 }
@@ -156,6 +157,7 @@ print.mec_rec_lin <- function(x, ...) {
     eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics * 100))
     names(eval_metrics) <- names(x$eval_metrics)
     print(eval_metrics)
+    cat("Note that precision = 1 - flr, and fnr = mmr.")
   }
 
 }

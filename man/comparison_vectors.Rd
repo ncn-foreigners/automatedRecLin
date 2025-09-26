@@ -31,6 +31,17 @@ including optional match information,}
 Creates comparison vectors between records in two datasets based on specified variables
 and comparison functions.
 }
+\details{
+Consider two datasets: \eqn{A} and \eqn{B}.
+For each pair of records \eqn{(a,b) \in \Omega},
+the function creates a comparison vector
+\eqn{\pmb{\gamma}_{ab} = (\gamma_{ab}^1,\gamma_{ab}^2,\ldots,\gamma_{ab}^K)'}
+based on specified \eqn{K} variables and comparison functions.
+}
+\note{
+Each comparison function must return another function,
+which serves as the actual comparator.
+}
 \examples{
 df_1 <- data.frame(
 "name" = c("John", "Emily", "Mark", "Anna", "David"),
