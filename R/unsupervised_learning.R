@@ -332,7 +332,7 @@ mec <- function(A,
     if (length(hm_vars) > 0) {
       start_params[["hit_miss"]] <- data.table(
         variable = hm_vars,
-        theta = runif(length(hm_vars), min = 0.95)
+        theta = runif(length(hm_vars), min = 0.9)
       )
 
     }
