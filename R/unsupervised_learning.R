@@ -332,7 +332,7 @@ mec <- function(A,
     if (length(hm_vars) > 0) {
       start_params[["hit_miss"]] <- data.table(
         variable = hm_vars,
-        theta = runif(length(hm_vars), min = 0.9)
+        theta = runif(length(hm_vars), min = 0.95)
       )
 
     }
@@ -487,7 +487,6 @@ mec <- function(A,
       )
     })
     names(values_list_m) <- hm_vars
-
   }
 
   iter <- 1
@@ -688,6 +687,7 @@ mec <- function(A,
       hm_params$theta <- theta_hm
 
       p_est <- n_M / max(NROW(A), NROW(B))
+
       u_est_list <- lapply(hm_vars, function(x) {
         u_est <- runif(NROW(values_list_m[[x]]), 0, 1)
         u_est <- u_est / sum(u_est)
@@ -779,6 +779,7 @@ mec <- function(A,
           (1 - p_est / NROW(A))
       })
       hm_params$eta <- eta_hm
+
       hm_denominator_list <- lapply(hm_vars,
                                     function(col) {
                                       stats::dbinom(x = Omega_hm[[col]],
