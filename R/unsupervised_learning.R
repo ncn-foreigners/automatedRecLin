@@ -200,6 +200,7 @@ mec <- function(A,
                 variables,
                 comparators = NULL,
                 methods = NULL,
+                duplicates_in_A = FALSE,
                 start_params = NULL,
                 nonpar_hurdle = FALSE,
                 set_construction = NULL,
@@ -509,21 +510,43 @@ mec <- function(A,
       M[[var]] <- numeric()
     }
     M[["ratio"]] <- numeric()
-    used_a <- c()
-    used_b <- c()
 
-    for (i in 1:NROW(Omega)) {
+    if (!duplicates_in_A) {
 
-      current_a <- Omega$a[i]
-      current_b <- Omega$b[i]
-      if (!(current_a %in% used_a) && !(current_b %in% used_b)) {
-        # M <- rbind(M, Omega[i, c("a", "b", "ratio")])
-        M <- rbind(M, Omega[i, ])
-        used_a <- c(used_a, current_a)
-        used_b <- c(used_b, current_b)
+      used_a <- c()
+      used_b <- c()
+
+      for (i in 1:NROW(Omega)) {
+
+        current_a <- Omega$a[i]
+        current_b <- Omega$b[i]
+        if (!(current_a %in% used_a) && !(current_b %in% used_b)) {
+          # M <- rbind(M, Omega[i, c("a", "b", "ratio")])
+          M <- rbind(M, Omega[i, ])
+          used_a <- c(used_a, current_a)
+          used_b <- c(used_b, current_b)
+        }
+        if (NROW(M) >= n_M) {
+          break
+        }
+
       }
-      if (NROW(M) >= n_M) {
-        break
+
+    } else {
+
+      used_a <- c()
+
+      for (i in 1:NROW(Omega)) {
+
+        current_a <- Omega$a[i]
+        if (!(current_a %in% used_a)) {
+          M <- rbind(M, Omega[i, ])
+          used_a <- c(used_a, current_a)
+        }
+        if (NROW(M) >= n_M) {
+          break
+        }
+
       }
 
     }
