@@ -70,6 +70,18 @@
 <li><p><code>methods</code> – here <code>NULL</code>.</p></li>
 </ul></div>
     <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>The <code>custom_rec_lin_model</code> function creates a custom record linkage model,
+based on known matches and non-matches (which might later serve as a classifier
+for pairs outside training data). The procedure of creating a custom model
+based on training data is as follows.</p><ol><li><p>Use the <code>comparison_vectors</code> function to compare pairs of records.</p></li>
+<li><p>Train a machine learning classifier using the <code>Omega</code> element
+of the output of the <code>comparison_vectors</code> function. The classifier should
+predict the probability of matching based on a given vector.</p></li>
+<li><p>Use the <code>custom_rec_lin_model</code> function with
+appropriate arguments.</p></li>
+</ol></div>
+    <div class="section level2">
     <h2 id="author">Author<a class="anchor" aria-label="anchor" href="#author"></a></h2>
     <p>Adam Struzik</p>
     </div>
