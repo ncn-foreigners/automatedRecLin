@@ -9,11 +9,14 @@
 #' @author Adam Struzik
 #'
 #' @description
-#' Predicts matches between records in two datasets based on a given record linkage model.
+#' Predicts matches between records in two datasets based on a given record linkage model,
+#' using the maximum entropy classification (MEC) algorithm
+#' (see [Lee et al. (2022)](https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm)).
 #'
 #' @param object A `rec_lin_model` object from the `train_rec_lin` or `custom_rec_lin_model` functions.
 #' @param newdata_A A duplicate-free `data.frame` or `data.table`.
 #' @param newdata_B A duplicate-free `data.frame` or `data.table`.
+#' @param duplicates_in_A Logical indicating whether to allow `A` to have duplicate records.
 #' @param set_construction A method for constructing the predicted set of matches (`"size"` or `"flr"`).
 #' @param fixed_method A method for solving fixed-point equations using the \link[FixedPoint]{FixedPoint} function
 #' (used only if `set_construction == "size"`).
@@ -25,6 +28,27 @@
 #' @param true_matches A `data.frame` or `data.table` indicating true matches.
 #' @param ... Additional controls passed to the `predict` function for custom ML model
 #' (used only if the `object` is from the `custom_rec_lin_model` function).
+#'
+#' @details
+#' The `predict` function estimates the probability/density ratio
+#' between matches and non-matches for pairs in given
+#' datasets, based on a model obtained using the
+#' `train_rec_lin` or `custom_rec_lin_model` functions.
+#' Then, it estimates the number of matches and
+#' returns the predicted matches, using the maximum
+#' entropy classification (MEC) algorithm
+#' (see [Lee et al. (2022)](https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm)).
+#'
+#' The `predict` function allows the construction of the predicted set
+#' of matches using its estimated size or the bisection procedure,
+#' described in [Lee et al. (2022)](https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm),
+#' based on a target False Link Rate (FLR). To use the second option, set `set_construction = "flr"` and
+#' specify a target FLR using the `target_flr` argument.
+#'
+#' By default, the function assumes that the datasets `newdata_A` and `newdata_B`
+#' contain no duplicate records. This assumption
+#' might be relaxed by allowing `newdata_A` to have duplicates. To do so,
+#' set `duplicates_in_A = TRUE`.
 #'
 #' @return
 #' Returns a list containing:\cr
@@ -86,6 +110,7 @@
 predict.rec_lin_model <- function(object,
                                   newdata_A,
                                   newdata_B,
+                                  duplicates_in_A = FALSE,
                                   set_construction = c("size", "flr"),
                                   fixed_method = "Newton",
                                   target_flr = 0.05,
@@ -278,17 +303,36 @@ predict.rec_lin_model <- function(object,
 
     Omega <- Omega[order(-get("ratio")), ]
     M_est <- data.table("a" = numeric(), "b" = numeric(), "ratio" = numeric())
-    used_a <- c()
-    used_b <- c()
 
-    for (i in 1:NROW(Omega)) {
+    if (!duplicates_in_A) {
 
-      current_a <- Omega$a[i]
-      current_b <- Omega$b[i]
-      if (!(current_a %in% used_a) && !(current_b %in% used_b)) {
-        M_est <- rbind(M_est, Omega[i, c("a", "b", "ratio")])
-        used_a <- c(used_a, current_a)
-        used_b <- c(used_b, current_b)
+      used_a <- c()
+      used_b <- c()
+
+      for (i in 1:NROW(Omega)) {
+
+        current_a <- Omega$a[i]
+        current_b <- Omega$b[i]
+        if (!(current_a %in% used_a) && !(current_b %in% used_b)) {
+          M_est <- rbind(M_est, Omega[i, c("a", "b", "ratio")])
+          used_a <- c(used_a, current_a)
+          used_b <- c(used_b, current_b)
+        }
+
+      }
+
+    } else {
+
+      used_a <- c()
+
+      for (i in 1:NROW(Omega)) {
+
+        current_a <- Omega$a[i]
+        if (!(current_a %in% used_a)) {
+          M_est <- rbind(M_est, Omega[i, c("a", "b", "ratio")])
+          used_a <- c(used_a, current_a)
+        }
+
       }
 
     }

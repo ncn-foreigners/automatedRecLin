@@ -8,6 +8,7 @@
   object,
   newdata_A,
   newdata_B,
+  duplicates_in_A = FALSE,
   set_construction = c("size", "flr"),
   fixed_method = "Newton",
   target_flr = 0.05,
@@ -24,6 +25,8 @@
 \item{newdata_A}{A duplicate-free \code{data.frame} or \code{data.table}.}
 
 \item{newdata_B}{A duplicate-free \code{data.frame} or \code{data.table}.}
+
+\item{duplicates_in_A}{Logical indicating whether to allow \code{A} to have duplicate records.}
 
 \item{set_construction}{A method for constructing the predicted set of matches (\code{"size"} or \code{"flr"}).}
 
@@ -58,7 +61,30 @@ Returns a list containing:\cr
 }
 }
 \description{
-Predicts matches between records in two datasets based on a given record linkage model.
+Predicts matches between records in two datasets based on a given record linkage model,
+using the maximum entropy classification (MEC) algorithm
+(see \href{https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm}{Lee et al. (2022)}).
+}
+\details{
+The \code{predict} function estimates the probability/density ratio
+between matches and non-matches for pairs in given
+datasets, based on a model obtained using the
+\code{train_rec_lin} or \code{custom_rec_lin_model} functions.
+Then, it estimates the number of matches and
+returns the predicted matches, using the maximum
+entropy classification (MEC) algorithm
+(see \href{https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm}{Lee et al. (2022)}).
+
+The \code{predict} function allows the construction of the predicted set
+of matches using its estimated size or the bisection procedure,
+described in \href{https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm}{Lee et al. (2022)},
+based on a target False Link Rate (FLR). To use the second option, set \code{set_construction = "flr"} and
+specify a target FLR using the \code{target_flr} argument.
+
+By default, the function assumes that the datasets \code{newdata_A} and \code{newdata_B}
+contain no duplicate records. This assumption
+might be relaxed by allowing \code{newdata_A} to have duplicates. To do so,
+set \code{duplicates_in_A = TRUE}.
 }
 \examples{
 df_1 <- data.frame(

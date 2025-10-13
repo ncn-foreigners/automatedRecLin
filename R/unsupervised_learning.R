@@ -11,7 +11,7 @@
 #' @description
 #' Implements several extensions to the maximum entropy classification (MEC) algorithm for record linkage
 #' (see [Lee et al. (2022)](https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm)),
-#' iteratively estimating probability / density ratios to classify record pairs into matches and non-matches
+#' iteratively estimating probability/density ratios to classify record pairs into matches and non-matches
 #' based on comparison vectors.
 #'
 #' @param A A duplicate-free `data.frame` or `data.table`.
@@ -19,6 +19,7 @@
 #' @param variables A character vector of key variables used to create comparison vectors.
 #' @param comparators A named list of functions for comparing pairs of records.
 #' @param methods A named list of methods used for estimation (`"binary"`, `"continuous_parametric"`, `"continuous_nonparametric"` or `"hit_miss"`).
+#' @param duplicates_in_A Logical indicating whether to allow `A` to have duplicate records.
 #' @param start_params Start parameters for the `"binary"`, `"continuous_parametric"` and `"hit_miss"` methods.
 #' @param nonpar_hurdle Logical indicating whether to use a hurdle model or not
 #' (used only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
@@ -68,7 +69,7 @@
 #' (the binary comparison function).
 #'
 #' The `mec` function offers different approaches to estimate the
-#' probability / density ratio between matches and non-matches,
+#' probability/density ratio between matches and non-matches,
 #' which should be specified as a list in the `methods` argument.
 #' The available methods suitable for the binary comparison function
 #' are `"binary"` and `"hit_miss"`. Both assume that \eqn{\gamma_{ab}^k|M}
@@ -80,7 +81,7 @@
 #' [Lee et al. (2022)](https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm)).
 #' `"binary"` is the default method for each variable.
 #'
-#' For the continuous semi-metrics we propose the usage
+#' For the continuous semi-metrics we suggest the usage
 #' of `"continuous_parametric"` or `"continuous_nonparametric"`
 #' method. The `"continuous_parametric"` method assumes that
 #' \eqn{\gamma_{ab}^k|M} and \eqn{\gamma_{ab}^k|U} follow
@@ -108,7 +109,12 @@
 #' The `mec` function allows the construction of the predicted set
 #' of matches using its estimated size or the bisection procedure,
 #' described in [Lee et al. (2022)](https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm),
-#' based on a target False Link Rate (FLR).
+#' based on a target False Link Rate (FLR). To use the second option, set `set_construction = "flr"` and
+#' specify a target FLR using the `target_flr` argument.
+#'
+#' The assumption that \eqn{A} and \eqn{B} contain no duplicate records
+#' might be relaxed by allowing \eqn{A} to have duplicates. To do so,
+#' set `"duplicates_in_A = TRUE`.
 #'
 #' @return
 #' Returns a list containing:\cr

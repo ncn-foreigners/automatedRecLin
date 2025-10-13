@@ -33,6 +33,20 @@ Returns a list containing:\cr
 \description{
 Creates a supervised record linkage model using a custom machine learning (ML) classifier.
 }
+\details{
+The \code{custom_rec_lin_model} function creates a custom record linkage model,
+based on known matches and non-matches (which might later serve as a classifier
+for pairs outside training data). The procedure of creating a custom model
+based on training data is as follows.
+\enumerate{
+\item{Use the \code{comparison_vectors} function to compare pairs of records.}
+\item{Train a machine learning classifier using the \code{Omega} element
+of the output of the \code{comparison_vectors} function. The classifier should
+predict the probability of matching based on a given vector.}
+\item{Use the \code{custom_rec_lin_model} function with
+appropriate arguments.}
+}
+}
 \examples{
 if (requireNamespace("xgboost", quietly = TRUE)) {
   df_1 <- data.frame(

@@ -10,6 +10,7 @@ mec(
   variables,
   comparators = NULL,
   methods = NULL,
+  duplicates_in_A = FALSE,
   start_params = NULL,
   nonpar_hurdle = FALSE,
   set_construction = NULL,
@@ -35,6 +36,8 @@ mec(
 \item{comparators}{A named list of functions for comparing pairs of records.}
 
 \item{methods}{A named list of methods used for estimation (\code{"binary"}, \code{"continuous_parametric"}, \code{"continuous_nonparametric"} or \code{"hit_miss"}).}
+
+\item{duplicates_in_A}{Logical indicating whether to allow \code{A} to have duplicate records.}
 
 \item{start_params}{Start parameters for the \code{"binary"}, \code{"continuous_parametric"} and \code{"hit_miss"} methods.}
 
@@ -92,7 +95,7 @@ Returns a list containing:\cr
 \description{
 Implements several extensions to the maximum entropy classification (MEC) algorithm for record linkage
 (see \href{https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm}{Lee et al. (2022)}),
-iteratively estimating probability / density ratios to classify record pairs into matches and non-matches
+iteratively estimating probability/density ratios to classify record pairs into matches and non-matches
 based on comparison vectors.
 }
 \details{
@@ -125,7 +128,7 @@ for each key variable is \link[reclin2]{cmp_identical}
 (the binary comparison function).
 
 The \code{mec} function offers different approaches to estimate the
-probability / density ratio between matches and non-matches,
+probability/density ratio between matches and non-matches,
 which should be specified as a list in the \code{methods} argument.
 The available methods suitable for the binary comparison function
 are \code{"binary"} and \code{"hit_miss"}. Both assume that \eqn{\gamma_{ab}^k|M}
@@ -137,7 +140,7 @@ so iteratively using a hit-miss model (for details see
 \href{https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm}{Lee et al. (2022)}).
 \code{"binary"} is the default method for each variable.
 
-For the continuous semi-metrics we propose the usage
+For the continuous semi-metrics we suggest the usage
 of \code{"continuous_parametric"} or \code{"continuous_nonparametric"}
 method. The \code{"continuous_parametric"} method assumes that
 \eqn{\gamma_{ab}^k|M} and \eqn{\gamma_{ab}^k|U} follow
@@ -165,7 +168,12 @@ For details see \href{https://link.springer.com/article/10.1007/s10463-008-0197-
 The \code{mec} function allows the construction of the predicted set
 of matches using its estimated size or the bisection procedure,
 described in \href{https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm}{Lee et al. (2022)},
-based on a target False Link Rate (FLR).
+based on a target False Link Rate (FLR). To use the second option, set \code{set_construction = "flr"} and
+specify a target FLR using the \code{target_flr} argument.
+
+The assumption that \eqn{A} and \eqn{B} contain no duplicate records
+might be relaxed by allowing \eqn{A} to have duplicates. To do so,
+set \verb{"duplicates_in_A = TRUE}.
 }
 \examples{
 df_1 <- data.frame(

@@ -7,7 +7,9 @@
 #'
 #' @author Adam Struzik
 #'
-#' @description Trains a supervised record linkage model using probability or density ratio estimation.
+#' @description Trains a supervised record linkage model using probability or density ratio estimation,
+#' based on [Lee et al. (2022)](https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm),
+#' with several extensions.
 #'
 #' @param A A duplicate-free `data.frame` or `data.table`.
 #' @param B A duplicate-free `data.frame` or `data.table`.
@@ -20,6 +22,66 @@
 #' (used only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
 #' @param controls_nleqslv Controls passed to the \link[nleqslv]{nleqslv} function (only if the `"continuous_parametric"` method has been chosen for at least one variable).
 #' @param controls_kliep Controls passed to the \link[densityratio]{kliep} function (only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
+#'
+#' @details
+#' Consider two datasets: \eqn{A} and \eqn{B}.
+#' Let the bipartite comparison space \eqn{\Omega = A \times B} consist of
+#' matches \eqn{M} and non-matches \eqn{U} between the records in files
+#' \eqn{A} and \eqn{B}. For any pair of records \eqn{(a,b) \in \Omega},
+#' let \eqn{\pmb{\gamma}_{ab} = (\gamma_{ab}^1,\gamma_{ab}^2,
+#' \ldots,\gamma_{ab}^K)'} be the comparison vector between
+#' a set of key variables. The original MEC algorithm uses the binary
+#' comparison function to evaluate record pairs across two datasets.
+#' However, this approach may be insufficient when handling datasets
+#' with frequent errors across multiple variables.
+#'
+#' We propose the use of continuous comparison functions to address
+#' the limitations of binary comparison methods. We consider every
+#' semi-metric, i.e., a function \eqn{d: A \times B \to \mathbb{R}},
+#' satisfying the following conditions:\cr
+#' \enumerate{
+#' \item{\eqn{d(x,y) \geq 0},}
+#' \item{\eqn{d(x,y) = 0} if and only if \eqn{x = y},}
+#' \item{\eqn{d(x,y) = d(y,x)}.}
+#' }
+#' For example, we can use \eqn{1 - \text{Jaro-Winkler distance}} for character variables
+#' (which is implemented in the `automatedRecLin` package as the `jarowinkler_complement` function)
+#' or the Euclidean distance for numerical variables. The `automatedRecLin` package allows the use of
+#' a different comparison function for each key variable (which should be specified
+#' as a list in the `comparators` argument). The default function
+#' for each key variable is \link[reclin2]{cmp_identical}
+#' (the binary comparison function).
+#'
+#' The `train_rec_lin` function is used to train a record linkage model,
+#' when \eqn{M} and \eqn{U} are known (which might later serve as a classifier
+#' for pairs outside \eqn{\Omega}). It offers different approaches to estimate the
+#' probability/density ratio between matches and non-matches, which should be
+#' specified as a list in the methods argument. The method suitable for the binary
+#' comparison function is `"binary"`, which is also the default method for each
+#' variable.
+#'
+#' For the continuous semi-metrics we suggest the usage
+#' of `"continuous_parametric"` or `"continuous_nonparametric"`
+#' method. The `"continuous_parametric"` method assumes that
+#' \eqn{\gamma_{ab}^k|M} and \eqn{\gamma_{ab}^k|U} follow
+#' hurdle Gamma distributions. The density function of a hurdle
+#' Gamma distribution is characterized by three parameters
+#' \eqn{p_0 \in (0,1)} and \eqn{\alpha, \beta > 0} as follows:
+#' \deqn{
+#' f(x;p_0,\alpha,\beta) = p_0^{\mathbb{I}(x = 0)}[(1 - p_0) v(x;\alpha,\beta)]^{\mathbb{I}(x > 0)},
+#' }
+#' where
+#' \deqn{
+#' v(x;\alpha,\beta) = \frac{\beta^{\alpha} x^{\alpha - 1} \exp(-\beta x)}
+#' {\Gamma(\alpha)}
+#' }
+#' is the density function of a Gamma distribution
+#' (for details see [Vo et al. (2023)](https://ideas.repec.org/a/eee/csdana/v179y2023ics0167947322002365.html)).
+#' The `"continuous_nonparametric"` method does not assume anything about
+#' the distributions of the comparison vectors. It directly
+#' estimates the density ratio between the matches and the non-matches, using
+#' the Kullback-Leibler Importance Estimation Procedure (KLIEP).
+#' For details see [Sugiyama et al. (2008)](https://link.springer.com/article/10.1007/s10463-008-0197-x).
 #'
 #' @return
 #' Returns a list containing:\cr
@@ -378,6 +440,20 @@ train_rec_lin <- function(
 #'
 #' @param ml_model A trained ML model that predicts the probability of a match based on comparison vectors.
 #' @param vectors An object of class `comparison_vectors` (a result of the `comparison_vectors` function), used for training the `ml_model`.
+#'
+#' @details
+#' The `custom_rec_lin_model` function creates a custom record linkage model,
+#' based on known matches and non-matches (which might later serve as a classifier
+#' for pairs outside training data). The procedure of creating a custom model
+#' based on training data is as follows.
+#' \enumerate{
+#' \item{Use the `comparison_vectors` function to compare pairs of records.}
+#' \item{Train a machine learning classifier using the `Omega` element
+#' of the output of the `comparison_vectors` function. The classifier should
+#' predict the probability of matching based on a given vector.}
+#' \item{Use the `custom_rec_lin_model` function with
+#' appropriate arguments.}
+#' }
 #'
 #' @return
 #' Returns a list containing:\cr
