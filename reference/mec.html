@@ -13,7 +13,7 @@ based on comparison vectors."><link rel="stylesheet" href="https://cdn.jsdelivr.
 
     <a class="navbar-brand me-2" href="../index.html">automatedRecLin</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -22,8 +22,10 @@ based on comparison vectors."><link rel="stylesheet" href="https://cdn.jsdelivr.
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/ncn-foreigners/automatedRecLin/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -33,7 +35,7 @@ based on comparison vectors."><link rel="stylesheet" href="https://cdn.jsdelivr.
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Unsupervised Maximum Entropy Classifier for Record Linkage</h1>
-
+      <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/automatedRecLin/blob/main/R/unsupervised_learning.R" class="external-link"><code>R/unsupervised_learning.R</code></a></small>
       <div class="d-none name"><code>mec.Rd</code></div>
     </div>
 
@@ -242,7 +244,7 @@ based on a target False Link Rate (FLR). To use the second option, set <code>set
 specify a target FLR using the <code>target_flr</code> argument.</p>
 <p>The assumption that \(A\) and \(B\) contain no duplicate records
 might be relaxed by allowing \(A\) to have duplicates. To do so,
-set <code>"duplicates_in_A = TRUE</code>.</p>
+set <code>duplicates_in_A = TRUE</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -349,7 +351,7 @@ Ann Inst Stat Math 60, 699–746 (2008). <a href="https://doi.org/10.1007/s10463
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by First Last.</p>
+  <p>Developed by Maciej Beręsewicz, Adam Struzik.</p>
 </div>
 
 <div class="pkgdown-footer-right">
