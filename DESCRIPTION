@@ -1,11 +1,21 @@
 Package: automatedRecLin
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Record Linkage Based on an Entropy-Maximizing Classifier
+Version: 1.0.0
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+  c(person(given = "Maciej",
+             family = "Beręsewicz",
+             role = c("aut", "cre"),
+             email = "maciej.beresewicz@ue.poznan.pl",
+             comment = c(ORCID = "0000-0002-8281-4301")),
+   person(given = "Adam",
+             family = "Struzik",
+             role = c("aut", "ctr"),
+             email = "adastr5@st.amu.edu.pl"))
+Description: The goal of 'automatedRecLin' is to perform record linkage (also known as entity resolution) in unsupervised or supervised settings. It compares pairs of records from two datasets using selected comparison functions to estimate the probability or density ratio between matched and non-matched records. Based on these estimates, it predicts a set of matches that maximizes entropy. For details see: Lee et al. (2022) <https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm>, Vo et al. (2023) <https://ideas.repec.org/a/eee/csdana/v179y2023ics0167947322002365.html>, Sugiyama et al. (2008) <doi:10.1007/s10463-008-0197-x>.
 License: GPL-3
 Encoding: UTF-8
+URL: https://github.com/ncn-foreigners/automatedRecLin, http://ncn-foreigners.ue.poznan.pl/automatedRecLin/
+BugReports: https://github.com/ncn-foreigners/automatedRecLin/issues
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Imports: 
@@ -20,3 +30,6 @@ Imports:
     utils
 Suggests: 
     xgboost
+VignetteBuilder: knitr
+Depends: 
+    R (>= 4.1.0)

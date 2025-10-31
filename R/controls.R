@@ -1,4 +1,4 @@
-#' @title Controls for the kliep Function
+#' @title Controls for the `kliep` Function
 #'
 #' @author Adam Struzik
 #'
@@ -9,7 +9,7 @@
 #' to the numerator means and standard deviations, the denominator means and standard deviations,
 #' or apply no standardization at all.
 #' @param progressbar Logical indicating whether or not to display a progressbar.
-#' @param nfold Number of cross-validation folds used in order to calculate the optimal sigma value (default is 5-fold cv).
+#' @param nfold Number of cross-validation folds used in order to calculate the optimal sigma value (default is 2-fold cv).
 #' @param ... Additional arguments.
 #'
 #' @return

@@ -17,7 +17,7 @@
 #' @param variables A character vector of key variables used to create comparison vectors.
 #' @param comparators A named list of functions for comparing pairs of records.
 #' @param methods A named list of methods used for estimation (`"binary"`, `"continuous_parametric"` or `"continuous_nonparametric"`).
-#' @param prob_ratio Probability ratio type (`"1"` or `"2"`).
+#' @param prob_ratio Probability/density ratio type (`"1"` or `"2"`).
 #' @param nonpar_hurdle Logical indicating whether to use a hurdle model or not
 #' (used only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
 #' @param controls_nleqslv Controls passed to the \link[nleqslv]{nleqslv} function (only if the `"continuous_parametric"` method has been chosen for at least one variable).
@@ -99,7 +99,8 @@
 #' \item{`match_prop` -- proportion of matches in the smaller dataset,}
 #' \item{`variables` -- a character vector of key variables used for comparison,}
 #' \item{`comparators` -- a list of functions used to compare pairs of records,}
-#' \item{`methods` -- a list of methods used for estimation.}
+#' \item{`methods` -- a list of methods used for estimation,}
+#' \item{`"prob_ratio"` -- probability/density ratio type.}
 #' }
 #'
 #' @references
@@ -422,7 +423,8 @@ train_rec_lin <- function(
       match_prop = vectors$match_prop,
       variables = variables,
       comparators = comparators,
-      methods = methods
+      methods = methods,
+      prob_ratio = prob_ratio
     ),
     class = "rec_lin_model"
   )
@@ -471,7 +473,8 @@ train_rec_lin <- function(
 #' \item{`match_prop` -- proportion of matches in the smaller dataset,}
 #' \item{`variables` -- a character vector of key variables used for comparison,}
 #' \item{`comparators` -- a list of functions used to compare pairs of records,}
-#' \item{`methods` -- here `NULL`.}
+#' \item{`methods` -- here `NULL`,}
+#' \item{`prob_ratio` -- here `"2"`.}
 #' }
 #'
 #' @examples
@@ -537,7 +540,8 @@ custom_rec_lin_model <- function(ml_model, vectors) {
       match_prop = vectors$match_prop,
       variables = variables,
       comparators = vectors$comparators,
-      methods = NULL
+      methods = NULL,
+      prob_ratio = "2"
     ),
     class = "rec_lin_model"
   )

@@ -114,7 +114,7 @@
 #'
 #' The assumption that \eqn{A} and \eqn{B} contain no duplicate records
 #' might be relaxed by allowing \eqn{A} to have duplicates. To do so,
-#' set `"duplicates_in_A = TRUE`.
+#' set `duplicates_in_A = TRUE`.
 #'
 #' @return
 #' Returns a list containing:\cr

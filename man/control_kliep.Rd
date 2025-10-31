@@ -2,7 +2,7 @@
 % Please edit documentation in R/controls.R
 \name{control_kliep}
 \alias{control_kliep}
-\title{Controls for the kliep Function}
+\title{Controls for the \code{kliep} Function}
 \usage{
 control_kliep(scale = NULL, progressbar = FALSE, nfold = 2, ...)
 }
@@ -13,7 +13,7 @@ or apply no standardization at all.}
 
 \item{progressbar}{Logical indicating whether or not to display a progressbar.}
 
-\item{nfold}{Number of cross-validation folds used in order to calculate the optimal sigma value (default is 5-fold cv).}
+\item{nfold}{Number of cross-validation folds used in order to calculate the optimal sigma value (default is 2-fold cv).}
 
 \item{...}{Additional arguments.}
 }

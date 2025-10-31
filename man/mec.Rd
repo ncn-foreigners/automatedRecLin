@@ -173,7 +173,7 @@ specify a target FLR using the \code{target_flr} argument.
 
 The assumption that \eqn{A} and \eqn{B} contain no duplicate records
 might be relaxed by allowing \eqn{A} to have duplicates. To do so,
-set \verb{"duplicates_in_A = TRUE}.
+set \code{duplicates_in_A = TRUE}.
 }
 \examples{
 df_1 <- data.frame(

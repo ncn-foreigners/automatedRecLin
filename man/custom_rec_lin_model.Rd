@@ -27,7 +27,8 @@ Returns a list containing:\cr
 \item{\code{match_prop} -- proportion of matches in the smaller dataset,}
 \item{\code{variables} -- a character vector of key variables used for comparison,}
 \item{\code{comparators} -- a list of functions used to compare pairs of records,}
-\item{\code{methods} -- here \code{NULL}.}
+\item{\code{methods} -- here \code{NULL},}
+\item{\code{prob_ratio} -- here \code{"2"}.}
 }
 }
 \description{

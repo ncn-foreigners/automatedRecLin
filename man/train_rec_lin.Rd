@@ -30,7 +30,7 @@ train_rec_lin(
 
 \item{methods}{A named list of methods used for estimation (\code{"binary"}, \code{"continuous_parametric"} or \code{"continuous_nonparametric"}).}
 
-\item{prob_ratio}{Probability ratio type (\code{"1"} or \code{"2"}).}
+\item{prob_ratio}{Probability/density ratio type (\code{"1"} or \code{"2"}).}
 
 \item{nonpar_hurdle}{Logical indicating whether to use a hurdle model or not
 (used only if the \code{"continuous_nonparametric"} method has been chosen for at least one variable).}
@@ -55,7 +55,8 @@ Returns a list containing:\cr
 \item{\code{match_prop} -- proportion of matches in the smaller dataset,}
 \item{\code{variables} -- a character vector of key variables used for comparison,}
 \item{\code{comparators} -- a list of functions used to compare pairs of records,}
-\item{\code{methods} -- a list of methods used for estimation.}
+\item{\code{methods} -- a list of methods used for estimation,}
+\item{\code{"prob_ratio"} -- probability/density ratio type.}
 }
 }
 \description{

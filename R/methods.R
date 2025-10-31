@@ -44,6 +44,9 @@ print.rec_lin_model <- function(x, ...) {
     cat("Variables selected for the continuous nonparametric method: ", paste(substring(x$cnonpar_vars, 7), collapse = ", "), ".\n", sep = "")
   }
 
+  cat("========================================================\n")
+  cat("Probability/density ratio type: ", x$prob_ratio, ".\n", sep = "")
+
 }
 
 #' @import data.table

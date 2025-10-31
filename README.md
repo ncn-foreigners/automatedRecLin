@@ -88,12 +88,13 @@ df_2
 ```
 
 Specify the key variables used for record linkage. Select a comparison
-function (i.e. a function to compare pairs of records) for each
+function (i.e., a function to compare pairs of records) for each
 variable. For example, use the `jarowinkler_complement` function from
 the `automatedRecLin` package (1 - Jaro-Winkler distance). Choose a
 method for estimating the probability or density ratio for each
 variable. The available methods are: `"binary"`,
-`"continuous_parametric"` and `"continuous_nonparametric"`.
+`"continuous_parametric"`, `"continuous_nonparametric"`, and
+`"hit-miss"` (only for unsupervised learning).
 
 ``` r
 variables <- c("name", "surname", "city")
@@ -120,8 +121,8 @@ following information:
   `"size"`),
 - estimated false link rate (FLR),
 - estimated missing match rate (MMR),
-- estimated parameters for the variables using the `"binary"` or
-  `"continuous_parametric"` methods.
+- estimated parameters for the variables using the `"binary"`,
+  `"continuous_parametric"` or `"hit-miss"` methods.
 
 ``` r
 set.seed(1)
@@ -210,7 +211,7 @@ df_2_train
 
 Specify the key variables, select comparison functions and choose
 methods for estimating the probability or density ratio. Additionally,
-provide a `data.frame` indicating known matches.
+provide a `data.frame` or `data.table` indicating known matches.
 
 ``` r
 variables_train <- c("name", "surname")
@@ -236,6 +237,8 @@ model
 #> The prior probability of matching is 0.04.
 #> ========================================================
 #> Variables selected for the continuous nonparametric method: name, surname.
+#> ========================================================
+#> Probability/density ratio type: 1.
 ```
 
 Generate two new datasets for record linkage prediction.
@@ -339,6 +342,8 @@ custom_xgb_model
 #> Record linkage model based on the following variables: name, surname.
 #> A custom ML model was used.
 #> The prior probability of matching is 0.04.
+#> ========================================================
+#> Probability/density ratio type: 2.
 ```
 
 Use the model for predictions. Note that the `xgboost` package requires
