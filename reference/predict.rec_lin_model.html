@@ -51,10 +51,10 @@ using the maximum entropy classification (MEC) algorithm
 <span>  <span class="va">newdata_A</span>,</span>
 <span>  <span class="va">newdata_B</span>,</span>
 <span>  duplicates_in_A <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  set_construction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"size"</span>, <span class="st">"flr"</span><span class="op">)</span>,</span>
+<span>  set_construction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"size"</span>, <span class="st">"flr"</span>, <span class="st">"mmr"</span><span class="op">)</span>,</span>
 <span>  fixed_method <span class="op">=</span> <span class="st">"Newton"</span>,</span>
-<span>  target_flr <span class="op">=</span> <span class="fl">0.05</span>,</span>
-<span>  tol <span class="op">=</span> <span class="fl">10</span><span class="op">^</span><span class="op">(</span><span class="op">-</span><span class="fl">3</span><span class="op">)</span>,</span>
+<span>  target_rate <span class="op">=</span> <span class="fl">0.03</span>,</span>
+<span>  tol <span class="op">=</span> <span class="fl">0.005</span>,</span>
 <span>  max_iter <span class="op">=</span> <span class="fl">50</span>,</span>
 <span>  data_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"data.frame"</span>, <span class="st">"data.table"</span>, <span class="st">"matrix"</span><span class="op">)</span>,</span>
 <span>  true_matches <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -83,24 +83,26 @@ using the maximum entropy classification (MEC) algorithm
 
 
 <dt id="arg-set-construction">set_construction<a class="anchor" aria-label="anchor" href="#arg-set-construction"></a></dt>
-<dd><p>A method for constructing the predicted set of matches (<code>"size"</code> or <code>"flr"</code>).</p></dd>
+<dd><p>A method for constructing the predicted set of matches (<code>"size"</code>, <code>"flr"</code> or <code>"mmr"</code>).</p></dd>
 
 
 <dt id="arg-fixed-method">fixed_method<a class="anchor" aria-label="anchor" href="#arg-fixed-method"></a></dt>
-<dd><p>A method for solving fixed-point equations using the <a href="https://rdrr.io/pkg/FixedPoint/man/FixedPoint.html" class="external-link">FixedPoint</a> function
-(used only if <code>set_construction == "size"</code>).</p></dd>
+<dd><p>A method for solving fixed-point equations using the <a href="https://rdrr.io/pkg/FixedPoint/man/FixedPoint.html" class="external-link">FixedPoint</a> function.</p></dd>
 
 
-<dt id="arg-target-flr">target_flr<a class="anchor" aria-label="anchor" href="#arg-target-flr"></a></dt>
-<dd><p>A target false link rate (FLR) (used only if <code>set_construction == "flr"</code>).</p></dd>
+<dt id="arg-target-rate">target_rate<a class="anchor" aria-label="anchor" href="#arg-target-rate"></a></dt>
+<dd><p>A target false link rate (FLR) or missing match rate (MMR)
+(used only if <code>set_construction == "flr"</code> or <code>set_construction == "mmr"</code>).</p></dd>
 
 
 <dt id="arg-tol">tol<a class="anchor" aria-label="anchor" href="#arg-tol"></a></dt>
-<dd><p>Error tolerance in the bisection procedure (used only if <code>set_construction == "flr"</code>).</p></dd>
+<dd><p>Error tolerance in the bisection procedure
+(used only if <code>set_construction == "flr"</code> or <code>set_construction == "mmr"</code>).</p></dd>
 
 
 <dt id="arg-max-iter">max_iter<a class="anchor" aria-label="anchor" href="#arg-max-iter"></a></dt>
-<dd><p>A maximum number of iterations for the bisection procedure (used only if <code>set_construction == "flr"</code>).</p></dd>
+<dd><p>A maximum number of iterations for the bisection procedure
+(used only if <code>set_construction == "flr"</code> or <code>set_construction == "mmr"</code>).</p></dd>
 
 
 <dt id="arg-data-type">data_type<a class="anchor" aria-label="anchor" href="#arg-data-type"></a></dt>
@@ -141,8 +143,10 @@ entropy classification (MEC) algorithm
 <p>The <code>predict</code> function allows the construction of the predicted set
 of matches using its estimated size or the bisection procedure,
 described in <a href="https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm" class="external-link">Lee et al. (2022)</a>,
-based on a target False Link Rate (FLR). To use the second option, set <code>set_construction = "flr"</code> and
-specify a target FLR using the <code>target_flr</code> argument.</p>
+based on a target False Link Rate (FLR)
+or missing match rate (MMR). To use the second option, set <code>set_construction = "flr"</code>
+or <code>set_construction = "mmr"</code> and
+specify a target error rate using the <code>target_rate</code> argument.</p>
 <p>By default, the function assumes that the datasets <code>newdata_A</code> and <code>newdata_B</code>
 contain no duplicate records. This assumption
 might be relaxed by allowing <code>newdata_A</code> to have duplicates. To do so,

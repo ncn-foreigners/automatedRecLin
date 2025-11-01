@@ -127,7 +127,7 @@
 <span><span class="co">#&gt; 10  Benjamin       Lee       Miami</span></span>
 <span><span class="co">#&gt; 11    Amelia Hernandez      Boston</span></span>
 <span><span class="co">#&gt; 12     Lucas     Clark      Denver</span></span></code></pre></div>
-<p>Specify the key variables used for record linkage. Select a comparison function (i.e., a function to compare pairs of records) for each variable. For example, use the <code>jarowinkler_complement</code> function from the <code>automatedRecLin</code> package (1 - Jaro-Winkler distance). Choose a method for estimating the probability or density ratio for each variable. The available methods are: <code>"binary"</code>, <code>"continuous_parametric"</code>, <code>"continuous_nonparametric"</code>, and <code>"hit-miss"</code> (only for unsupervised learning).</p>
+<p>Specify the key variables used for record linkage. Select a comparison function (i.e., a function to compare pairs of records) for each variable. For example, use the <code>jarowinkler_complement</code> function from the <code>automatedRecLin</code> package (1 - Jaro-Winkler distance). Choose a method for estimating the probability or density ratio for each variable. The available methods are: <code>"binary"</code>, <code>"continuous_parametric"</code>, <code>"continuous_nonparametric"</code>, and <code>"hit_miss"</code> (only for unsupervised learning).</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">variables</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"surname"</span>, <span class="st">"city"</span><span class="op">)</span></span>
 <span><span class="va">comparators</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -148,7 +148,7 @@
 <li>the method for constructing the predicted set of matches (default: <code>"size"</code>),</li>
 <li>estimated false link rate (FLR),</li>
 <li>estimated missing match rate (MMR),</li>
-<li>estimated parameters for the variables using the <code>"binary"</code>, <code>"continuous_parametric"</code> or <code>"hit-miss"</code> methods.</li>
+<li>estimated parameters for the variables using the <code>"binary"</code>, <code>"continuous_parametric"</code> or <code>"hit_miss"</code> methods.</li>
 </ul>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>

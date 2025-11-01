@@ -58,7 +58,7 @@ based on comparison vectors.</p>
 <span>  start_params <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  nonpar_hurdle <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  set_construction <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  target_flr <span class="op">=</span> <span class="fl">0.03</span>,</span>
+<span>  target_rate <span class="op">=</span> <span class="fl">0.03</span>,</span>
 <span>  max_iter_bisection <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  tol <span class="op">=</span> <span class="fl">0.005</span>,</span>
 <span>  delta <span class="op">=</span> <span class="fl">0.5</span>,</span>
@@ -109,19 +109,22 @@ based on comparison vectors.</p>
 
 
 <dt id="arg-set-construction">set_construction<a class="anchor" aria-label="anchor" href="#arg-set-construction"></a></dt>
-<dd><p>A method for constructing the predicted set of matches (<code>"size"</code> or <code>"flr"</code>).</p></dd>
+<dd><p>A method for constructing the predicted set of matches (<code>"size"</code>, <code>"flr"</code> or <code>"mmr"</code>).</p></dd>
 
 
-<dt id="arg-target-flr">target_flr<a class="anchor" aria-label="anchor" href="#arg-target-flr"></a></dt>
-<dd><p>A target false link rate (FLR) (used only if <code>set_construction == "flr"</code>).</p></dd>
+<dt id="arg-target-rate">target_rate<a class="anchor" aria-label="anchor" href="#arg-target-rate"></a></dt>
+<dd><p>A target false link rate (FLR) or missing match rate
+(MMR) (used only if <code>set_construction == "flr"</code> or <code>set_construction == "mmr"</code>).</p></dd>
 
 
 <dt id="arg-max-iter-bisection">max_iter_bisection<a class="anchor" aria-label="anchor" href="#arg-max-iter-bisection"></a></dt>
-<dd><p>A maximum number of iterations for the bisection procedure (used only if <code>set_construction == "flr"</code>).</p></dd>
+<dd><p>A maximum number of iterations for the bisection procedure
+(used only if <code>set_construction == "flr"</code> or <code>set_construction == "mmr"</code>).</p></dd>
 
 
 <dt id="arg-tol">tol<a class="anchor" aria-label="anchor" href="#arg-tol"></a></dt>
-<dd><p>Error tolerance in the bisection procedure (used only if <code>set_construction == "flr"</code>).</p></dd>
+<dd><p>Error tolerance in the bisection procedure
+(used only if <code>set_construction == "flr"</code> or <code>set_construction == "mmr"</code>).</p></dd>
 
 
 <dt id="arg-delta">delta<a class="anchor" aria-label="anchor" href="#arg-delta"></a></dt>
@@ -240,8 +243,10 @@ For details see <a href="https://link.springer.com/article/10.1007/s10463-008-01
 <p>The <code>mec</code> function allows the construction of the predicted set
 of matches using its estimated size or the bisection procedure,
 described in <a href="https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm" class="external-link">Lee et al. (2022)</a>,
-based on a target False Link Rate (FLR). To use the second option, set <code>set_construction = "flr"</code> and
-specify a target FLR using the <code>target_flr</code> argument.</p>
+based on a target False Link Rate (FLR)
+or missing match rate (MMR). To use the second option, set <code>set_construction = "flr"</code>
+or <code>set_construction = "mmr"</code> and
+specify a target error rate using the <code>target_rate</code> argument.</p>
 <p>The assumption that \(A\) and \(B\) contain no duplicate records
 might be relaxed by allowing \(A\) to have duplicates. To do so,
 set <code>duplicates_in_A = TRUE</code>.</p>
@@ -338,12 +343,9 @@ Ann Inst Stat Math 60, 699–746 (2008). <a href="https://doi.org/10.1007/s10463
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2: gamma_surname 0.500 120.665706 1974.530 0.03333333 4.622775  7.167261</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3:    gamma_city 0.500   6.512723  135.163 0.03333333 5.233194  9.313035</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ========================================================</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Evaluation metrics (presented in percentages):</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      recall   precision         fpr         fnr    accuracy specificity </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         100         100           0           0         100         100 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    f1_score </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         100 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Note that precision = 1 - flr, and fnr = mmr.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Evaluation metrics:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> FLR MMR </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0   0 </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
