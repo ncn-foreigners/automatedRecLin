@@ -94,7 +94,7 @@ the `automatedRecLin` package (1 - Jaro-Winkler distance). Choose a
 method for estimating the probability or density ratio for each
 variable. The available methods are: `"binary"`,
 `"continuous_parametric"`, `"continuous_nonparametric"`, and
-`"hit-miss"` (only for unsupervised learning).
+`"hit_miss"` (only for unsupervised learning).
 
 ``` r
 variables <- c("name", "surname", "city")
@@ -122,7 +122,7 @@ following information:
 - estimated false link rate (FLR),
 - estimated missing match rate (MMR),
 - estimated parameters for the variables using the `"binary"`,
-  `"continuous_parametric"` or `"hit-miss"` methods.
+  `"continuous_parametric"` or `"hit_miss"` methods.
 
 ``` r
 set.seed(1)

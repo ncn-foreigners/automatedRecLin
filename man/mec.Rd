@@ -14,7 +14,7 @@ mec(
   start_params = NULL,
   nonpar_hurdle = FALSE,
   set_construction = NULL,
-  target_flr = 0.03,
+  target_rate = 0.03,
   max_iter_bisection = 100,
   tol = 0.005,
   delta = 0.5,
@@ -44,13 +44,16 @@ mec(
 \item{nonpar_hurdle}{Logical indicating whether to use a hurdle model or not
 (used only if the \code{"continuous_nonparametric"} method has been chosen for at least one variable).}
 
-\item{set_construction}{A method for constructing the predicted set of matches (\code{"size"} or \code{"flr"}).}
+\item{set_construction}{A method for constructing the predicted set of matches (\code{"size"}, \code{"flr"} or \code{"mmr"}).}
 
-\item{target_flr}{A target false link rate (FLR) (used only if \code{set_construction == "flr"}).}
+\item{target_rate}{A target false link rate (FLR) or missing match rate
+(MMR) (used only if \code{set_construction == "flr"} or \code{set_construction == "mmr"}).}
 
-\item{max_iter_bisection}{A maximum number of iterations for the bisection procedure (used only if \code{set_construction == "flr"}).}
+\item{max_iter_bisection}{A maximum number of iterations for the bisection procedure
+(used only if \code{set_construction == "flr"} or \code{set_construction == "mmr"}).}
 
-\item{tol}{Error tolerance in the bisection procedure (used only if \code{set_construction == "flr"}).}
+\item{tol}{Error tolerance in the bisection procedure
+(used only if \code{set_construction == "flr"} or \code{set_construction == "mmr"}).}
 
 \item{delta}{A numeric value specifying the tolerance for the change in the estimated number of matches between iterations.}
 
@@ -168,8 +171,10 @@ For details see \href{https://link.springer.com/article/10.1007/s10463-008-0197-
 The \code{mec} function allows the construction of the predicted set
 of matches using its estimated size or the bisection procedure,
 described in \href{https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm}{Lee et al. (2022)},
-based on a target False Link Rate (FLR). To use the second option, set \code{set_construction = "flr"} and
-specify a target FLR using the \code{target_flr} argument.
+based on a target False Link Rate (FLR)
+or missing match rate (MMR). To use the second option, set \code{set_construction = "flr"}
+or \code{set_construction = "mmr"} and
+specify a target error rate using the \code{target_rate} argument.
 
 The assumption that \eqn{A} and \eqn{B} contain no duplicate records
 might be relaxed by allowing \eqn{A} to have duplicates. To do so,

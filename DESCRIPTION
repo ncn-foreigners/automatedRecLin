@@ -30,6 +30,6 @@ Imports:
     utils
 Suggests: 
     xgboost
-VignetteBuilder: knitr
 Depends: 
     R (>= 4.1.0)
+LazyData: true

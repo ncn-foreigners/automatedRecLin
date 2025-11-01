@@ -23,10 +23,13 @@
 #' @param start_params Start parameters for the `"binary"`, `"continuous_parametric"` and `"hit_miss"` methods.
 #' @param nonpar_hurdle Logical indicating whether to use a hurdle model or not
 #' (used only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
-#' @param set_construction A method for constructing the predicted set of matches (`"size"` or `"flr"`).
-#' @param target_flr A target false link rate (FLR) (used only if `set_construction == "flr"`).
-#' @param max_iter_bisection A maximum number of iterations for the bisection procedure (used only if `set_construction == "flr"`).
-#' @param tol Error tolerance in the bisection procedure (used only if `set_construction == "flr"`).
+#' @param set_construction A method for constructing the predicted set of matches (`"size"`, `"flr"` or `"mmr"`).
+#' @param target_rate A target false link rate (FLR) or missing match rate
+#' (MMR) (used only if `set_construction == "flr"` or `set_construction == "mmr"`).
+#' @param max_iter_bisection A maximum number of iterations for the bisection procedure
+#' (used only if `set_construction == "flr"` or `set_construction == "mmr"`).
+#' @param tol Error tolerance in the bisection procedure
+#' (used only if `set_construction == "flr"` or `set_construction == "mmr"`).
 #' @param delta A numeric value specifying the tolerance for the change in the estimated number of matches between iterations.
 #' @param eps A numeric value specifying the tolerance for the change in model parameters between iterations.
 #' @param max_iter_em A maximum number of iterations for the EM algorithm
@@ -109,8 +112,10 @@
 #' The `mec` function allows the construction of the predicted set
 #' of matches using its estimated size or the bisection procedure,
 #' described in [Lee et al. (2022)](https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm),
-#' based on a target False Link Rate (FLR). To use the second option, set `set_construction = "flr"` and
-#' specify a target FLR using the `target_flr` argument.
+#' based on a target False Link Rate (FLR)
+#' or missing match rate (MMR). To use the second option, set `set_construction = "flr"`
+#' or `set_construction = "mmr"` and
+#' specify a target error rate using the `target_rate` argument.
 #'
 #' The assumption that \eqn{A} and \eqn{B} contain no duplicate records
 #' might be relaxed by allowing \eqn{A} to have duplicates. To do so,
@@ -210,7 +215,7 @@ mec <- function(A,
                 start_params = NULL,
                 nonpar_hurdle = FALSE,
                 set_construction = NULL,
-                target_flr = 0.03,
+                target_rate = 0.03,
                 max_iter_bisection = 100,
                 tol = 0.005,
                 delta = 0.5,
@@ -841,12 +846,12 @@ mec <- function(A,
       M <- Omega[get("ratio") >= treshold, ]
       flr_est <- 1 / NROW(M) * sum(1 - M[["g_est"]])
 
-      if (abs(flr_est - target_flr) <= tol) {
+      if (abs(flr_est - target_rate) <= tol) {
 
         iter_bisection <- iter_bisection + 1
         break
 
-      } else if (flr_est < target_flr) {
+      } else if (flr_est < target_rate) {
 
         max_treshold <- treshold
         treshold <- (min_treshold + max_treshold) / 2
@@ -862,15 +867,55 @@ mec <- function(A,
 
     }
 
-  } else if (set_construction == "size") {
+    mmr_est <- 1 - sum(M[["g_est"]] / n_M_est)
+    if (mmr_est < 0) {
+      mmr_est <- NULL
+    }
+
+  } else if (set_construction == "mmr") {
+
+    min_treshold <- min(Omega$ratio)
+    max_treshold <- max(Omega$ratio)
+    treshold <- (min_treshold + max_treshold) / 2
+
+    iter_bisection <- 0
+
+    while (iter_bisection < max_iter_bisection) {
+
+      M <- Omega[get("ratio") >= treshold, ]
+      mmr_est <- 1 - sum(M[["g_est"]] / n_M_est)
+
+      if (abs(mmr_est - target_rate) <= tol) {
+
+        iter_bisection <- iter_bisection + 1
+        break
+
+      } else if (mmr_est < target_rate) {
+
+        min_treshold <- treshold
+        treshold <- (min_treshold + max_treshold) / 2
+
+      } else {
+
+        max_treshold <- treshold
+        treshold <- (min_treshold + max_treshold) / 2
+
+      }
+
+      iter_bisection <- iter_bisection + 1
+
+    }
 
     flr_est <- 1 / NROW(M) * sum(1 - M[["g_est"]])
 
-  }
+  } else if (set_construction == "size") {
 
-  mmr_est <- 1 - sum(M[["g_est"]] / n_M_est)
-  if (mmr_est < 0) {
-    mmr_est <- NULL
+    flr_est <- 1 / NROW(M) * sum(1 - M[["g_est"]])
+    mmr_est <- 1 - sum(M[["g_est"]] / n_M_est)
+    if (mmr_est < 0) {
+      mmr_est <- NULL
+    }
+
   }
 
   if (!is.null(true_matches)) {

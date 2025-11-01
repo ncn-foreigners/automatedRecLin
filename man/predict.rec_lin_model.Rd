@@ -9,10 +9,10 @@
   newdata_A,
   newdata_B,
   duplicates_in_A = FALSE,
-  set_construction = c("size", "flr"),
+  set_construction = c("size", "flr", "mmr"),
   fixed_method = "Newton",
-  target_flr = 0.05,
-  tol = 10^(-3),
+  target_rate = 0.03,
+  tol = 0.005,
   max_iter = 50,
   data_type = c("data.frame", "data.table", "matrix"),
   true_matches = NULL,
@@ -28,16 +28,18 @@
 
 \item{duplicates_in_A}{Logical indicating whether to allow \code{A} to have duplicate records.}
 
-\item{set_construction}{A method for constructing the predicted set of matches (\code{"size"} or \code{"flr"}).}
+\item{set_construction}{A method for constructing the predicted set of matches (\code{"size"}, \code{"flr"} or \code{"mmr"}).}
 
-\item{fixed_method}{A method for solving fixed-point equations using the \link[FixedPoint]{FixedPoint} function
-(used only if \code{set_construction == "size"}).}
+\item{fixed_method}{A method for solving fixed-point equations using the \link[FixedPoint]{FixedPoint} function.}
 
-\item{target_flr}{A target false link rate (FLR) (used only if \code{set_construction == "flr"}).}
+\item{target_rate}{A target false link rate (FLR) or missing match rate (MMR)
+(used only if \code{set_construction == "flr"} or \code{set_construction == "mmr"}).}
 
-\item{tol}{Error tolerance in the bisection procedure (used only if \code{set_construction == "flr"}).}
+\item{tol}{Error tolerance in the bisection procedure
+(used only if \code{set_construction == "flr"} or \code{set_construction == "mmr"}).}
 
-\item{max_iter}{A maximum number of iterations for the bisection procedure (used only if \code{set_construction == "flr"}).}
+\item{max_iter}{A maximum number of iterations for the bisection procedure
+(used only if \code{set_construction == "flr"} or \code{set_construction == "mmr"}).}
 
 \item{data_type}{Data type for predictions with a custom ML model (\code{"data.frame"}, \code{"data.table"} or \code{"matrix"};
 used only if \code{object} is from the \code{custom_rec_lin_model} function).}
@@ -78,8 +80,10 @@ entropy classification (MEC) algorithm
 The \code{predict} function allows the construction of the predicted set
 of matches using its estimated size or the bisection procedure,
 described in \href{https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm}{Lee et al. (2022)},
-based on a target False Link Rate (FLR). To use the second option, set \code{set_construction = "flr"} and
-specify a target FLR using the \code{target_flr} argument.
+based on a target False Link Rate (FLR)
+or missing match rate (MMR). To use the second option, set \code{set_construction = "flr"}
+or \code{set_construction = "mmr"} and
+specify a target error rate using the \code{target_rate} argument.
 
 By default, the function assumes that the datasets \code{newdata_A} and \code{newdata_B}
 contain no duplicate records. This assumption

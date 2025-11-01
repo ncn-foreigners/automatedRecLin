@@ -74,6 +74,9 @@ print.rec_lin_predictions <- function(x, ...) {
     } else if (x$set_construction == "flr") {
       cat("The construction of the classification set was based on the target false link rate (FLR).\n")
       cat("The bisection procedure ended after", x$iter, "iterations.\n")
+    } else if (x$set_construction == "mmr") {
+      cat("The construction of the classification set was based on the target missing match rate (MMR).\n")
+      cat("The bisection procedure ended after", x$iter, "iterations.\n")
     }
     cat("Estimated false link rate (FLR): ", sprintf("%.4f", x$flr_est * 100), " %.\n", sep = "")
     if (x$n_M_est != 0) {
@@ -86,11 +89,13 @@ print.rec_lin_predictions <- function(x, ...) {
 
   if (!is.null(x$eval_metrics)) {
     cat("========================================================\n")
-    cat("Evaluation metrics (presented in percentages):\n")
-    eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics * 100))
+    # cat("Evaluation metrics (presented in percentages):\n")
+    cat("Evaluation metrics:\n")
+    # eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics * 100))
+    eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics))
     names(eval_metrics) <- names(x$eval_metrics)
     print(eval_metrics)
-    cat("Note that precision = 1 - flr, and fnr = mmr.")
+    #cat("Note that precision = 1 - flr, and fnr = mmr.")
   }
 
 }
@@ -118,8 +123,11 @@ print.mec_rec_lin <- function(x, ...) {
   if (x$set_construction == "size") {
     cat("The construction of the classification set was based on estimates of its size.\n")
   } else if (x$set_construction == "flr") {
-  cat("The construction of the classification set was based on the target false link rate (FLR).\n")
-  cat("The bisection procedure ended after", x$iter_bisection, "iterations.\n")
+    cat("The construction of the classification set was based on the target false link rate (FLR).\n")
+    cat("The bisection procedure ended after", x$iter_bisection, "iterations.\n")
+  } else if (x$set_construction == "mmr") {
+    cat("The construction of the classification set was based on the target missing match rate (MMR).\n")
+    cat("The bisection procedure ended after", x$iter_bisection, "iterations.\n")
   }
   # cat("Estimated false link rate (FLR): ", x$flr_est, ".\n", sep = "")
   cat("Estimated false link rate (FLR): ", sprintf("%.4f", x$flr_est * 100), " %.\n", sep = "")
@@ -156,11 +164,13 @@ print.mec_rec_lin <- function(x, ...) {
 
   if (!is.null(x$eval_metrics)) {
     cat("========================================================\n")
-    cat("Evaluation metrics (presented in percentages):\n")
-    eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics * 100))
+    # cat("Evaluation metrics (presented in percentages):\n")
+    cat("Evaluation metrics:\n")
+    # eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics * 100))
+    eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics))
     names(eval_metrics) <- names(x$eval_metrics)
     print(eval_metrics)
-    cat("Note that precision = 1 - flr, and fnr = mmr.")
+    #cat("Note that precision = 1 - flr, and fnr = mmr.")
   }
 
 }

@@ -67,7 +67,7 @@ df_1
 df_2
 ```
 
-Specify the key variables used for record linkage. Select a comparison function (i.e., a function to compare pairs of records) for each variable. For example, use the `jarowinkler_complement` function from the `automatedRecLin` package (1 - Jaro-Winkler distance). Choose a method for estimating the probability or density ratio for each variable. The available methods are: `"binary"`, `"continuous_parametric"`, `"continuous_nonparametric"`, and `"hit-miss"` (only for unsupervised learning).
+Specify the key variables used for record linkage. Select a comparison function (i.e., a function to compare pairs of records) for each variable. For example, use the `jarowinkler_complement` function from the `automatedRecLin` package (1 - Jaro-Winkler distance). Choose a method for estimating the probability or density ratio for each variable. The available methods are: `"binary"`, `"continuous_parametric"`, `"continuous_nonparametric"`, and `"hit_miss"` (only for unsupervised learning).
 
 ```{r}
 variables <- c("name", "surname", "city")
@@ -91,7 +91,7 @@ Perform record linkage using the `mec` function. The output contains the followi
 + the method for constructing the predicted set of matches (default: `"size"`),
 + estimated false link rate (FLR),
 + estimated missing match rate (MMR),
-+ estimated parameters for the variables using the `"binary"`, `"continuous_parametric"` or `"hit-miss"` methods.
++ estimated parameters for the variables using the `"binary"`, `"continuous_parametric"` or `"hit_miss"` methods.
 
 ```{r}
 set.seed(1)

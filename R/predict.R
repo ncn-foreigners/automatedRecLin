@@ -17,12 +17,14 @@
 #' @param newdata_A A duplicate-free `data.frame` or `data.table`.
 #' @param newdata_B A duplicate-free `data.frame` or `data.table`.
 #' @param duplicates_in_A Logical indicating whether to allow `A` to have duplicate records.
-#' @param set_construction A method for constructing the predicted set of matches (`"size"` or `"flr"`).
-#' @param fixed_method A method for solving fixed-point equations using the \link[FixedPoint]{FixedPoint} function
-#' (used only if `set_construction == "size"`).
-#' @param target_flr A target false link rate (FLR) (used only if `set_construction == "flr"`).
-#' @param tol Error tolerance in the bisection procedure (used only if `set_construction == "flr"`).
-#' @param max_iter A maximum number of iterations for the bisection procedure (used only if `set_construction == "flr"`).
+#' @param set_construction A method for constructing the predicted set of matches (`"size"`, `"flr"` or `"mmr"`).
+#' @param fixed_method A method for solving fixed-point equations using the \link[FixedPoint]{FixedPoint} function.
+#' @param target_rate A target false link rate (FLR) or missing match rate (MMR)
+#' (used only if `set_construction == "flr"` or `set_construction == "mmr"`).
+#' @param tol Error tolerance in the bisection procedure
+#' (used only if `set_construction == "flr"` or `set_construction == "mmr"`).
+#' @param max_iter A maximum number of iterations for the bisection procedure
+#' (used only if `set_construction == "flr"` or `set_construction == "mmr"`).
 #' @param data_type Data type for predictions with a custom ML model (`"data.frame"`, `"data.table"` or `"matrix"`;
 #' used only if `object` is from the `custom_rec_lin_model` function).
 #' @param true_matches A `data.frame` or `data.table` indicating true matches.
@@ -42,8 +44,10 @@
 #' The `predict` function allows the construction of the predicted set
 #' of matches using its estimated size or the bisection procedure,
 #' described in [Lee et al. (2022)](https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm),
-#' based on a target False Link Rate (FLR). To use the second option, set `set_construction = "flr"` and
-#' specify a target FLR using the `target_flr` argument.
+#' based on a target False Link Rate (FLR)
+#' or missing match rate (MMR). To use the second option, set `set_construction = "flr"`
+#' or `set_construction = "mmr"` and
+#' specify a target error rate using the `target_rate` argument.
 #'
 #' By default, the function assumes that the datasets `newdata_A` and `newdata_B`
 #' contain no duplicate records. This assumption
@@ -111,10 +115,10 @@ predict.rec_lin_model <- function(object,
                                   newdata_A,
                                   newdata_B,
                                   duplicates_in_A = FALSE,
-                                  set_construction = c("size", "flr"),
+                                  set_construction = c("size", "flr", "mmr"),
                                   fixed_method = "Newton",
-                                  target_flr = 0.05,
-                                  tol = 10^(-3),
+                                  target_rate = 0.03,
+                                  tol = 0.005,
                                   max_iter = 50,
                                   data_type = c("data.frame", "data.table", "matrix"),
                                   true_matches = NULL,
@@ -126,8 +130,8 @@ predict.rec_lin_model <- function(object,
   stopifnot("`newdata_B` is required for predictions." =
               !missing(newdata_B))
 
-  stopifnot("`set_construction` should be `size` or `flr`." =
-              set_construction %in% c("size", "flr"))
+  stopifnot("`set_construction` should be `size`, `flr` or `mmr`." =
+              set_construction %in% c("size", "flr", "mmr"))
 
   if (!is.null(true_matches)) {
 
@@ -299,10 +303,12 @@ predict.rec_lin_model <- function(object,
   n_M_est <- max(n_M_est, 0)
   n_M_est <- round(n_M_est)
 
+  Omega$g_est <- pmin(n_M_est * Omega$ratio / (n_M_est * (Omega$ratio - 1) + n), 1)
+
   if (set_construction == "size") {
 
     Omega <- Omega[order(-get("ratio")), ]
-    M_est <- data.table("a" = numeric(), "b" = numeric(), "ratio" = numeric())
+    M_est <- data.table("a" = numeric(), "b" = numeric(), "ratio" = numeric(), "g_est" = numeric())
 
     if (!duplicates_in_A) {
 
@@ -314,7 +320,7 @@ predict.rec_lin_model <- function(object,
         current_a <- Omega$a[i]
         current_b <- Omega$b[i]
         if (!(current_a %in% used_a) && !(current_b %in% used_b)) {
-          M_est <- rbind(M_est, Omega[i, c("a", "b", "ratio")])
+          M_est <- rbind(M_est, Omega[i, c("a", "b", "ratio", "g_est")])
           used_a <- c(used_a, current_a)
           used_b <- c(used_b, current_b)
         }
@@ -329,7 +335,7 @@ predict.rec_lin_model <- function(object,
 
         current_a <- Omega$a[i]
         if (!(current_a %in% used_a)) {
-          M_est <- rbind(M_est, Omega[i, c("a", "b", "ratio")])
+          M_est <- rbind(M_est, Omega[i, c("a", "b", "ratio", "g_est")])
           used_a <- c(used_a, current_a)
         }
 
@@ -338,12 +344,12 @@ predict.rec_lin_model <- function(object,
     }
 
     M_est <- head(M_est, round(n_M_est))
-    g_est <- pmin(NROW(M_est) * M_est$ratio / (NROW(M_est) * (M_est$ratio - 1) + n), 1)
-    flr_est <- 1 / NROW(M_est) * sum(1 - g_est)
+    #g_est <- pmin(NROW(M_est) * M_est$ratio / (NROW(M_est) * (M_est$ratio - 1) + n), 1)
+    flr_est <- 1 / NROW(M_est) * sum(1 - M_est$g_est)
 
     iter <- NULL
 
-    mmr_est <- 1 - sum(g_est / n_M_est)
+    mmr_est <- 1 - sum(M_est$g_est / n_M_est)
 
   } else if (set_construction == "flr") {
 
@@ -358,14 +364,14 @@ predict.rec_lin_model <- function(object,
     while (iter < max_iter) {
 
       M_est <- Omega[get("ratio") >= treshold, ]
-      M_est$g_est <- pmin(NROW(M_est) * M_est$ratio / (NROW(M_est) * (M_est$ratio - 1) + n), 1)
+      #M_est$g_est <- pmin(NROW(M_est) * M_est$ratio / (NROW(M_est) * (M_est$ratio - 1) + n), 1)
       flr_est <- 1 / NROW(M_est) * sum(1 - M_est$g_est)
 
-      if (abs(flr_est - target_flr) <= tol) {
+      if (abs(flr_est - target_rate) <= tol) {
 
         break
 
-      } else if (flr_est < target_flr) {
+      } else if (flr_est < target_rate) {
 
         max_treshold <- treshold
         treshold <- (min_treshold + max_treshold) / 2
@@ -382,9 +388,46 @@ predict.rec_lin_model <- function(object,
     }
 
     g_est_to_mmr <- pmin(n_M_original * M_est$ratio / (n_M_original * (M_est$ratio - 1) + n), 1)
-
     # mmr_est <- 1 - sum(M_est$g_est / n_M_original)
-    mmr_est <- 1 - sum(g_est_to_mmr / n_M_original) # to think
+    # mmr_est <- 1 - sum(g_est_to_mmr / n_M_original) # to think
+    mmr_est <- 1 - sum(M_est$g_est / n_M_est)
+
+  } else if (set_construction == "mmr") {
+
+    Omega <- Omega[order(-get("ratio")), ]
+
+    min_treshold <- min(Omega$ratio)
+    max_treshold <- max(Omega$ratio)
+    treshold <- (min_treshold + max_treshold) / 2
+
+    iter <- 0
+
+    while (iter < max_iter) {
+
+      M_est <- Omega[get("ratio") >= treshold, ]
+      mmr_est <- 1 - sum(M_est$g_est / n_M_est)
+
+      if (abs(mmr_est - target_rate) <= tol) {
+
+        break
+
+      } else if (mmr_est < target_rate) {
+
+        min_treshold <- treshold
+        treshold <- (min_treshold + max_treshold) / 2
+
+      } else {
+
+        max_treshold <- treshold
+        treshold <- (min_treshold + max_treshold) / 2
+
+      }
+
+      iter <- iter + 1
+
+    }
+
+    flr_est <- 1 / NROW(M_est) * sum(1 - M_est$g_est)
 
   }
 
