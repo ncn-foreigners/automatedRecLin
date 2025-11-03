@@ -29,6 +29,7 @@ Imports:
     stats,
     utils
 Suggests: 
+    tinytest,
     xgboost
 Depends: 
     R (>= 4.1.0)

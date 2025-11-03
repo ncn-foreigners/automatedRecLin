@@ -213,7 +213,7 @@ mec <- function(A,
                 methods = NULL,
                 duplicates_in_A = FALSE,
                 start_params = NULL,
-                nonpar_hurdle = FALSE,
+                nonpar_hurdle = TRUE,
                 set_construction = NULL,
                 target_rate = 0.03,
                 max_iter_bisection = 100,
@@ -663,6 +663,7 @@ mec <- function(A,
 
         p_0_M_cnonpar <- p_0_formula(M_cnonpar)
 
+        tryCatch({
         ratio_kliep_list <- lapply(cnonpar_vars, function (x) {
           gamma_M <- M_cnonpar[[x]]
           gamma_M <- data.table::data.table(gamma_M[gamma_M > 0])
@@ -692,6 +693,11 @@ mec <- function(A,
         })
         ratio_kliep <- Reduce(`*`, ratio_kliep_list)
         data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * ratio_kliep)
+        },
+          error = function(e) {
+            cat("kliep function error:", e$message, "\n")
+            cat("========================================================\n")
+          })
 
       } else {
 

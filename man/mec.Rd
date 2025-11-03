@@ -12,7 +12,7 @@ mec(
   methods = NULL,
   duplicates_in_A = FALSE,
   start_params = NULL,
-  nonpar_hurdle = FALSE,
+  nonpar_hurdle = TRUE,
   set_construction = NULL,
   target_rate = 0.03,
   max_iter_bisection = 100,
