@@ -1,6 +1,12 @@
-^automatedRecLin\.Rproj$
+^.*\.Rproj$
 ^\.Rproj\.user$
+playground
+^README\.Rmd$
+^LICENSE\.md$
+^\.github$
+^codecov\.yml$
 ^_pkgdown\.yml$
 ^docs$
-^Readme\.Rmd$
-^\.github$
+^pkgdown$
+check
+misc

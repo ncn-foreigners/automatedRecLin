@@ -3,6 +3,9 @@ title: The `automatedRecLin` Package
 output: github_document
 ---
 
+[![R-CMD-check](https://github.com/ncn-foreigners/automatedRecLin/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ncn-foreigners/automatedRecLin/actions/workflows/R-CMD-check.yaml)
+[![test-coverage](https://github.com/ncn-foreigners/automatedRecLin/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/ncn-foreigners/automatedRecLin/actions/workflows/test-coverage.yaml)
+
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
