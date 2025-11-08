@@ -18,6 +18,12 @@ matches that maximizes entropy.
 
 ## Installation
 
+Install the stable version from CRAN.
+
+``` r
+install.packages("automatedRecLin")
+```
+
 To install the development version from GitHub you can use the `pak`
 package.
 

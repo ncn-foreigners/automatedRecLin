@@ -23,6 +23,12 @@ This R package is designed to perform record linkage (also known as entity resol
 
 ## Installation
 
+Install the stable version from CRAN.
+
+```{r, eval=FALSE}
+install.packages("automatedRecLin")
+```
+
 To install the development version from GitHub you can use the `pak` package.
 
 ```{r, eval=FALSE}
