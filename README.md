@@ -5,6 +5,12 @@ The `automatedRecLin` Package
 
 [![R-CMD-check](https://github.com/ncn-foreigners/automatedRecLin/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ncn-foreigners/automatedRecLin/actions/workflows/R-CMD-check.yaml)
 [![test-coverage](https://github.com/ncn-foreigners/automatedRecLin/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/ncn-foreigners/automatedRecLin/actions/workflows/test-coverage.yaml)
+[![CRAN
+status](https://www.r-pkg.org/badges/version/automatedRecLin)](https://cran.r-project.org/package=automatedRecLin)
+[![CRAN
+downloads](https://cranlogs.r-pkg.org/badges/grand-total/automatedRecLin)](https://cran.r-project.org/package=automatedRecLin)
+[![CRAN
+downloads](https://cranlogs.r-pkg.org/badges/automatedRecLin)](https://cran.r-project.org/package=automatedRecLin)
 <!-- badges: end -->
 
 ## Description
