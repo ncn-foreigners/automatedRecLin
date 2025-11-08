@@ -187,7 +187,6 @@ predict.rec_lin_model <- function(object,
     )
 
     prob_est <- object$match_prop / max(NROW(newdata_A), NROW(newdata_B))
-    # predicted_ratio <- predicted_probs * (1 - object$pi_est) / ((1 - predicted_probs) * object$pi_est)
     predicted_ratio <- predicted_probs * (1 - prob_est) / ((1 - predicted_probs) * prob_est)
     data.table::set(Omega, j = "ratio", value = predicted_ratio)
 
@@ -289,16 +288,11 @@ predict.rec_lin_model <- function(object,
 
   }
 
-  # to think
   n_M_start <- min(NROW(newdata_A), NROW(newdata_B))
   fun_n_M <- fixed_n_M(n = n, ratio_gamma = Omega[["ratio"]])
   n_M_original <- FixedPoint::FixedPoint(Function = fun_n_M,
                                          Inputs = n_M_start,
                                          Method = fixed_method)$FixedPoint
-  # n_M_est <- min(FixedPoint::FixedPoint(Function = fun_n_M,
-  #                                       Inputs = n_M_start,
-  #                                       Method = fixed_method)$FixedPoint,
-  #                min(NROW(newdata_A), NROW(newdata_B)))
   n_M_est <- min(n_M_original, n_M_start)
   n_M_est <- max(n_M_est, 0)
   n_M_est <- round(n_M_est)
@@ -344,7 +338,6 @@ predict.rec_lin_model <- function(object,
     }
 
     M_est <- head(M_est, round(n_M_est))
-    #g_est <- pmin(NROW(M_est) * M_est$ratio / (NROW(M_est) * (M_est$ratio - 1) + n), 1)
     flr_est <- 1 / NROW(M_est) * sum(1 - M_est$g_est)
 
     iter <- NULL
@@ -364,7 +357,6 @@ predict.rec_lin_model <- function(object,
     while (iter < max_iter) {
 
       M_est <- Omega[get("ratio") >= treshold, ]
-      #M_est$g_est <- pmin(NROW(M_est) * M_est$ratio / (NROW(M_est) * (M_est$ratio - 1) + n), 1)
       flr_est <- 1 / NROW(M_est) * sum(1 - M_est$g_est)
 
       if (abs(flr_est - target_rate) <= tol) {
@@ -388,8 +380,6 @@ predict.rec_lin_model <- function(object,
     }
 
     g_est_to_mmr <- pmin(n_M_original * M_est$ratio / (n_M_original * (M_est$ratio - 1) + n), 1)
-    # mmr_est <- 1 - sum(M_est$g_est / n_M_original)
-    # mmr_est <- 1 - sum(g_est_to_mmr / n_M_original) # to think
     mmr_est <- 1 - sum(M_est$g_est / n_M_est)
 
   } else if (set_construction == "mmr") {

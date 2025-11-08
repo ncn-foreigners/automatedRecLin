@@ -187,8 +187,6 @@ train_rec_lin <- function(
     prob_ratio <- "1"
   }
 
-  # if (any(methods %in% c("binary", "continuous_parametric"))) {
-
     data.table::setDT(matches)
 
     if (prob_ratio == "2") {
@@ -208,8 +206,6 @@ train_rec_lin <- function(
         }
       }
     }
-
-  # }
 
   vectors <- comparison_vectors(A = A,
                                 B = B,

@@ -24,21 +24,8 @@ evaluation <- function(pred_matches, true_matches, n) {
 #' @noRd
 get_metrics <- function(TP, FP, FN, TN) {
 
-  #recall <- if (TP + FN != 0) TP / (TP + FN) else 0
   precision <- if (TP + FP != 0) TP / (TP + FP) else 0
-  #fpr <- if (FP + TN != 0) FP / (FP + TN) else 0
   fnr <- if (FN + TP != 0) FN / (FN + TP) else 0
-  #accuracy <- if (TP + FP + FN + TN != 0) (TP + TN) / (TP + FP + FN + TN) else 0
-  #specificity <- if (TN + FP != 0) TN / (TN + FP) else 0
-  #f1_score <- if (precision + recall != 0) 2 * (precision * recall) / (precision + recall) else 0
-
-  # list(recall = recall,
-  #      precision = precision,
-  #      fpr = fpr,
-  #      fnr = fnr,
-  #      accuracy = accuracy,
-  #      specificity = specificity,
-  #      f1_score = f1_score)
 
   flr <- 1 - precision
   mmr <- fnr

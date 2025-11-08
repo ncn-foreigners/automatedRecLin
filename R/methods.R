@@ -58,9 +58,6 @@ print.rec_lin_predictions <- function(x, ...) {
   if (NROW(x$M_est) == 0) {
     cat("No matches were predicted.\n")
   } else {
-    # cat("Predicted matches:\n")
-    # print(x$M_est)
-    # cat("========================================================\n")
     M_est <- data.table::copy(x$M_est)
     data.table::set(M_est, j = "ratio / 1000", value = M_est[["ratio"]] / 1000)
     data.table::set(M_est, j = "ratio", value = NULL)
@@ -82,20 +79,16 @@ print.rec_lin_predictions <- function(x, ...) {
     if (x$n_M_est != 0) {
       cat("Estimated missing match rate (MMR): ", sprintf("%.4f", x$mmr_est * 100), " %.\n", sep = "")
     } else {
-      # cat("Estimated classification set size is 0.\n")
       cat("Missing match rate (MMR) cannot be estimated because the estimated classification set size is equal to 0.")
     }
   }
 
   if (!is.null(x$eval_metrics)) {
     cat("========================================================\n")
-    # cat("Evaluation metrics (presented in percentages):\n")
     cat("Evaluation metrics:\n")
-    # eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics * 100))
     eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics))
     names(eval_metrics) <- names(x$eval_metrics)
     print(eval_metrics)
-    #cat("Note that precision = 1 - flr, and fnr = mmr.")
   }
 
 }
@@ -129,10 +122,8 @@ print.mec_rec_lin <- function(x, ...) {
     cat("The construction of the classification set was based on the target missing match rate (MMR).\n")
     cat("The bisection procedure ended after", x$iter_bisection, "iterations.\n")
   }
-  # cat("Estimated false link rate (FLR): ", x$flr_est, ".\n", sep = "")
   cat("Estimated false link rate (FLR): ", sprintf("%.4f", x$flr_est * 100), " %.\n", sep = "")
   if (!is.null(x$mmr_est)) {
-    # cat("Estimated missing match rate (MMR): ", x$mmr_est, ".\n", sep = "")
     cat("Estimated missing match rate (MMR): ", sprintf("%.4f", x$mmr_est * 100), " %.\n", sep = "")
   }
 
@@ -164,13 +155,10 @@ print.mec_rec_lin <- function(x, ...) {
 
   if (!is.null(x$eval_metrics)) {
     cat("========================================================\n")
-    # cat("Evaluation metrics (presented in percentages):\n")
     cat("Evaluation metrics:\n")
-    # eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics * 100))
     eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics))
     names(eval_metrics) <- names(x$eval_metrics)
     print(eval_metrics)
-    #cat("Note that precision = 1 - flr, and fnr = mmr.")
   }
 
 }

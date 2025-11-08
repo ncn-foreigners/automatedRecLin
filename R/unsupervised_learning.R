@@ -335,7 +335,6 @@ mec <- function(A,
       start_params[["continuous_parametric"]] <- data.table(
         variable = cpar_vars,
         p_0_M = runif(length(cpar_vars), min = 0.8, max = 0.9),
-        # p_0_M = n_M / rep(min(NROW(A), NROW(B)), length(cpar_vars)),
         alpha_M = runif(length(cpar_vars), min = 0.1, max = 1),
         beta_M = runif(length(cpar_vars), min = 10, max = 20)
       )
@@ -532,7 +531,6 @@ mec <- function(A,
         current_a <- Omega$a[i]
         current_b <- Omega$b[i]
         if (!(current_a %in% used_a) && !(current_b %in% used_b)) {
-          # M <- rbind(M, Omega[i, c("a", "b", "ratio")])
           M <- rbind(M, Omega[i, ])
           used_a <- c(used_a, current_a)
           used_b <- c(used_b, current_b)
@@ -633,7 +631,6 @@ mec <- function(A,
       beta_M_old <- cpar_params$beta_M
       p_0_M <- p_0_formula(M_cpar)
       gamma_plus_M <- gamma_plus_formula(M_cpar)
-      # alpha_M <- alpha_formula_iterative(M_cpar, modified_nleqslv, beta_M_old)
       alpha_M <- alpha_formula(M_cpar, modified_nleqslv)
       beta_M <- alpha_M / gamma_plus_M
       beta_M[is.nan(beta_M)] <- beta_M_old[is.nan(beta_M)]
