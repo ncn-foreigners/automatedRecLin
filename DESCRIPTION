@@ -8,7 +8,7 @@ Authors@R:
            email = "adastr5@st.amu.edu.pl"),
     person(given = "Maciej",
            family = "Beręsewicz",
-           role = c("aut", "ctr"),
+           role = c("aut", "ctb"),
            email = "maciej.beresewicz@ue.poznan.pl",
            comment = c(ORCID = "0000-0002-8281-4301")))
 Description: The goal of 'automatedRecLin' is to perform record linkage (also known as entity resolution) in unsupervised or supervised settings. It compares pairs of records from two datasets using selected comparison functions to estimate the probability or density ratio between matched and non-matched records. Based on these estimates, it predicts a set of matches that maximizes entropy. For details see: Lee et al. (2022) <https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm>, Vo et al. (2023) <https://ideas.repec.org/a/eee/csdana/v179y2023ics0167947322002365.html>, Sugiyama et al. (2008) <doi:10.1007/s10463-008-0197-x>.
