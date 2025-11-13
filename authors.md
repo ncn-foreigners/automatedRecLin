@@ -4,7 +4,7 @@
 
 - **Adam Struzik**. Author, maintainer.
 
-- **Maciej Beręsewicz**. Author, contractor.
+- **Maciej Beręsewicz**. Author, contributor.
   [](https://orcid.org/0000-0002-8281-4301)
 
 ## Citation
