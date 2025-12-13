@@ -338,18 +338,13 @@ vectors
 #> 6:     1     6  1.0000000     1.0000000     0
 ```
 
-Construct the `xgb.DMatrix` object, specify the model parameters, and
-train the XGBoost model.
+Train the XGBoost model.
 
 ``` r
-train_data <- xgb.DMatrix(
-  data = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
-  label = vectors$Omega$match
-)
-params <- list(objective = "binary:logistic",
-               eval_metric = "logloss")
-model_xgb <- xgboost(data = train_data, params = params,
-                     nrounds = 100, verbose = 0)
+model_xgb <- xgboost(x = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
+                     y = factor(vectors$Omega$match),
+                     objective = "binary:logistic", eval_metric = "logloss",
+                     nrounds = 100, verbosity = 0)
 ```
 
 Create the XGBoost-based record linkage model.
@@ -366,25 +361,25 @@ custom_xgb_model
 
 Use the model for predictions. Note that the `xgboost` package requires
 a matrix as input for the `predict` function and that needs to be
-specified in the `data_type` argument. Set `type = "prob"` to ensure the
-XGBoost model predicts the probability of matching (this argument may
-vary depending on the model or library used).
+specified in the `data_type` argument. Set `type = "response"` to ensure
+the XGBoost model predicts the probability of matching (this argument
+may vary depending on the model or library used).
 
 ``` r
 result_xgb <- predict(custom_xgb_model, df_1_new, df_2_new,
-                      data_type = "matrix", type = "prob")
+                      data_type = "matrix", type = "response")
 result_xgb
 #> The algorithm predicted 3 matches.
 #> The first 3 predicted matches are:
 #>        a     b ratio / 1000
 #>    <num> <num>        <num>
-#> 1:     1     1   0.03702279
-#> 2:     2     2   0.03702279
-#> 3:     3     3   0.03702279
+#> 1:     1     1    0.0299477
+#> 2:     2     2    0.0299477
+#> 3:     3     3    0.0299477
 #> ========================================================
 #> The construction of the classification set was based on estimates of its size.
-#> Estimated false link rate (FLR): 13.2742 %.
-#> Estimated missing match rate (MMR): 13.2742 %.
+#> Estimated false link rate (FLR): 15.9112 %.
+#> Estimated missing match rate (MMR): 15.9112 %.
 ```
 
 ## Funding

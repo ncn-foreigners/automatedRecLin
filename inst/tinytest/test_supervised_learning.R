@@ -170,14 +170,10 @@ expect_equal(
 
 vectors <- comparison_vectors(A = df_1, B = df_2, variables = c("name", "surname"),
                               comparators = comparators, matches = matches)
-train_data <- xgb.DMatrix(
-  data = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
-  label = vectors$Omega$match
-)
-params <- list(objective = "binary:logistic",
-               eval_metric = "logloss")
-model_xgb <- xgboost::xgboost(data = train_data, params = params,
-                              nrounds = 100, verbose = 0)
+model_xgb <- xgboost::xgboost(x = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
+                              y = factor(vectors$Omega$match),
+                              objective = "binary:logistic", eval_metric = "logloss",
+                              nrounds = 100, verbosity = 0)
 
 expect_silent(
   custom_rec_lin_model(model_xgb, vectors)
@@ -197,19 +193,19 @@ custom_xgb_model <- custom_rec_lin_model(model_xgb, vectors)
 
 expect_equal(
   predict(custom_xgb_model, df_new_1, df_new_2,
-          data_type = "matrix", type = "prob")$M_est,
+          data_type = "matrix", type = "response")$M_est,
   data.table("a" = 1:3, "b" = 1:3,
-             "ratio" = rep(37.02279418163015378695, 3))
+             "ratio" = rep(29.94770389694980394779, 3))
 )
 
 expect_equal(
   predict(custom_xgb_model, df_new_1, df_new_2,
-          data_type = "matrix", type = "prob")$flr_est,
-  0.13274158431759
+          data_type = "matrix", type = "response")$flr_est,
+  0.1591118016965802350882
 )
 
 expect_equal(
   predict(custom_xgb_model, df_new_1, df_new_2,
-          data_type = "matrix", type = "prob")$mmr_est,
-  0.13274158431759
+          data_type = "matrix", type = "response")$mmr_est,
+  0.1591118016965802350882
 )
