@@ -95,14 +95,10 @@ if (requireNamespace("xgboost", quietly = TRUE)) {
   matches <- data.frame("a" = 1:4, "b" = 1:4)
   vectors <- comparison_vectors(A = df_1, B = df_2, variables = c("name", "surname"),
                                comparators = comparators, matches = matches)
-  train_data <- xgboost::xgb.DMatrix(
-    data = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
-    label = vectors$Omega$match
-  )
-  params <- list(objective = "binary:logistic",
-                 eval_metric = "logloss")
-  model_xgb <- xgboost::xgboost(data = train_data, params = params,
-                                nrounds = 100, verbose = 0)
+  model_xgb <- xgboost::xgboost(x = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
+                       y = factor(vectors$Omega$match),
+                       objective = "binary:logistic", eval_metric = "logloss",
+                       nrounds = 100, verbosity = 0)
   custom_xgb_model <- custom_rec_lin_model(model_xgb, vectors)
   custom_xgb_model
 }

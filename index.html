@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="index.html">automatedRecLin</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -324,16 +324,12 @@
 <span><span class="co">#&gt; 4:     1     4  1.0000000     0.5444444     0</span></span>
 <span><span class="co">#&gt; 5:     1     5  0.5629630     1.0000000     0</span></span>
 <span><span class="co">#&gt; 6:     1     6  1.0000000     1.0000000     0</span></span></code></pre></div>
-<p>Construct the <code>xgb.DMatrix</code> object, specify the model parameters, and train the XGBoost model.</p>
+<p>Train the XGBoost model.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">train_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/xgboost/man/xgb.DMatrix.html" class="external-link">xgb.DMatrix</a></span><span class="op">(</span></span>
-<span>  data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">vectors</span><span class="op">$</span><span class="va">Omega</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"gamma_name"</span>, <span class="st">"gamma_surname"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>  label <span class="op">=</span> <span class="va">vectors</span><span class="op">$</span><span class="va">Omega</span><span class="op">$</span><span class="va">match</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">params</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>objective <span class="op">=</span> <span class="st">"binary:logistic"</span>,</span>
-<span>               eval_metric <span class="op">=</span> <span class="st">"logloss"</span><span class="op">)</span></span>
-<span><span class="va">model_xgb</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/xgboost/man/xgb.train.html" class="external-link">xgboost</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">train_data</span>, params <span class="op">=</span> <span class="va">params</span>,</span>
-<span>                     nrounds <span class="op">=</span> <span class="fl">100</span>, verbose <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">model_xgb</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/xgboost/man/xgboost.html" class="external-link">xgboost</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">vectors</span><span class="op">$</span><span class="va">Omega</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"gamma_name"</span>, <span class="st">"gamma_surname"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>                     y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">vectors</span><span class="op">$</span><span class="va">Omega</span><span class="op">$</span><span class="va">match</span><span class="op">)</span>,</span>
+<span>                     objective <span class="op">=</span> <span class="st">"binary:logistic"</span>, eval_metric <span class="op">=</span> <span class="st">"logloss"</span>,</span>
+<span>                     nrounds <span class="op">=</span> <span class="fl">100</span>, verbosity <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
 <p>Create the XGBoost-based record linkage model.</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">custom_xgb_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/custom_rec_lin_model.html">custom_rec_lin_model</a></span><span class="op">(</span><span class="va">model_xgb</span>, <span class="va">vectors</span><span class="op">)</span></span>
@@ -343,22 +339,22 @@
 <span><span class="co">#&gt; The prior probability of matching is 0.04.</span></span>
 <span><span class="co">#&gt; ========================================================</span></span>
 <span><span class="co">#&gt; Probability/density ratio type: 2.</span></span></code></pre></div>
-<p>Use the model for predictions. Note that the <code>xgboost</code> package requires a matrix as input for the <code>predict</code> function and that needs to be specified in the <code>data_type</code> argument. Set <code>type = "prob"</code> to ensure the XGBoost model predicts the probability of matching (this argument may vary depending on the model or library used).</p>
+<p>Use the model for predictions. Note that the <code>xgboost</code> package requires a matrix as input for the <code>predict</code> function and that needs to be specified in the <code>data_type</code> argument. Set <code>type = "response"</code> to ensure the XGBoost model predicts the probability of matching (this argument may vary depending on the model or library used).</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result_xgb</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">custom_xgb_model</span>, <span class="va">df_1_new</span>, <span class="va">df_2_new</span>,</span>
-<span>                      data_type <span class="op">=</span> <span class="st">"matrix"</span>, type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span></span>
+<span>                      data_type <span class="op">=</span> <span class="st">"matrix"</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span>
 <span><span class="va">result_xgb</span></span>
 <span><span class="co">#&gt; The algorithm predicted 3 matches.</span></span>
 <span><span class="co">#&gt; The first 3 predicted matches are:</span></span>
 <span><span class="co">#&gt;        a     b ratio / 1000</span></span>
 <span><span class="co">#&gt;    &lt;num&gt; &lt;num&gt;        &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:     1     1   0.03702279</span></span>
-<span><span class="co">#&gt; 2:     2     2   0.03702279</span></span>
-<span><span class="co">#&gt; 3:     3     3   0.03702279</span></span>
+<span><span class="co">#&gt; 1:     1     1    0.0299477</span></span>
+<span><span class="co">#&gt; 2:     2     2    0.0299477</span></span>
+<span><span class="co">#&gt; 3:     3     3    0.0299477</span></span>
 <span><span class="co">#&gt; ========================================================</span></span>
 <span><span class="co">#&gt; The construction of the classification set was based on estimates of its size.</span></span>
-<span><span class="co">#&gt; Estimated false link rate (FLR): 13.2742 %.</span></span>
-<span><span class="co">#&gt; Estimated missing match rate (MMR): 13.2742 %.</span></span></code></pre></div>
+<span><span class="co">#&gt; Estimated false link rate (FLR): 15.9112 %.</span></span>
+<span><span class="co">#&gt; Estimated missing match rate (MMR): 15.9112 %.</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="funding">Funding<a class="anchor" aria-label="anchor" href="#funding"></a>
@@ -376,6 +372,7 @@
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
+<li><a href="https://cloud.r-project.org/package=automatedRecLin" class="external-link">View on CRAN</a></li>
 <li><a href="https://github.com/ncn-foreigners/automatedRecLin/" class="external-link">Browse source code</a></li>
 <li><a href="https://github.com/ncn-foreigners/automatedRecLin/issues" class="external-link">Report a bug</a></li>
 </ul>

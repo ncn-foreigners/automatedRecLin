@@ -2,6 +2,8 @@
 
 ## Version 1.0.0
 
+CRAN release: 2025-11-18
+
 - Implemented comparison functions `abs_distance` and
   `jarowinkler_complement`.
 - Added support for comparing two datasets using comparison functions.
