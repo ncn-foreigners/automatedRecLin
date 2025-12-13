@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 1.0.1
+
+- Fixed CRAN errors.
+
 ## Version 1.0.0
 
 CRAN release: 2025-11-18
