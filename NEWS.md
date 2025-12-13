@@ -1,5 +1,9 @@
 # Development
 
+# Version 1.0.1
+
++ Fixed CRAN errors.
+
 # Version 1.0.0
 
 + Implemented comparison functions `abs_distance` and `jarowinkler_complement`.
