@@ -22,6 +22,9 @@
 - [`custom_rec_lin_model()`](https://ncn-foreigners.github.io/automatedRecLin/reference/custom_rec_lin_model.md)
   : Create a Custom Record Linkage Model
 
+- [`est_se_bootstrap()`](https://ncn-foreigners.github.io/automatedRecLin/reference/est_se_bootstrap.md)
+  : Parametric Bootstrap for Standard Error Estimation in MEC
+
 - [`jarowinkler_complement()`](https://ncn-foreigners.github.io/automatedRecLin/reference/jarowinkler_complement.md)
   : Jaro-Winkler Distance Complement
 
