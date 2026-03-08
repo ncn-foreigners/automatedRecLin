@@ -1,6 +1,6 @@
 Package: automatedRecLin
 Title: Record Linkage Based on an Entropy-Maximizing Classifier
-Version: 1.0.1
+Version: 1.0.2
 Authors@R: 
   c(person(given = "Adam",
            family = "Struzik",
