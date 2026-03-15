@@ -45,8 +45,8 @@ est_se_bootstrap <- function(mec_result,
 
   for (b in seq_len(B)) {
 
-    # g <- sample(c(rep(1, n_M_est), rep(0, n - n_M_est)))
-    g <- rbinom(n, 1, pi_hat)
+    g <- sample(c(rep(1, n_M_est), rep(0, n - n_M_est)))
+    # g <- rbinom(n, 1, pi_hat)
     Omega <- data.table(g = g)
 
     if (length(b_vars) > 0) {
