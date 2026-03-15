@@ -4,12 +4,15 @@
 \alias{est_se_bootstrap}
 \title{Parametric Bootstrap for Standard Error Estimation in MEC}
 \usage{
-est_se_bootstrap(mec_result, B = 100)
+est_se_bootstrap(mec_result, B = 100, alpha = 0.05)
 }
 \arguments{
 \item{mec_result}{An object of class \code{mec_rec_lin}.}
 
 \item{B}{A number of bootstrap iterations.}
+
+\item{alpha}{A significance level for calculating the confidence interval.
+Default is 0.05 (which yields a 95\% confidence interval).}
 }
 \description{
 \strong{WORK IN PROGRESS}

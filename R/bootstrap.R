@@ -1,7 +1,5 @@
 #' @import data.table
-#' @importFrom stats rbinom
-#' @importFrom stats rgamma
-#' @importFrom stats dbinom
+#' @import stats
 #' @importFrom utils head
 #'
 #' @title Parametric Bootstrap for Standard Error Estimation in MEC
@@ -15,10 +13,13 @@
 #'
 #' @param mec_result An object of class `mec_rec_lin`.
 #' @param B A number of bootstrap iterations.
+#' @param alpha A significance level for calculating the confidence interval.
+#' Default is 0.05 (which yields a 95% confidence interval).
 #'
 #' @export
 est_se_bootstrap <- function(mec_result,
-                             B = 100) {
+                             B = 100,
+                             alpha = 0.05) {
 
   # TODO add `mec_rec_lin` class validation
 
@@ -27,6 +28,8 @@ est_se_bootstrap <- function(mec_result,
   n <- mec_result$n
   n_M_original <- mec_result$n_M_est
   n_M_est <- round(n_M_original)
+
+  pi_hat <- n_M_original / n
 
   b_vars <- mec_result$b_vars
   cpar_vars <- mec_result$cpar_vars
@@ -42,7 +45,8 @@ est_se_bootstrap <- function(mec_result,
 
   for (b in seq_len(B)) {
 
-    g <- sample(c(rep(1, n_M_est), rep(0, n - n_M_est)))
+    # g <- sample(c(rep(1, n_M_est), rep(0, n - n_M_est)))
+    g <- rbinom(n, 1, pi_hat)
     Omega <- data.table(g = g)
 
     if (length(b_vars) > 0) {
@@ -96,7 +100,27 @@ est_se_bootstrap <- function(mec_result,
 
   se_n_M <- sqrt(1 / (B - 1) * sum((n_M_boot - n_M_original)^2))
 
-  return(se_n_M)
+  z_val <- qnorm(1 - alpha / 2)
+  ci_normal <- c(
+    lower = n_M_original - z_val * se_n_M,
+    upper = n_M_original + z_val * se_n_M
+  )
+
+  ci_percentile <- quantile(n_M_boot, probs = c(alpha / 2, 1 - alpha / 2))
+  names(ci_percentile) <- c("lower", "upper")
+
+  structure(
+    list(
+      se = se_n_M,
+      ci_normal = ci_normal,
+      ci_percentile = ci_percentile,
+      boot_dist = n_M_boot,
+      n_M_original = n_M_original,
+      B = B,
+      alpha = alpha
+    ),
+    class = "mec_bootstrap"
+  )
 
 }
 
