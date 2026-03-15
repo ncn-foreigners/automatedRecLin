@@ -7,7 +7,7 @@
 ## Usage
 
 ``` r
-est_se_bootstrap(mec_result, B = 100)
+est_se_bootstrap(mec_result, B = 100, alpha = 0.05)
 ```
 
 ## Arguments
@@ -19,6 +19,11 @@ est_se_bootstrap(mec_result, B = 100)
 - B:
 
   A number of bootstrap iterations.
+
+- alpha:
+
+  A significance level for calculating the confidence interval. Default
+  is 0.05 (which yields a 95% confidence interval).
 
 ## Author
 
