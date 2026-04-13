@@ -10,3 +10,7 @@ playground
 ^pkgdown$
 check
 misc
+^AGENTS\.md$
+^AGENTS\.html$
+^papers$
+
