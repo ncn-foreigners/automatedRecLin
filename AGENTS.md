@@ -50,7 +50,7 @@ When writing code, stick to the following rules:
 
 - If possible, use the `data.table` R package. However,
 take into account that CRAN checks sometimes show problems
-with names references, so be careful;
+with names references, so be careful.
 - Don't use the `dplyr` and `tidyr` packages.
 - Always ask for adding new dependencies.
 - Use variable names that are consistent with the current
