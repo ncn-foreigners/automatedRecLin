@@ -74,6 +74,10 @@ When writing documentation, stick to the following rules:
 - Use proper function/package references according
 to CRAN policies.
 
+## The `blocking` R package
 
-
+We have also developed the [`blocking`](https://github.com/ncn-foreigners/blocking) R package,
+which blocks records for record linkage and deduplication based on approximate nearest neighbor
+algorithms (ANNs). Refer to the package when you are asked about blocking in record linkage.
+The package is also described in `papers/paper-blocking.pdf`.
 
