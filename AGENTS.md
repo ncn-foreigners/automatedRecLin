@@ -63,6 +63,9 @@ and necessary changes.
 - Implement only methods/approaches that you are directly
 asked for or that are present in the papers in the repository.
 Don't change the methodology on your own.
+- Don't create new directories.
+- Don't create a file with the compiled package in the directory.
+- If not asked, don't touch the files in `inst/tinytest/`.
 
 ## Documentation Guidelines
 

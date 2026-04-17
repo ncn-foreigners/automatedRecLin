@@ -70,7 +70,7 @@ if (requireNamespace("xgboost", quietly = TRUE)) {
   model_xgb <- xgboost::xgboost(x = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
                        y = factor(vectors$Omega$match),
                        objective = "binary:logistic", eval_metric = "logloss",
-                       nrounds = 100, verbosity = 0)
+                       nrounds = 100, verbosity = 0, nthread = 1)
   custom_xgb_model <- custom_rec_lin_model(model_xgb, vectors)
   custom_xgb_model
 }

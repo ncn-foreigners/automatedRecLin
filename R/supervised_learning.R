@@ -152,60 +152,38 @@ train_rec_lin <- function(
 
   data.table::setDT(A)
   data.table::setDT(B)
+  validate_match_pairs(matches, nrow(A), nrow(B))
 
   stopifnot("There are no records with perfect agreement on the key variables. Please provide relevant datasets." =
-              NROW(merge(A, B, by = variables)) > 0)
-
-  if (!is.null(methods)) {
-    stopifnot("`methods` should be a list." =
-                is.list(methods))
-  } else {
-    methods <- list()
-  }
-
-  missing_variables <- variables[!(variables %in% names(methods))]
-  methods[missing_variables] <- "binary"
-  methods <- methods[variables]
-
-  unique_values <- lapply(variables, function(col) {
-    length(unique(c(A[[col]], B[[col]])))
-  })
-  names(unique_values) <- variables
-
-  for (var in variables) {
-    if (unique_values[[var]] == 1) {
-      data.table::set(A, j = substitute(var), value = NULL)
-      data.table::set(B, j = substitute(var), value = NULL)
-      variables <- variables[variables != var]
-      comparators[[var]] <- NULL
-      methods[[var]] <- NULL
-      warning(paste("The variable", var, "has only one unique value and has been removed."))
-    }
-  }
+              has_perfect_agreement(A, B, variables))
 
   if (is.null(prob_ratio)) {
     prob_ratio <- "1"
   }
+  validate_choice(prob_ratio, c("1", "2"), "prob_ratio")
 
-    data.table::setDT(matches)
+  methods <- validate_methods(
+    methods = methods,
+    variables = variables,
+    allowed_methods = c("binary", "continuous_parametric", "continuous_nonparametric")
+  )
+  preprocessing <- drop_constant_key_variables(
+    A = A,
+    B = B,
+    variables = variables,
+    comparators = comparators,
+    methods = methods
+  )
+  A <- preprocessing$A
+  B <- preprocessing$B
+  variables <- preprocessing$variables
+  comparators <- preprocessing$comparators
+  methods <- preprocessing$methods
+  constant_vars <- preprocessing$constant_vars
 
-    if (prob_ratio == "2") {
-      A_temp <- data.table::copy(A)
-      B_temp <- data.table::copy(B)
-      data.table::set(A_temp, j = "a", value = seq_len(nrow(A)))
-      data.table::set(B_temp, j = "b", value = seq_len(nrow(B)))
-      indexes <- data.table::CJ(a = A_temp[["a"]], b = B_temp[["b"]])
-      data.table::setkey(indexes, NULL)
-      indexes_U <- data.table::fsetdiff(indexes, matches)
-      for (var in variables) {
-        common_values <- sum((A_temp[[var]])[indexes_U$a] == (B_temp[[var]])[indexes_U$b])
-        if (common_values == 0) {
-          prob_ratio <- "1"
-          warning("Some variables lack common values between the unmatches. Switching the probability ratio to \"1\".")
-          break
-        }
-      }
-    }
+  for (var in constant_vars) {
+    warning(paste("The variable", var, "has only one unique value and has been removed."))
+  }
 
   vectors <- comparison_vectors(A = A,
                                 B = B,
@@ -215,33 +193,59 @@ train_rec_lin <- function(
   Omega <- vectors$Omega
   comparators <- vectors$comparators
 
-  M <- Omega[match == 1, ]
-  U <- Omega[match == 0, ]
-
   n <- NROW(Omega)
-  n_M <- NROW(M)
+  M_idx <- which(Omega[["match"]] == 1)
+  U_idx <- which(Omega[["match"]] == 0)
+  n_M <- length(M_idx)
   pi_est <- n_M / n
 
-  b_vars <- NULL
-  cpar_vars <- NULL
-  cnonpar_vars <- NULL
+  if (prob_ratio == "2") {
+    # Reuse the computed comparison vectors instead of building another full Cartesian product.
+    common_values <- vapply(variables, function(var) {
+      gamma_name <- paste0("gamma_", var)
+
+      if (methods[[var]] == "binary") {
+        any(Omega[[gamma_name]][U_idx] == 1)
+      } else {
+        any(Omega[[gamma_name]][U_idx] == 0)
+      }
+    }, logical(1))
+
+    if (any(!common_values)) {
+      prob_ratio <- "1"
+      warning("Some variables lack common values between the unmatches. Switching the probability ratio to \"1\".")
+    }
+  }
+
+  method_variables <- extract_method_variables(methods)
+  b_vars <- method_variables$b_vars
+  cpar_vars <- method_variables$cpar_vars
+  cnonpar_vars <- method_variables$cnonpar_vars
 
   b_params <- NULL
   cpar_params <- NULL
   cnonpar_params <- NULL
   ratio_kliep <- NULL
   ratio_kliep_list <- NULL
+  kliep_warning_emitted <- FALSE
+
+  warn_kliep_once <- function(variables, message) {
+    if (!kliep_warning_emitted) {
+      warn_kliep_issue("train_rec_lin()", variables, message)
+      kliep_warning_emitted <<- TRUE
+    }
+  }
 
   if (any(methods == "binary")) {
 
     b_vars <- paste0("gamma_", names(which(methods == "binary")))
-    M_b <- M[, b_vars, with = FALSE]
+    Omega_b <- Omega[, b_vars, with = FALSE]
+    M_b <- Omega_b[M_idx]
     theta_b <- binary_formula(M_b)
     if (prob_ratio == "1") {
-      Omega_b <- Omega[, b_vars, with = FALSE]
       eta_b <- binary_formula(Omega_b)
     } else if (prob_ratio == "2") {
-      U_b <- U[, b_vars, with = FALSE]
+      U_b <- Omega_b[U_idx]
       eta_b <- binary_formula(U_b)
     }
 
@@ -257,13 +261,13 @@ train_rec_lin <- function(
 
     cpar_vars <- paste0("gamma_", names(which(methods == "continuous_parametric")))
     modified_nleqslv <- purrr::partial(nleqslv::nleqslv, control = controls_nleqslv)
-    M_cpar <- M[, cpar_vars, with = FALSE]
+    Omega_cpar <- Omega[, cpar_vars, with = FALSE]
+    M_cpar <- Omega_cpar[M_idx]
     p_0_M <- p_0_formula(M_cpar)
     gamma_plus_M <- gamma_plus_formula(M_cpar)
     alpha_M <- alpha_formula(M_cpar, modified_nleqslv)
     beta_M <- alpha_M / gamma_plus_M
     if (prob_ratio == "1") {
-      Omega_cpar <- Omega[, cpar_vars, with = FALSE]
       p_0_Omega <- p_0_formula(Omega_cpar)
       gamma_plus_Omega <- gamma_plus_formula(Omega_cpar)
       alpha_Omega <- alpha_formula(Omega_cpar, modified_nleqslv)
@@ -279,7 +283,7 @@ train_rec_lin <- function(
         beta_Omega = beta_Omega
       )
     } else if (prob_ratio == "2") {
-      U_cpar <- U[, cpar_vars, with = FALSE]
+      U_cpar <- Omega_cpar[U_idx]
       p_0_U <- p_0_formula(U_cpar)
       gamma_plus_U <- gamma_plus_formula(U_cpar)
       alpha_U <- alpha_formula(U_cpar, modified_nleqslv)
@@ -301,36 +305,26 @@ train_rec_lin <- function(
   if (any(methods == "continuous_nonparametric")) {
 
     cnonpar_vars <- paste0("gamma_", names(which(methods == "continuous_nonparametric")))
-    M_cnonpar <- M[, cnonpar_vars, with = FALSE]
+    Omega_cnonpar <- Omega[, cnonpar_vars, with = FALSE]
+    M_cnonpar <- Omega_cnonpar[M_idx]
     if (prob_ratio == "1") {
-      Omega_cnonpar <- Omega[, cnonpar_vars, with = FALSE]
 
       if (nonpar_hurdle) {
 
         p_0_M_cnonpar <- p_0_formula(M_cnonpar)
         p_0_U_cnonpar <- p_0_formula(Omega_cnonpar)
 
-        ratio_kliep_list <- lapply(cnonpar_vars, function(x) {
-          gamma_M <- M_cnonpar[[x]]
-          gamma_M <- data.table::data.table(gamma_M[gamma_M > 0])
-          names(gamma_M) <- x
-          gamma_Omega <- Omega_cnonpar[[x]]
-          gamma_Omega <- data.table::data.table(gamma_Omega[gamma_Omega > 0])
-          names(gamma_Omega) <- x
-          if (length(gamma_M) > 0) {
-            ratio_plus <- do.call(
-              densityratio::kliep,
-              c(list(
-                df_numerator = gamma_M,
-                df_denominator = gamma_Omega
-              ),
-              controls_kliep)
-            )
-          } else {
-            NULL
-          }
-        })
-        names(ratio_kliep_list) <- cnonpar_vars
+        ratio_kliep_list <- fit_kliep_hurdle_models(
+          df_numerator = M_cnonpar,
+          df_denominator = Omega_cnonpar,
+          variables = cnonpar_vars,
+          controls_kliep = controls_kliep
+        )
+        missing_models <- missing_kliep_models(ratio_kliep_list)
+
+        if (length(missing_models) > 0L) {
+          warn_kliep_once(missing_models, "insufficient positive comparisons; using only the hurdle mass term for those variables.")
+        }
 
         cnonpar_params <- data.table(
           variable = cnonpar_vars,
@@ -352,34 +346,24 @@ train_rec_lin <- function(
       }
 
     } else if (prob_ratio == "2") {
-      U_cnonpar <- U[, cnonpar_vars, with = FALSE]
+      U_cnonpar <- Omega_cnonpar[U_idx]
 
       if (nonpar_hurdle) {
 
         p_0_M_cnonpar <- p_0_formula(M_cnonpar)
         p_0_U_cnonpar <- p_0_formula(U_cnonpar)
 
-        ratio_kliep_list <- lapply(cnonpar_vars, function(x) {
-          gamma_M <- M_cnonpar[[x]]
-          gamma_M <- data.table::data.table(gamma_M[gamma_M > 0])
-          names(gamma_M) <- x
-          gamma_U <- U_cnonpar[[x]]
-          gamma_U <- data.table::data.table(gamma_U[gamma_U > 0])
-          names(gamma_U) <- x
-          if (length(gamma_M) > 0) {
-            ratio_plus <- do.call(
-              densityratio::kliep,
-              c(list(
-                df_numerator = gamma_M,
-                df_denominator = gamma_U
-              ),
-              controls_kliep)
-            )
-          } else {
-            NULL
-          }
-        })
-        names(ratio_kliep_list) <- cnonpar_vars
+        ratio_kliep_list <- fit_kliep_hurdle_models(
+          df_numerator = M_cnonpar,
+          df_denominator = U_cnonpar,
+          variables = cnonpar_vars,
+          controls_kliep = controls_kliep
+        )
+        missing_models <- missing_kliep_models(ratio_kliep_list)
+
+        if (length(missing_models) > 0L) {
+          warn_kliep_once(missing_models, "insufficient positive comparisons; using only the hurdle mass term for those variables.")
+        }
 
         cnonpar_params <- data.table(
           variable = cnonpar_vars,
@@ -406,9 +390,9 @@ train_rec_lin <- function(
 
   structure(
     list(
-      b_vars = if (is.null(b_vars)) NULL else b_vars,
-      cpar_vars = if (is.null(cpar_vars)) NULL else cpar_vars,
-      cnonpar_vars = if (is.null(cnonpar_vars)) NULL else cnonpar_vars,
+      b_vars = if (length(b_vars) == 0) NULL else b_vars,
+      cpar_vars = if (length(cpar_vars) == 0) NULL else cpar_vars,
+      cnonpar_vars = if (length(cnonpar_vars) == 0) NULL else cnonpar_vars,
       b_params = if (is.null(b_params)) NULL else b_params,
       cpar_params = if (is.null(cpar_params)) NULL else cpar_params,
       cnonpar_params = if (is.null(cnonpar_params)) NULL else cnonpar_params,
@@ -495,7 +479,7 @@ train_rec_lin <- function(
 #'   model_xgb <- xgboost::xgboost(x = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
 #'                        y = factor(vectors$Omega$match),
 #'                        objective = "binary:logistic", eval_metric = "logloss",
-#'                        nrounds = 100, verbosity = 0)
+#'                        nrounds = 100, verbosity = 0, nthread = 1)
 #'   custom_xgb_model <- custom_rec_lin_model(model_xgb, vectors)
 #'   custom_xgb_model
 #' }
@@ -506,16 +490,11 @@ custom_rec_lin_model <- function(ml_model, vectors) {
             is(vectors, "comparison_vectors"))
 
   Omega <- vectors$Omega
-
-  M <- Omega[match == 1, ]
-  U <- Omega[match == 0, ]
-
   n <- NROW(Omega)
-  n_M <- NROW(M)
+  n_M <- sum(Omega[["match"]] == 1)
   pi_est <- n_M / n
 
   variables <- vectors$variables
-  K <- length(variables)
 
   structure(
     list(
@@ -539,4 +518,3 @@ custom_rec_lin_model <- function(ml_model, vectors) {
   )
 
 }
-

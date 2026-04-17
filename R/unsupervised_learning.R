@@ -226,55 +226,56 @@ mec <- function(A,
                 controls_kliep = control_kliep(),
                 true_matches = NULL) {
 
-  if (!is.null(methods)) {
-    stopifnot("`methods` should be a list." =
-                is.list(methods))
-  }
-
   if (!is.null(start_params)) {
     stopifnot("`start_params` should be a list." =
                 is.list(start_params))
   }
 
-  if (!is.null(true_matches)) {
-
-    if (!(is.data.frame(true_matches) || is.data.table(true_matches))) {
-      warning("`true_matches` should be a data.frame or a data.table. Setting `true_matches` to `NULL`.")
-      true_matches <- NULL
-    } else if (!(length(colnames(true_matches)) == 2 && all(colnames(true_matches) == c("a", "b")))) {
-      warning("`true_matches` should consist of two columns: a, b. Setting `true_matches` to `NULL`.")
-    }
-
-  }
-
   if (is.null(set_construction)) {
     set_construction <- "size"
   }
+  validate_choice(set_construction, c("size", "flr", "mmr"), "set_construction")
+  methods <- validate_methods(
+    methods = methods,
+    variables = variables,
+    allowed_methods = c("binary", "continuous_parametric", "continuous_nonparametric", "hit_miss")
+  )
 
   data.table::setDT(A)
   data.table::setDT(B)
-  data.table::set(A, j = "a", value = seq_len(nrow(A)))
-  data.table::set(B, j = "b", value = seq_len(nrow(B)))
-  M <- merge(A, B, by = variables)
-
+  true_matches <- sanitize_true_matches(
+    true_matches = true_matches,
+    n_A = nrow(A),
+    n_B = nrow(B),
+    arg_name = "true_matches"
+  )
   stopifnot("There are no records with perfect agreement on the key variables.
             Please provide relevant datasets." =
-              NROW(M) > 0)
+              has_perfect_agreement(A, B, variables))
+  data.table::set(A, j = "a", value = seq_len(nrow(A)))
+  data.table::set(B, j = "b", value = seq_len(nrow(B)))
+  M <- merge(
+    A[, c("a", variables), with = FALSE],
+    B[, c("b", variables), with = FALSE],
+    by = variables
+  )
 
-  unique_values <- lapply(variables, function(col) {
-    length(unique(c(A[[col]], B[[col]])))
-  })
-  names(unique_values) <- variables
+  preprocessing <- drop_constant_key_variables(
+    A = A,
+    B = B,
+    variables = variables,
+    comparators = comparators,
+    methods = methods
+  )
+  A <- preprocessing$A
+  B <- preprocessing$B
+  variables <- preprocessing$variables
+  comparators <- preprocessing$comparators
+  methods <- preprocessing$methods
+  constant_vars <- preprocessing$constant_vars
 
-  for (var in variables) {
-    if (unique_values[[var]] == 1) {
-      data.table::set(A, j = substitute(var), value = NULL)
-      data.table::set(B, j = substitute(var), value = NULL)
-      variables <- variables[variables != var]
-      comparators[[var]] <- NULL
-      methods[[var]] <- NULL
-      warning(paste("The variable", var, "has only one unique value and has been removed."))
-    }
+  for (var in constant_vars) {
+    warning(paste("The variable", var, "has only one unique value and has been removed."))
   }
 
   vectors <- comparison_vectors(A = A,
@@ -283,40 +284,35 @@ mec <- function(A,
                                 comparators = comparators)
   Omega <- vectors$Omega
   comparators <- vectors$comparators
-
-  missing_variables <- variables[!(variables %in% names(methods))]
-  methods[missing_variables] <- "binary"
-  methods <- methods[variables]
-
-  b_vars <- NULL
-  cpar_vars <- NULL
-  cnonpar_vars <- NULL
-  hm_vars <- NULL
-
-  if (any(methods == "binary")) {
-    b_vars <- paste0("gamma_", names(which(methods == "binary")))
-  }
-
-  if (any(methods == "continuous_parametric")) {
-    cpar_vars <- paste0("gamma_", names(which(methods == "continuous_parametric")))
-  }
-
-  if (any(methods == "continuous_nonparametric")) {
-    cnonpar_vars <- paste0("gamma_", names(which(methods == "continuous_nonparametric")))
-  }
-
-  if (any(methods == "hit_miss")) {
-    hm_vars <- paste0("gamma_", names(which(methods == "hit_miss")))
-  }
+  method_variables <- extract_method_variables(methods, include_hit_miss = TRUE)
+  b_vars <- method_variables$b_vars
+  cpar_vars <- method_variables$cpar_vars
+  cnonpar_vars <- method_variables$cnonpar_vars
+  hm_vars <- method_variables$hm_vars
 
   ratio_kliep <- NULL
-  B_values <- NULL
+  kliep_warning_emitted <- FALSE
 
-  M <- merge(M, Omega, by = c("a", "b"), all = FALSE)
-  M <- M[, colnames(Omega), with = FALSE]
-  U <- data.table::fsetdiff(Omega, M)
+  warn_kliep_once <- function(variables, message) {
+    if (!kliep_warning_emitted) {
+      warn_kliep_issue("mec()", variables, message)
+      kliep_warning_emitted <<- TRUE
+    }
+  }
+
+  exact_match_idx <- data.table(
+    omega_idx = seq_len(NROW(Omega)),
+    a = Omega[["a"]],
+    b = Omega[["b"]]
+  )[M[, c("a", "b"), with = FALSE], on = c("a", "b"), nomatch = 0L][["omega_idx"]]
   n <- NROW(Omega)
-  n_M <- NROW(M)
+  exact_match_mask <- rep(FALSE, n)
+  exact_match_mask[exact_match_idx] <- TRUE
+  M_idx <- exact_match_idx
+  M <- Omega[M_idx]
+  n_M <- length(M_idx)
+  all_idx <- seq_len(n)
+  selection_mask <- rep(FALSE, n)
   data.table::set(Omega, j = "ratio", value = 1)
 
   if (is.null(start_params)) {
@@ -352,39 +348,26 @@ mec <- function(A,
 
   if (length(b_vars) > 0) {
 
-    b_params <- start_params$binary
+    b_params <- align_parameter_table(start_params$binary, b_vars)
     Omega_b <- Omega[, b_vars, with = FALSE]
-    M_b <- M[, b_vars, with = FALSE]
-    U_b <- U[, b_vars, with = FALSE]
 
     eta_b <- binary_formula(Omega_b)
     b_params$eta <- eta_b
 
-    b_numerator_list <- lapply(b_vars,
-                                    function(col) {
-                                      stats::dbinom(x = Omega_b[[col]],
-                                                    size = 1,
-                                                    prob = as.numeric(b_params[b_params[["variable"]] == col, "theta"]))
-                                    })
-    b_numerator <- Reduce(`*`, b_numerator_list)
-    b_denominator_list <- lapply(b_vars,
-                                      function(col) {
-                                        stats::dbinom(x = Omega_b[[col]],
-                                                      size = 1,
-                                                      prob = as.numeric(b_params[b_params[["variable"]] == col, "eta"]))
-                                      })
-    b_denominator <- Reduce(`*`, b_denominator_list)
-    data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * b_numerator / b_denominator)
+    b_denominator <- bernoulli_product(Omega_b, b_params$eta)
+    data.table::set(
+      Omega,
+      j = "ratio",
+      value = Omega[["ratio"]] * bernoulli_ratio(Omega_b, b_params$theta, b_params$eta)
+    )
     data.table::set(Omega, j = "b_denominator", value = b_denominator)
 
   }
 
   if (length(cpar_vars) > 0) {
 
-    cpar_params <- start_params$continuous_parametric
+    cpar_params <- align_parameter_table(start_params$continuous_parametric, cpar_vars)
     Omega_cpar <- Omega[, cpar_vars, with = FALSE]
-    M_cpar <- M[, cpar_vars, with = FALSE]
-    U_cpar <- U[, cpar_vars, with = FALSE]
 
     p_0_U <- p_0_formula(Omega_cpar)
     gamma_plus_U <- gamma_plus_formula(Omega_cpar)
@@ -395,23 +378,25 @@ mec <- function(A,
     cpar_params$alpha_U <- alpha_U
     cpar_params$beta_U <- beta_U
 
-    cpar_numerator_list <- lapply(cpar_vars,
-                                                   function(col) {
-                                                     hurdle_gamma_density(x = Omega_cpar[[col]],
-                                                                          p_0 = as.numeric(cpar_params[cpar_params[["variable"]] == col, "p_0_M"]),
-                                                                          alpha = as.numeric(cpar_params[cpar_params[["variable"]] == col, "alpha_M"]),
-                                                                          beta = as.numeric(cpar_params[cpar_params[["variable"]] == col, "beta_M"]))
-                                                   })
-    cpar_numerator <- Reduce(`*`, cpar_numerator_list)
-    cpar_denominator_list <- lapply(cpar_vars,
-                                                     function(col) {
-                                                       hurdle_gamma_density(x = Omega_cpar[[col]],
-                                                                            p_0 = as.numeric(cpar_params[cpar_params[["variable"]] == col, "p_0_U"]),
-                                                                            alpha = as.numeric(cpar_params[cpar_params[["variable"]] == col, "alpha_U"]),
-                                                                            beta = as.numeric(cpar_params[cpar_params[["variable"]] == col, "beta_U"]))
-                                                     })
-    cpar_denominator <- Reduce(`*`, cpar_denominator_list)
-    data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * cpar_numerator / cpar_denominator)
+    cpar_denominator <- hurdle_gamma_product(
+      Omega_cpar,
+      cpar_params$p_0_U,
+      cpar_params$alpha_U,
+      cpar_params$beta_U
+    )
+    data.table::set(
+      Omega,
+      j = "ratio",
+      value = Omega[["ratio"]] * hurdle_gamma_ratio(
+        Omega_cpar,
+        cpar_params$p_0_M,
+        cpar_params$alpha_M,
+        cpar_params$beta_M,
+        cpar_params$p_0_U,
+        cpar_params$alpha_U,
+        cpar_params$beta_U
+      )
+    )
     data.table::set(Omega, j = "cpar_denominator", value = cpar_denominator)
 
   }
@@ -419,11 +404,7 @@ mec <- function(A,
   if (length(cnonpar_vars) > 0) {
 
     Omega_cnonpar <- Omega[, cnonpar_vars, with = FALSE]
-    M_cnonpar <- M[, cnonpar_vars, with = FALSE]
-    U_cnonpar <- U[, cnonpar_vars, with = FALSE]
-
-    Omega_indexes <- paste0(Omega[["a"]], "_", Omega[["b"]])
-    M_indexes <- paste0(M[["a"]], "_", M[["b"]])
+    n_exact_matches <- sum(exact_match_mask)
 
     if (nonpar_hurdle) {
 
@@ -433,10 +414,8 @@ mec <- function(A,
 
       ratio_temp <- lapply(cnonpar_vars, function(x) {
         r <- numeric(n)
-        r[which(Omega_indexes %in% M_indexes)] <- stats::runif(length(which(Omega_indexes %in% M_indexes)),
-                                                               min = 5, max = 10)
-        r[setdiff(1:n, which(Omega_indexes %in% M_indexes))] <- stats::runif(n - length(which(Omega_indexes %in% M_indexes)),
-                                                                             min = 0.1, max = 1)
+        r[exact_match_mask] <- stats::runif(n_exact_matches, min = 5, max = 10)
+        r[!exact_match_mask] <- stats::runif(n - n_exact_matches, min = 0.1, max = 1)
         r
       })
       names(ratio_temp) <- cnonpar_vars
@@ -451,10 +430,10 @@ mec <- function(A,
     } else {
 
       ratio_temp <- as.numeric(Omega$ratio)
-      ratio_temp[which(Omega_indexes %in% M_indexes)] <- (Omega$ratio)[which(Omega_indexes %in% M_indexes)] * stats::runif(length(which(Omega_indexes %in% M_indexes)),
-                                                                                                                           min = 5, max = 10)
-      ratio_temp[setdiff(1:n, which(Omega_indexes %in% M_indexes))] <- (Omega$ratio)[setdiff(1:n, which(Omega_indexes %in% M_indexes))] * stats::runif(n - length(which(Omega_indexes %in% M_indexes)),
-                                                                                                                                                       min = 0.1, max = 5)
+      ratio_temp[exact_match_mask] <- ratio_temp[exact_match_mask] * stats::runif(n_exact_matches,
+                                                                                  min = 5, max = 10)
+      ratio_temp[!exact_match_mask] <- ratio_temp[!exact_match_mask] * stats::runif(n - n_exact_matches,
+                                                                                    min = 0.1, max = 5)
       data.table::set(Omega, j = "ratio", value = ratio_temp)
 
     }
@@ -463,29 +442,18 @@ mec <- function(A,
 
   if (length(hm_vars) > 0) {
 
-    hm_params <- start_params$hit_miss
+    hm_params <- align_parameter_table(start_params$hit_miss, hm_vars)
     Omega_hm <- Omega[, hm_vars, with = FALSE]
-    M_hm <- M[, hm_vars, with = FALSE]
-    U_hm <- U[, hm_vars, with = FALSE]
 
     eta_hm <- binary_formula(Omega_hm)
     hm_params$eta <- eta_hm
 
-    hm_numerator_list <- lapply(hm_vars,
-                               function(col) {
-                                 stats::dbinom(x = Omega_hm[[col]],
-                                               size = 1,
-                                               prob = as.numeric(hm_params[hm_params[["variable"]] == col, "theta"]))
-                               })
-    hm_numerator <- Reduce(`*`, hm_numerator_list)
-    hm_denominator_list <- lapply(hm_vars,
-                                 function(col) {
-                                   stats::dbinom(x = Omega_hm[[col]],
-                                                 size = 1,
-                                                 prob = as.numeric(hm_params[hm_params[["variable"]] == col, "eta"]))
-                                 })
-    hm_denominator <- Reduce(`*`, hm_denominator_list)
-    data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * hm_numerator / hm_denominator)
+    hm_denominator <- bernoulli_product(Omega_hm, hm_params$eta)
+    data.table::set(
+      Omega,
+      j = "ratio",
+      value = Omega[["ratio"]] * bernoulli_ratio(Omega_hm, hm_params$theta, hm_params$eta)
+    )
     data.table::set(Omega, j = "hm_denominator", value = hm_denominator)
 
     values_list_m <- lapply(hm_vars, function(x) {
@@ -504,7 +472,7 @@ mec <- function(A,
 
   repeat {
 
-    g_est <- pmin(NROW(M) * Omega$ratio / (NROW(M) * (Omega$ratio - 1) + n), 1)
+    g_est <- pmin(length(M_idx) * Omega$ratio / (length(M_idx) * (Omega$ratio - 1) + n), 1)
     n_M_old <- n_M
     n_M <- sum(g_est)
 
@@ -513,59 +481,22 @@ mec <- function(A,
     }
 
     data.table::set(Omega, j = "g_est", value = g_est)
-    Omega <- Omega[order(-get("ratio")), ]
+    M_idx <- select_mec_indices(
+      a = Omega[["a"]],
+      b = Omega[["b"]],
+      ratio = Omega[["ratio"]],
+      n_M = n_M,
+      duplicates_in_A = duplicates_in_A
+    )
+    M <- Omega[M_idx]
 
-    M <- data.table("a" = numeric(), "b" = numeric())
-    for (var in colnames(Omega)) {
-      M[[var]] <- numeric()
-    }
-    M[["ratio"]] <- numeric()
-
-    if (!duplicates_in_A) {
-
-      used_a <- c()
-      used_b <- c()
-
-      for (i in 1:NROW(Omega)) {
-
-        current_a <- Omega$a[i]
-        current_b <- Omega$b[i]
-        if (!(current_a %in% used_a) && !(current_b %in% used_b)) {
-          M <- rbind(M, Omega[i, ])
-          used_a <- c(used_a, current_a)
-          used_b <- c(used_b, current_b)
-        }
-        if (NROW(M) >= n_M) {
-          break
-        }
-
-      }
-
-    } else {
-
-      used_a <- c()
-
-      for (i in 1:NROW(Omega)) {
-
-        current_a <- Omega$a[i]
-        if (!(current_a %in% used_a)) {
-          M <- rbind(M, Omega[i, ])
-          used_a <- c(used_a, current_a)
-        }
-        if (NROW(M) >= n_M) {
-          break
-        }
-
-      }
-
-    }
-
-    M <- head(M, round(n_M))
-    U <- data.table::fsetdiff(Omega, M)
-
-    if (NROW(M) == 0) {
+    if (length(M_idx) == 0L) {
       break
     }
+
+    selection_mask[M_idx] <- TRUE
+    U_idx <- all_idx[!selection_mask]
+    selection_mask[M_idx] <- FALSE
 
     if (iter >= 2) {
 
@@ -604,28 +535,17 @@ mec <- function(A,
 
     if (length(b_vars) > 0) {
 
-      Omega_b <- Omega[, b_vars, with = FALSE]
-      M_b <- M[, b_vars, with = FALSE]
-      U_b <- U[, b_vars, with = FALSE]
-
+      M_b <- Omega_b[M_idx]
       theta_b_old <- b_params$theta
       theta_b <- binary_formula(M_b)
       b_params$theta <- theta_b
 
-      b_numerator_list <- lapply(b_vars,
-                                      function(col) {
-                                        stats::dbinom(x = Omega_b[[col]],
-                                                      size = 1,
-                                                      prob = as.numeric(b_params[b_params[["variable"]] == col, "theta"]))
-                                      })
-      b_numerator <- Reduce(`*`, b_numerator_list)
+      b_numerator <- bernoulli_product(Omega_b, b_params$theta)
       data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * b_numerator / Omega[["b_denominator"]])
     }
 
     if (length(cpar_vars) > 0) {
-      Omega_cpar <- Omega[, cpar_vars, with = FALSE]
-      M_cpar <- M[, cpar_vars, with = FALSE]
-      U_cpar <- U[, cpar_vars, with = FALSE]
+      M_cpar <- Omega_cpar[M_idx]
       p_0_M_old <- cpar_params$p_0_M
       alpha_M_old <- cpar_params$alpha_M
       beta_M_old <- cpar_params$beta_M
@@ -637,63 +557,56 @@ mec <- function(A,
       cpar_params$p_0_M <- p_0_M
       cpar_params$alpha_M <- alpha_M
       cpar_params$beta_M <- beta_M
-      cpar_numerator_list <- lapply(cpar_vars,
-                                                     function(col) {
-                                                       hurdle_gamma_density(x = Omega_cpar[[col]],
-                                                                            p_0 = as.numeric(cpar_params[cpar_params[["variable"]] == col, "p_0_M"]),
-                                                                            alpha = as.numeric(cpar_params[cpar_params[["variable"]] == col, "alpha_M"]),
-                                                                            beta = as.numeric(cpar_params[cpar_params[["variable"]] == col, "beta_M"]))
-                                                     })
-
-      cpar_numerator <- Reduce(`*`, cpar_numerator_list)
+      cpar_numerator <- hurdle_gamma_product(
+        Omega_cpar,
+        cpar_params$p_0_M,
+        cpar_params$alpha_M,
+        cpar_params$beta_M
+      )
       data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * cpar_numerator / Omega[["cpar_denominator"]])
 
     }
 
     if (length(cnonpar_vars) > 0) {
 
-      Omega_cnonpar <- Omega[, cnonpar_vars, with = FALSE]
-      M_cnonpar <- M[, cnonpar_vars, with = FALSE]
-      U_cnonpar <- U[, cnonpar_vars, with = FALSE]
+      M_cnonpar <- Omega_cnonpar[M_idx]
+      U_cnonpar <- Omega_cnonpar[U_idx]
 
       if (nonpar_hurdle) {
 
+        # When the current split is too sparse for KLIEP, keep the last ratio update.
         p_0_M_cnonpar <- p_0_formula(M_cnonpar)
+        ratio_kliep_old <- ratio_kliep
 
         tryCatch({
-        ratio_kliep_list <- lapply(cnonpar_vars, function (x) {
-          gamma_M <- M_cnonpar[[x]]
-          gamma_M <- data.table::data.table(gamma_M[gamma_M > 0])
-          names(gamma_M) <- x
-          gamma_U <- U_cnonpar[[x]]
-          gamma_U <- data.table::data.table(gamma_U[gamma_U > 0])
-          names(gamma_U) <- x
-          if (length(gamma_M) > 0) {
-            ratio_plus <- do.call(
-              densityratio::kliep,
-              c(list(
-                df_numerator = gamma_M,
-                df_denominator = gamma_U
-              ),
-              controls_kliep)
-            )
-            gamma_vec <- Omega_cnonpar[[x]]
-            gamma_df <- Omega_cnonpar[, x, with = FALSE]
-            kliep_pred <- as.vector(stats::predict(ratio_plus, gamma_df))
-            ifelse(gamma_vec == 0, p_0_M_cnonpar[x] / p_0_U_cnonpar[x], 1) *
-              ifelse(gamma_vec > 0, (1 - p_0_M_cnonpar[x]) * (1 - p_0_U_cnonpar[x]) * kliep_pred, 1)
-          } else {
-            gamma_vec <- Omega_cnonpar[[x]]
-            ifelse(gamma_vec == 0, p_0_M_cnonpar[x] / p_0_U_cnonpar[x], 1)
-          }
+          ratio_kliep_models <- fit_kliep_hurdle_models(
+            df_numerator = M_cnonpar,
+            df_denominator = U_cnonpar,
+            variables = cnonpar_vars,
+            controls_kliep = controls_kliep
+          )
+          missing_models <- missing_kliep_models(ratio_kliep_models)
 
-        })
-        ratio_kliep <- Reduce(`*`, ratio_kliep_list)
-        data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * ratio_kliep)
+          if (length(missing_models) < length(cnonpar_vars)) {
+            if (length(missing_models) > 0L) {
+              warn_kliep_once(missing_models, "using only the hurdle mass term for those variables in the current iteration.")
+            }
+
+            ratio_kliep <- kliep_hurdle_ratio(
+              df = Omega_cnonpar,
+              variables = cnonpar_vars,
+              p_0_numerator = p_0_M_cnonpar,
+              p_0_denominator = p_0_U_cnonpar,
+              ratio_kliep_list = ratio_kliep_models
+            )
+          } else {
+            ratio_kliep <- ratio_kliep_old
+            warn_kliep_once(cnonpar_vars, "could not be fitted in the current iteration; using the previous ratio estimate.")
+          }
+          data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * ratio_kliep)
         },
           error = function(e) {
-            cat("kliep function error:", e$message, "\n")
-            cat("========================================================\n")
+            warn_kliep_once(cnonpar_vars, paste("failed with error:", e$message))
           })
 
       } else {
@@ -715,10 +628,7 @@ mec <- function(A,
 
     if (length(hm_vars) > 0) {
 
-      Omega_hm <- Omega[, hm_vars, with = FALSE]
-      M_hm <- M[, hm_vars, with = FALSE]
-      U_hm <- U[, hm_vars, with = FALSE]
-
+      M_hm <- Omega_hm[M_idx]
       theta_hm_old <- hm_params$theta
       theta_hm <- binary_formula(M_hm)
       hm_params$theta <- theta_hm
@@ -803,13 +713,7 @@ mec <- function(A,
 
       }
 
-      hm_numerator_list <- lapply(hm_vars,
-                                 function(col) {
-                                   stats::dbinom(x = Omega_hm[[col]],
-                                                 size = 1,
-                                                 prob = as.numeric(hm_params[hm_params[["variable"]] == col, "theta"]))
-                                 })
-      hm_numerator <- Reduce(`*`, hm_numerator_list)
+      hm_numerator <- bernoulli_product(Omega_hm, hm_params$theta)
       eta_hm <- sapply(hm_vars, function(col) {
         ((1 - p_est) * sum(u_est_list[[col]] * (values_list_m[[col]])[["m_est"]]) +
            p_est * (1 - 1 / NROW(A)) * sum(((values_list_m[[col]])[["m_est"]]) ^ 2)) /
@@ -817,13 +721,7 @@ mec <- function(A,
       })
       hm_params$eta <- eta_hm
 
-      hm_denominator_list <- lapply(hm_vars,
-                                    function(col) {
-                                      stats::dbinom(x = Omega_hm[[col]],
-                                                    size = 1,
-                                                    prob = as.numeric(hm_params[hm_params[["variable"]] == col, "eta"]))
-                                    })
-      hm_denominator <- Reduce(`*`, hm_denominator_list)
+      hm_denominator <- bernoulli_product(Omega_hm, hm_params$eta)
       data.table::set(Omega, j = "hm_denominator", value = hm_denominator)
 
       data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * hm_numerator / Omega[["hm_denominator"]])
@@ -837,79 +735,43 @@ mec <- function(A,
   iter_bisection <- NULL
 
   if (set_construction == "flr") {
-
-    min_treshold <- min(Omega$ratio)
-    max_treshold <- max(Omega$ratio)
-    treshold <- (min_treshold + max_treshold) / 2
-
-    iter_bisection <- 0
-
-    while (iter_bisection < max_iter_bisection) {
-
-      M <- Omega[get("ratio") >= treshold, ]
-      flr_est <- 1 / NROW(M) * sum(1 - M[["g_est"]])
-
-      if (abs(flr_est - target_rate) <= tol) {
-
-        iter_bisection <- iter_bisection + 1
-        break
-
-      } else if (flr_est < target_rate) {
-
-        max_treshold <- treshold
-        treshold <- (min_treshold + max_treshold) / 2
-
-      } else {
-
-        min_treshold <- treshold
-        treshold <- (min_treshold + max_treshold) / 2
-
-      }
-
-      iter_bisection <- iter_bisection + 1
-
-    }
-
-    mmr_est <- 1 - sum(M[["g_est"]] / n_M_est)
+    selection_summary <- summarize_mec_selection(
+      a = Omega[["a"]],
+      b = Omega[["b"]],
+      ratio = Omega[["ratio"]],
+      g_est = Omega[["g_est"]],
+      n_M_est = n_M_est,
+      duplicates_in_A = duplicates_in_A,
+      set_construction = "flr",
+      target_rate = target_rate,
+      tol = tol,
+      max_iter = max_iter_bisection
+    )
+    M <- Omega[selection_summary$selected_idx]
+    flr_est <- selection_summary$flr_est
+    mmr_est <- selection_summary$mmr_est
+    iter_bisection <- selection_summary$iter
     if (mmr_est < 0) {
       mmr_est <- NULL
     }
 
   } else if (set_construction == "mmr") {
-
-    min_treshold <- min(Omega$ratio)
-    max_treshold <- max(Omega$ratio)
-    treshold <- (min_treshold + max_treshold) / 2
-
-    iter_bisection <- 0
-
-    while (iter_bisection < max_iter_bisection) {
-
-      M <- Omega[get("ratio") >= treshold, ]
-      mmr_est <- 1 - sum(M[["g_est"]] / n_M_est)
-
-      if (abs(mmr_est - target_rate) <= tol) {
-
-        iter_bisection <- iter_bisection + 1
-        break
-
-      } else if (mmr_est < target_rate) {
-
-        min_treshold <- treshold
-        treshold <- (min_treshold + max_treshold) / 2
-
-      } else {
-
-        max_treshold <- treshold
-        treshold <- (min_treshold + max_treshold) / 2
-
-      }
-
-      iter_bisection <- iter_bisection + 1
-
-    }
-
-    flr_est <- 1 / NROW(M) * sum(1 - M[["g_est"]])
+    selection_summary <- summarize_mec_selection(
+      a = Omega[["a"]],
+      b = Omega[["b"]],
+      ratio = Omega[["ratio"]],
+      g_est = Omega[["g_est"]],
+      n_M_est = n_M_est,
+      duplicates_in_A = duplicates_in_A,
+      set_construction = "mmr",
+      target_rate = target_rate,
+      tol = tol,
+      max_iter = max_iter_bisection
+    )
+    M <- Omega[selection_summary$selected_idx]
+    flr_est <- selection_summary$flr_est
+    mmr_est <- selection_summary$mmr_est
+    iter_bisection <- selection_summary$iter
 
   } else if (set_construction == "size") {
 

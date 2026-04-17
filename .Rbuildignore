@@ -13,4 +13,5 @@ misc
 ^AGENTS\.md$
 ^AGENTS\.html$
 ^papers$
+^codex_tests$
 

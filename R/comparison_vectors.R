@@ -60,28 +60,19 @@ comparison_vectors <- function(
     matches = NULL) {
 
   stopifnot("`A` should be a data.frame or a data.table." =
-            is.data.frame(A) | is.data.table(A))
+              is.data.frame(A) | is.data.table(A))
   stopifnot("`B` should be a data.frame or a data.table." =
-            is.data.frame(B) | is.data.table(B))
+              is.data.frame(B) | is.data.table(B))
   stopifnot("`variables` should be a character vector." =
-            is.character(variables))
-
+              is.character(variables))
   stopifnot("Not all variables are present in A." =
-            all(variables %in% names(A)))
+              all(variables %in% names(A)))
   stopifnot("Not all variables are present in B." =
-            all(variables %in% names(B)))
+              all(variables %in% names(B)))
 
   if (!is.null(comparators)) {
     stopifnot("`comparators` should be a list." =
-              is.list(comparators))
-  }
-
-  if (!is.null(matches)) {
-    stopifnot("`matches` should be a data.frame or a data.table." =
-              is.data.frame(matches) | is.data.table(matches))
-    stopifnot("`matches` should consist of two columns: a, b." =
-              length(colnames(matches)) == 2,
-              all(colnames(matches) == c("a", "b")))
+                is.list(comparators))
   }
 
   K <- length(variables)
@@ -93,29 +84,37 @@ comparison_vectors <- function(
 
   data.table::setDT(A)
   data.table::setDT(B)
-  A <- A[, variables, with = FALSE]
-  B <- B[, variables, with = FALSE]
-  data.table::set(A, j = "a", value = seq_len(nrow(A)))
-  data.table::set(B, j = "b", value = seq_len(nrow(B)))
+  n_A <- nrow(A)
+  n_B <- nrow(B)
 
-  Omega <- data.table::CJ(a = A[["a"]], b = B[["b"]])
+  if (!is.null(matches)) {
+    validate_match_pairs(matches, n_A, n_B)
+  }
+
+  Omega <- data.table::CJ(a = seq_len(n_A), b = seq_len(n_B))
   data.table::setkey(Omega, NULL)
-  A_values <- A[Omega$a, ]
-  B_values <- B[Omega$b, ]
-  data.table::set(A, j = "a", value = NULL)
-  data.table::set(B, j = "b", value = NULL)
 
   gamma_names <- paste0("gamma_", variables)
+  omega_a <- Omega[["a"]]
+  omega_b <- Omega[["b"]]
+
+  # Compute one comparison column at a time to avoid copying the full key-variable blocks.
   gamma_list <- lapply(1:K, function(x) {
     variable <- variables[x]
-    return(as.numeric(comparators[[x]](A_values[[variable]], B_values[[variable]])))
+    as.numeric(comparators[[x]](A[[variable]][omega_a], B[[variable]][omega_b]))
   })
 
   Omega[, (gamma_names) := gamma_list]
 
-  if(!is.null(matches)) {
+  if (!is.null(matches)) {
     data.table::setDT(matches)
-    Omega[, match := as.numeric(paste(.SD[["a"]], .SD[["b"]]) %in% paste(matches[["a"]], matches[["b"]]))]
+    match_idx <- data.table(
+      omega_idx = seq_len(NROW(Omega)),
+      a = Omega[["a"]],
+      b = Omega[["b"]]
+    )[matches[, c("a", "b"), with = FALSE], on = c("a", "b"), nomatch = 0L][["omega_idx"]]
+    Omega[, match := 0]
+    Omega[match_idx, match := 1]
   }
 
   structure(
@@ -123,7 +122,7 @@ comparison_vectors <- function(
       Omega = data.table(Omega),
       variables = variables,
       comparators = comparators,
-      match_prop = if (is.null(matches)) NULL else NROW(matches) / NROW(Omega) * max(NROW(A), NROW(B))
+      match_prop = if (is.null(matches)) NULL else NROW(matches) / NROW(Omega) * max(n_A, n_B)
     ),
     class = "comparison_vectors"
   )
