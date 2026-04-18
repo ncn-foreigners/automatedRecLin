@@ -36,6 +36,13 @@ confusion_cpar <- matrix(c(2, 0, 1, 17), nrow = 2, ncol = 2)
 rownames(confusion_cpar) <- c("Actual Positive", "Actual Negative")
 colnames(confusion_cpar) <- c("Predicted Positive", "Predicted Negative")
 
+expect_rate_bounds <- function(result) {
+  expect_true(is.finite(result$flr_est))
+  expect_true(result$flr_est >= 0 && result$flr_est <= 1)
+  expect_true(is.finite(result$mmr_est))
+  expect_true(result$mmr_est >= 0 && result$mmr_est <= 1)
+}
+
 expect_silent(
   train_rec_lin(A = df_1, B = df_2,
                 variables = c("name", "surname"),
@@ -179,6 +186,11 @@ expect_equal(
 )
 
 expect_equal(
+  predict(model_cpar, df_new_1, df_new_2)$mmr_est,
+  0
+)
+
+expect_equal(
   predict(model_cpar, df_new_1, df_new_2, true_matches = true_matches)$eval_metrics,
   c("FLR" = 0, "MMR" = 1/3)
 )
@@ -199,6 +211,19 @@ expect_equal(
   data.table("a" = c(2, 3, 1), "b" = c(2, 3, 1),
              "ratio" = c(47.61403316943127350669, 29.29835603699235235808, 26.65717991654741325647))
 )
+
+expect_equal(
+  predict(model_cnonpar, df_new_1, df_new_2)$mmr_est,
+  0
+)
+
+pred_cpar_flr <- predict(model_cpar, df_new_1, df_new_2,
+                         set_construction = "flr", target_rate = 0.1)
+expect_rate_bounds(pred_cpar_flr)
+
+pred_cpar_mmr <- predict(model_cpar, df_new_1, df_new_2,
+                         set_construction = "mmr", target_rate = 0.1)
+expect_rate_bounds(pred_cpar_mmr)
 
 # custom model
 

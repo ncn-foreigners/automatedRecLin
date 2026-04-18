@@ -18,6 +18,13 @@ confusion_b <- matrix(c(4, 0, 4, 112), nrow = 2, ncol = 2)
 rownames(confusion_b) <- c("Actual Positive", "Actual Negative")
 colnames(confusion_b) <- c("Predicted Positive", "Predicted Negative")
 
+expect_rate_bounds <- function(result) {
+  expect_true(is.finite(result$flr_est))
+  expect_true(result$flr_est >= 0 && result$flr_est <= 1)
+  expect_true(is.finite(result$mmr_est))
+  expect_true(result$mmr_est >= 0 && result$mmr_est <= 1)
+}
+
 set.seed(1)
 
 expect_silent(
@@ -90,3 +97,23 @@ expect_equal(
   cnonpar_fit$n_M_est,
   3.835110959839932665005
 )
+
+cpar_fit <- mec(A = A_example, B = B_example, variables = variables,
+                comparators = comparators, methods = methods_cpar)
+
+expect_equal(
+  cpar_fit$mmr_est,
+  cpar_fit$flr_est
+)
+
+cpar_fit_flr <- mec(A = A_example, B = B_example, variables = variables,
+                    comparators = comparators, methods = methods_cpar,
+                    set_construction = "flr", target_rate = 0.05)
+
+expect_rate_bounds(cpar_fit_flr)
+
+cpar_fit_mmr <- mec(A = A_example, B = B_example, variables = variables,
+                    comparators = comparators, methods = methods_cpar,
+                    set_construction = "mmr", target_rate = 0.05)
+
+expect_rate_bounds(cpar_fit_mmr)

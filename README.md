@@ -164,6 +164,7 @@ unsup_result
 #> ========================================================
 #> The construction of the classification set was based on estimates of its size.
 #> Estimated false link rate (FLR): 0.2066 %.
+#> Estimated missing match rate (MMR): 0.2066 %.
 #> ========================================================
 #> Variables selected for the continuous parametric method: name, surname, city.
 #> Estimated parameters for the continuous parametric method:
@@ -300,7 +301,7 @@ result_sup
 #> ========================================================
 #> The construction of the classification set was based on estimates of its size.
 #> Estimated false link rate (FLR): 0.0000 %.
-#> Estimated missing match rate (MMR): 5.4760 %.
+#> Estimated missing match rate (MMR): 0.0000 %.
 ```
 
 ## Integration with a custom machine learning model
@@ -343,7 +344,7 @@ Train the XGBoost model.
 model_xgb <- xgboost(x = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
                      y = factor(vectors$Omega$match),
                      objective = "binary:logistic", eval_metric = "logloss",
-                     nrounds = 100, verbosity = 0)
+                     nrounds = 100, verbosity = 0, nthread = 1)
 ```
 
 Create the XGBoost-based record linkage model.

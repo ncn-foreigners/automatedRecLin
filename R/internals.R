@@ -411,9 +411,11 @@ summarize_mec_selection <- function(a,
       n_M = n_M_est,
       duplicates_in_A = duplicates_in_A
     )
+    n_selected <- length(selected_idx)
     selected_g_est <- g_est[selected_idx]
-    flr_est <- if (length(selected_idx) == 0L) Inf else mean(1 - selected_g_est)
-    mmr_est <- if (n_M_est <= 0) 1 else 1 - sum(selected_g_est) / n_M_est
+    # Report the size-based rates for the returned classification set.
+    flr_est <- if (n_selected == 0L) Inf else mean(1 - selected_g_est)
+    mmr_est <- if (n_selected == 0L) 1 else max(0, min(1, 1 - sum(selected_g_est) / n_selected))
 
     return(list(
       selected_idx = selected_idx,

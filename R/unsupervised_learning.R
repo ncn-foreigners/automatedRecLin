@@ -733,56 +733,22 @@ mec <- function(A,
   }
 
   n_M_est <- n_M
-  iter_bisection <- NULL
-
-  if (set_construction == "flr") {
-    selection_summary <- summarize_mec_selection(
-      a = Omega[["a"]],
-      b = Omega[["b"]],
-      ratio = Omega[["ratio"]],
-      g_est = Omega[["g_est"]],
-      n_M_est = n_M_est,
-      duplicates_in_A = duplicates_in_A,
-      set_construction = "flr",
-      target_rate = target_rate,
-      tol = tol,
-      max_iter = max_iter_bisection
-    )
-    M <- Omega[selection_summary$selected_idx]
-    flr_est <- selection_summary$flr_est
-    mmr_est <- selection_summary$mmr_est
-    iter_bisection <- selection_summary$iter
-    if (mmr_est < 0) {
-      mmr_est <- NULL
-    }
-
-  } else if (set_construction == "mmr") {
-    selection_summary <- summarize_mec_selection(
-      a = Omega[["a"]],
-      b = Omega[["b"]],
-      ratio = Omega[["ratio"]],
-      g_est = Omega[["g_est"]],
-      n_M_est = n_M_est,
-      duplicates_in_A = duplicates_in_A,
-      set_construction = "mmr",
-      target_rate = target_rate,
-      tol = tol,
-      max_iter = max_iter_bisection
-    )
-    M <- Omega[selection_summary$selected_idx]
-    flr_est <- selection_summary$flr_est
-    mmr_est <- selection_summary$mmr_est
-    iter_bisection <- selection_summary$iter
-
-  } else if (set_construction == "size") {
-
-    flr_est <- 1 / NROW(M) * sum(1 - M[["g_est"]])
-    mmr_est <- 1 - sum(M[["g_est"]] / n_M_est)
-    if (mmr_est < 0) {
-      mmr_est <- NULL
-    }
-
-  }
+  selection_summary <- summarize_mec_selection(
+    a = Omega[["a"]],
+    b = Omega[["b"]],
+    ratio = Omega[["ratio"]],
+    g_est = Omega[["g_est"]],
+    n_M_est = n_M_est,
+    duplicates_in_A = duplicates_in_A,
+    set_construction = set_construction,
+    target_rate = target_rate,
+    tol = tol,
+    max_iter = max_iter_bisection
+  )
+  M <- Omega[selection_summary$selected_idx]
+  flr_est <- selection_summary$flr_est
+  mmr_est <- selection_summary$mmr_est
+  iter_bisection <- selection_summary$iter
 
   if (!is.null(true_matches)) {
 

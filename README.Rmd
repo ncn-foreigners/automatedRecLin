@@ -214,7 +214,7 @@ Train the XGBoost model.
 model_xgb <- xgboost(x = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
                      y = factor(vectors$Omega$match),
                      objective = "binary:logistic", eval_metric = "logloss",
-                     nrounds = 100, verbosity = 0)
+                     nrounds = 100, verbosity = 0, nthread = 1)
 ```
 
 Create the XGBoost-based record linkage model.
