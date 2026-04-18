@@ -576,6 +576,7 @@ mec <- function(A,
 
         # When the current split is too sparse for KLIEP, keep the last ratio update.
         p_0_M_cnonpar <- p_0_formula(M_cnonpar)
+        p_0_U_cnonpar <- p_0_formula(U_cnonpar)
         ratio_kliep_old <- ratio_kliep
 
         tryCatch({

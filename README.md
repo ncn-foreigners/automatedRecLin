@@ -154,7 +154,7 @@ unsup_result
 #> The algorithm predicted 8 matches.
 #> The first 6 predicted matches are:
 #>        a     b ratio / 1000
-#>    <num> <num>        <num>
+#>    <int> <int>        <num>
 #> 1:     6     6 1.433031e+08
 #> 2:     8     8 3.198692e+07
 #> 3:     7     7 9.673745e+05
@@ -164,7 +164,6 @@ unsup_result
 #> ========================================================
 #> The construction of the classification set was based on estimates of its size.
 #> Estimated false link rate (FLR): 0.2066 %.
-#> Estimated missing match rate (MMR): 0.0000 %.
 #> ========================================================
 #> Variables selected for the continuous parametric method: name, surname, city.
 #> Estimated parameters for the continuous parametric method:
@@ -294,14 +293,14 @@ result_sup
 #> The algorithm predicted 3 matches.
 #> The first 3 predicted matches are:
 #>        a     b ratio / 1000
-#>    <num> <num>        <num>
-#> 1:     2     2   0.04572852
-#> 2:     3     3   0.02813814
-#> 3:     1     1   0.02560156
+#>    <int> <int>        <num>
+#> 1:     2     2   0.04761403
+#> 2:     3     3   0.02929836
+#> 3:     1     1   0.02665718
 #> ========================================================
 #> The construction of the classification set was based on estimates of its size.
-#> Estimated false link rate (FLR): 15.3038 %.
-#> Estimated missing match rate (MMR): 15.3038 %.
+#> Estimated false link rate (FLR): 0.0000 %.
+#> Estimated missing match rate (MMR): 5.4760 %.
 ```
 
 ## Integration with a custom machine learning model
@@ -372,7 +371,7 @@ result_xgb
 #> The algorithm predicted 3 matches.
 #> The first 3 predicted matches are:
 #>        a     b ratio / 1000
-#>    <num> <num>        <num>
+#>    <int> <int>        <num>
 #> 1:     1     1    0.0299477
 #> 2:     2     2    0.0299477
 #> 3:     3     3    0.0299477

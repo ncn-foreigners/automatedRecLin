@@ -148,6 +148,7 @@ predict.rec_lin_model <- function(object,
   Omega <- vectors$Omega
 
   n <- NROW(Omega)
+  prob_est <- object$match_prop / max(NROW(newdata_A), NROW(newdata_B))
 
   if (!is.null(object$ml_model)) {
 
@@ -179,7 +180,6 @@ predict.rec_lin_model <- function(object,
       controls_ml_predictions)
     )
 
-    prob_est <- object$match_prop / max(NROW(newdata_A), NROW(newdata_B))
     predicted_ratio <- predicted_probs * (1 - prob_est) / ((1 - predicted_probs) * prob_est)
     data.table::set(Omega, j = "ratio", value = predicted_ratio)
 
@@ -205,10 +205,14 @@ predict.rec_lin_model <- function(object,
 
       cpar_vars <- object$cpar_vars
       cpar_params <- data.table::copy(align_parameter_table(object$cpar_params, cpar_vars))
-      if ("p_0_Omega" %in% colnames(cpar_params)) {
-        data.table::setnames(cpar_params,
-                             old = c("p_0_Omega", "alpha_Omega", "beta_Omega"),
-                             new = c("p_0_U", "alpha_U", "beta_U"))
+      if (object$prob_ratio == "1") {
+        p_0_denominator <- cpar_params$p_0_Omega
+        alpha_denominator <- cpar_params$alpha_Omega
+        beta_denominator <- cpar_params$beta_Omega
+      } else {
+        p_0_denominator <- cpar_params$p_0_U
+        alpha_denominator <- cpar_params$alpha_U
+        beta_denominator <- cpar_params$beta_U
       }
       Omega_cpar <- Omega[, cpar_vars, with = FALSE]
       data.table::set(
@@ -219,9 +223,9 @@ predict.rec_lin_model <- function(object,
           cpar_params$p_0_M,
           cpar_params$alpha_M,
           cpar_params$beta_M,
-          cpar_params$p_0_U,
-          cpar_params$alpha_U,
-          cpar_params$beta_U
+          p_0_denominator,
+          alpha_denominator,
+          beta_denominator
         )
       )
 
@@ -265,15 +269,21 @@ predict.rec_lin_model <- function(object,
   }
 
   n_M_start <- min(NROW(newdata_A), NROW(newdata_B))
-  fun_n_M <- fixed_n_M(n = n, ratio_gamma = Omega[["ratio"]])
-  n_M_original <- FixedPoint::FixedPoint(Function = fun_n_M,
-                                         Inputs = n_M_start,
-                                         Method = fixed_method)$FixedPoint
-  n_M_est <- min(n_M_original, n_M_start)
-  n_M_est <- max(n_M_est, 0)
-  n_M_est <- round(n_M_est)
+  if (object$prob_ratio == "1" && is.null(object$ml_model)) {
+    # Under ratio-I, r_q = m / q and the posterior match probability is pi * r_q.
+    g_est <- pmin(prob_est * Omega[["ratio"]], 1)
+    n_M_est <- min(sum(g_est), n_M_start)
+  } else {
+    fun_n_M <- fixed_n_M(n = n, ratio_gamma = Omega[["ratio"]])
+    n_M_original <- FixedPoint::FixedPoint(Function = fun_n_M,
+                                           Inputs = n_M_start,
+                                           Method = fixed_method)$FixedPoint
+    n_M_est <- min(n_M_original, n_M_start)
+    n_M_est <- max(n_M_est, 0)
+    n_M_est <- round(n_M_est)
 
-  g_est <- pmin(n_M_est * Omega$ratio / (n_M_est * (Omega$ratio - 1) + n), 1)
+    g_est <- pmin(n_M_est * Omega$ratio / (n_M_est * (Omega$ratio - 1) + n), 1)
+  }
   selection_summary <- summarize_mec_selection(
     a = Omega[["a"]],
     b = Omega[["b"]],

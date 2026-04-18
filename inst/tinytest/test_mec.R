@@ -74,13 +74,19 @@ expect_equal(
              "beta_U" = c(11.173089162681424824086, 7.167260899080440061937))
 )
 
+cnonpar_fit <- NULL
 expect_warning(
-  mec(A = A_example, B = B_example, variables = variables,
-      comparators = comparators, methods = methods_cnonpar)
+  cnonpar_fit <- mec(A = A_example, B = B_example, variables = variables,
+                     comparators = comparators, methods = methods_cnonpar)
 )
 
 expect_equal(
-  mec(A = A_example, B = B_example, variables = variables,
-      comparators = comparators, methods = methods_cnonpar)$M_est[, c("a", "b")],
-  data.table("a" = 1:4, "b" = 1:4)
+  cnonpar_fit$M_est,
+  data.table("a" = 1:4, "b" = 1:4,
+             "ratio" = rep(369.3706815704043719961, 4))
+)
+
+expect_equal(
+  cnonpar_fit$n_M_est,
+  3.835110959839932665005
 )

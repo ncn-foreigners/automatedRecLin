@@ -375,7 +375,7 @@ kliep_hurdle_ratio <- function(df, variables, p_0_numerator, p_0_denominator, ra
     if (!is.null(ratio_kliep_list[[variable]])) {
       kliep_pred <- predict_kliep_positive(ratio_kliep_list[[variable]], gamma_vec, variable)
       ifelse(gamma_vec == 0, p_0_numerator[i] / p_0_denominator[i], 1) *
-        ifelse(gamma_vec > 0, (1 - p_0_numerator[i]) * (1 - p_0_denominator[i]) * kliep_pred, 1)
+        ifelse(gamma_vec > 0, (1 - p_0_numerator[i]) / (1 - p_0_denominator[i]) * kliep_pred, 1)
     } else {
       ifelse(gamma_vec == 0, p_0_numerator[i] / p_0_denominator[i], 1)
     }
