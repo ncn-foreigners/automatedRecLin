@@ -204,8 +204,12 @@ drop_constant_key_variables <- function(A, B, variables, comparators = NULL, met
     }
 
     if (!is.null(methods)) {
-      methods[constant_vars] <- NULL
+      methods <- methods[!(names(methods) %in% constant_vars)]
     }
+  }
+
+  if (length(variables) == 0L) {
+    stop("All key variables have only one unique value and cannot be used for record linkage.", call. = FALSE)
   }
 
   list(

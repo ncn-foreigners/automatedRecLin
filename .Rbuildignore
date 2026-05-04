@@ -15,3 +15,5 @@ misc
 ^papers$
 ^codex_tests$
 
+^\.positai$
+^\.claude$

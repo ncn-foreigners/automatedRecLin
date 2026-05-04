@@ -65,6 +65,8 @@ comparison_vectors <- function(
               is.data.frame(B) | is.data.table(B))
   stopifnot("`variables` should be a character vector." =
               is.character(variables))
+  stopifnot("`variables` should contain at least one variable." =
+              length(variables) > 0L)
   stopifnot("Not all variables are present in A." =
               all(variables %in% names(A)))
   stopifnot("Not all variables are present in B." =
@@ -103,6 +105,27 @@ comparison_vectors <- function(
     variable <- variables[x]
     as.numeric(comparators[[x]](A[[variable]][omega_a], B[[variable]][omega_b]))
   })
+
+  invalid_counts <- vapply(gamma_list, function(gamma) {
+    sum(!is.finite(gamma))
+  }, numeric(1))
+
+  if (any(invalid_counts > 0)) {
+    invalid_vars <- variables[invalid_counts > 0]
+    invalid_details <- sprintf(
+      "%s (%d invalid value%s)",
+      invalid_vars,
+      invalid_counts[invalid_counts > 0],
+      ifelse(invalid_counts[invalid_counts > 0] == 1, "", "s")
+    )
+    stop(
+      sprintf(
+        "Comparison variables produced missing or non-finite values: %s. Please handle missing key values or adjust comparators before running record linkage.",
+        paste(invalid_details, collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
 
   Omega[, (gamma_names) := gamma_list]
 

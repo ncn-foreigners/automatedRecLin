@@ -15,8 +15,6 @@
 #' @param B A number of bootstrap iterations.
 #' @param alpha A significance level for calculating the confidence interval.
 #' Default is 0.05 (which yields a 95% confidence interval).
-#'
-#' @export
 est_se_bootstrap <- function(mec_result,
                              B = 100,
                              alpha = 0.05) {
