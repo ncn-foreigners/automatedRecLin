@@ -22,6 +22,7 @@
 #' (used only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
 #' @param controls_nleqslv Controls passed to the \link[nleqslv:nleqslv]{nleqslv()} function (only if the `"continuous_parametric"` method has been chosen for at least one variable).
 #' @param controls_kliep Controls passed to the \link[densityratio:kliep]{kliep()} function (only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
+#' @param verbose Logical indicating whether to print progress messages.
 #'
 #' @details
 #' Consider two datasets: \eqn{A} and \eqn{B}.
@@ -148,7 +149,8 @@ train_rec_lin <- function(
     prob_ratio = NULL,
     nonpar_hurdle = TRUE,
     controls_nleqslv = list(),
-    controls_kliep = control_kliep()) {
+    controls_kliep = control_kliep(),
+    verbose = FALSE) {
 
   data.table::setDT(A)
   data.table::setDT(B)
@@ -167,6 +169,14 @@ train_rec_lin <- function(
     variables = variables,
     allowed_methods = c("binary", "continuous_parametric", "continuous_nonparametric")
   )
+  if (verbose) {
+    message(sprintf(
+      "Preparing supervised record linkage model for %d records in A, %d records in B, and %d key variable(s).",
+      nrow(A),
+      nrow(B),
+      length(variables)
+    ))
+  }
   preprocessing <- drop_constant_key_variables(
     A = A,
     B = B,
@@ -198,6 +208,14 @@ train_rec_lin <- function(
   U_idx <- which(Omega[["match"]] == 0)
   n_M <- length(M_idx)
   pi_est <- n_M / n
+  if (verbose) {
+    message(sprintf(
+      "Created %d comparison vector(s), including %d known match(es) and %d known nonmatch(es).",
+      n,
+      n_M,
+      n - n_M
+    ))
+  }
 
   if (prob_ratio == "2") {
     # Reuse the computed comparison vectors instead of building another full Cartesian product.
@@ -386,6 +404,11 @@ train_rec_lin <- function(
 
     }
 
+  }
+
+  if (verbose) {
+    method_names <- paste(unique(unlist(methods, use.names = FALSE)), collapse = ", ")
+    message(sprintf("Finished estimating model components for methods: %s.", method_names))
   }
 
   structure(

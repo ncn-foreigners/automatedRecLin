@@ -23,7 +23,8 @@ mec(
   tol_em = 1,
   controls_nleqslv = list(),
   controls_kliep = control_kliep(),
-  true_matches = NULL
+  true_matches = NULL,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -72,6 +73,8 @@ mec(
 (only if the \code{"continuous_nonparametric"} method has been chosen for at least one variable).}
 
 \item{true_matches}{A \code{data.frame} or \code{data.table} indicating known matches.}
+
+\item{verbose}{Logical indicating whether to print progress messages.}
 }
 \value{
 Returns a list containing:\cr

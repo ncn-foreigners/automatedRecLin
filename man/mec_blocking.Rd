@@ -115,9 +115,44 @@ comparison vectors.}
 \item{verbose}{Logical indicating whether to print progress messages.}
 }
 \value{
-Returns an object of class \code{"mec_blocking"} containing predicted matches,
-estimated match counts, block summaries, selected training blocks, fitted
-density-ratio components, and optional evaluation diagnostics.
+Returns a list of class \code{"mec_blocking"} containing:
+\itemize{
+\item{\code{M_est} -- a \code{data.table} with predicted matches and columns \code{a}, \code{b}, \code{block}, and \code{ratio},}
+\item{\code{n_M_est} -- estimated total number of matches across all blocks,}
+\item{\code{flr_est} -- estimated false link rate (FLR),}
+\item{\code{mmr_est} -- estimated missing match rate (MMR),}
+\item{\code{training_rule} -- training-block selection rule used by the function,}
+\item{\code{block_estimates} -- a \code{data.table} with block-level match-count and error-rate estimates,}
+\item{\code{training_blocks} -- a \code{data.table} with blocks selected for pooled MEC training,}
+\item{\code{block_summary} -- a \code{data.table} describing the final disjoint blocks,}
+\item{\code{excluded_records} -- a list with records from \code{A} and \code{B} excluded by blocking,}
+\item{\code{pooled_model} -- fitted pooled MEC density-ratio model used for blockwise scoring,}
+\item{\code{b_vars} -- variables used for the \code{"binary"} method, with the prefix \code{"gamma_"},}
+\item{\code{cpar_vars} -- variables used for the \code{"continuous_parametric"} method, with the prefix \code{"gamma_"},}
+\item{\code{cnonpar_vars} -- variables used for the \code{"continuous_nonparametric"} method, currently \code{NULL},}
+\item{\code{hm_vars} -- variables used for the \code{"hit_miss"} method, currently \code{NULL},}
+\item{\code{b_params} -- parameters estimated using the \code{"binary"} method,}
+\item{\code{cpar_params} -- parameters estimated using the \code{"continuous_parametric"} method,}
+\item{\code{cnonpar_params} -- parameters estimated using the \code{"continuous_nonparametric"} method, currently \code{NULL},}
+\item{\code{hm_params} -- parameters estimated using the \code{"hit_miss"} method, currently \code{NULL},}
+\item{\code{ratio_kliep} -- result of \link[densityratio:kliep]{kliep()}, currently \code{NULL},}
+\item{\code{ratio_kliep_list} -- variable-specific KLIEP results, currently \code{NULL},}
+\item{\code{variables} -- key variables used for comparison,}
+\item{\code{comparators} -- comparison functions used to create comparison vectors,}
+\item{\code{methods} -- MEC estimation methods used for the key variables,}
+\item{\code{nonmatch_sample_size} -- number of full Cartesian-product pairs used to estimate nonmatch parameters,}
+\item{\code{nonmatch_sampling_seed} -- seed used for nonmatch-pair sampling,}
+\item{\code{prob_ratio} -- probability/density ratio type used for blockwise match-count estimation,}
+\item{\code{delta} -- tolerance for changes in the estimated number of matches,}
+\item{\code{eps} -- tolerance for changes in model parameters,}
+\item{\code{controls_nleqslv} -- controls passed to \link[nleqslv:nleqslv]{nleqslv()},}
+\item{\code{controls_blocking} -- additional arguments passed to \link[blocking:blocking]{blocking()},}
+\item{\code{blocking_result} -- raw object returned by \link[blocking:blocking]{blocking()} if \code{keep_blocking_result = TRUE}; otherwise \code{NULL},}
+\item{\code{training_Omega} -- pooled training comparison vectors if \code{keep_training_data = TRUE}; otherwise \code{NULL},}
+\item{\code{blocking_eval} -- blocking diagnostics if \code{true_matches} is provided; otherwise \code{NULL},}
+\item{\code{eval_metrics} -- standard linkage quality metrics if \code{true_matches} is provided; otherwise \code{NULL},}
+\item{\code{confusion} -- confusion matrix if \code{true_matches} is provided; otherwise \code{NULL}.}
+}
 }
 \description{
 Runs graph-based blocking using \link[blocking:blocking]{blocking()},

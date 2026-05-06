@@ -14,7 +14,8 @@ train_rec_lin(
   prob_ratio = NULL,
   nonpar_hurdle = TRUE,
   controls_nleqslv = list(),
-  controls_kliep = control_kliep()
+  controls_kliep = control_kliep(),
+  verbose = FALSE
 )
 }
 \arguments{
@@ -38,6 +39,8 @@ train_rec_lin(
 \item{controls_nleqslv}{Controls passed to the \link[nleqslv:nleqslv]{nleqslv()} function (only if the \code{"continuous_parametric"} method has been chosen for at least one variable).}
 
 \item{controls_kliep}{Controls passed to the \link[densityratio:kliep]{kliep()} function (only if the \code{"continuous_nonparametric"} method has been chosen for at least one variable).}
+
+\item{verbose}{Logical indicating whether to print progress messages.}
 }
 \value{
 Returns a list containing:\cr

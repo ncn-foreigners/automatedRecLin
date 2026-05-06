@@ -28,6 +28,7 @@
 #' @param data_type Data type for predictions with a custom ML model (`"data.frame"`, `"data.table"` or `"matrix"`;
 #' used only if `object` is from [custom_rec_lin_model()]).
 #' @param true_matches A `data.frame` or `data.table` indicating true matches.
+#' @param verbose Logical indicating whether to print progress messages.
 #' @param ... Additional controls passed to [predict.rec_lin_model()] for custom ML model
 #' (used only if the `object` is from [custom_rec_lin_model()]).
 #'
@@ -122,6 +123,7 @@ predict.rec_lin_model <- function(object,
                                   max_iter = 50,
                                   data_type = c("data.frame", "data.table", "matrix"),
                                   true_matches = NULL,
+                                  verbose = FALSE,
                                   ...) {
 
   stopifnot("`newdata_A` is required for predictions." =
@@ -148,6 +150,14 @@ predict.rec_lin_model <- function(object,
   Omega <- vectors$Omega
 
   n <- NROW(Omega)
+  if (verbose) {
+    message(sprintf(
+      "Created %d prediction comparison vector(s) for %d records in A and %d records in B.",
+      n,
+      NROW(newdata_A),
+      NROW(newdata_B)
+    ))
+  }
   prob_est <- object$match_prop / max(NROW(newdata_A), NROW(newdata_B))
 
   if (!is.null(object$ml_model)) {
@@ -205,6 +215,12 @@ predict.rec_lin_model <- function(object,
 
     g_est <- pmin(n_M_est * Omega$ratio / (n_M_est * (Omega$ratio - 1) + n), 1)
   }
+  if (verbose) {
+    message(sprintf(
+      "Scored candidate pairs and estimated %s match(es).",
+      format(n_M_est, trim = TRUE)
+    ))
+  }
   selection_summary <- summarize_mec_selection(
     a = Omega[["a"]],
     b = Omega[["b"]],
@@ -221,6 +237,9 @@ predict.rec_lin_model <- function(object,
   flr_est <- selection_summary$flr_est
   mmr_est <- selection_summary$mmr_est
   iter <- selection_summary$iter
+  if (verbose) {
+    message(sprintf("Finished prediction with %d selected match(es).", NROW(M_est)))
+  }
 
   if (!is.null(true_matches)) {
     eval <- evaluation(M_est, true_matches, n)

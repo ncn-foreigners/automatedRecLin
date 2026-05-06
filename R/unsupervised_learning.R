@@ -41,6 +41,7 @@
 #' @param controls_kliep Controls passed to the \link[densityratio:kliep]{kliep()} function
 #' (only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
 #' @param true_matches A `data.frame` or `data.table` indicating known matches.
+#' @param verbose Logical indicating whether to print progress messages.
 #'
 #' @details
 #' Consider two datasets without duplicates: \eqn{A} and \eqn{B}.
@@ -224,7 +225,8 @@ mec <- function(A,
                 tol_em = 1,
                 controls_nleqslv = list(),
                 controls_kliep = control_kliep(),
-                true_matches = NULL) {
+                true_matches = NULL,
+                verbose = FALSE) {
 
   if (!is.null(start_params)) {
     stopifnot("`start_params` should be a list." =
@@ -252,6 +254,14 @@ mec <- function(A,
   stopifnot("There are no records with perfect agreement on the key variables.
             Please provide relevant datasets." =
               has_perfect_agreement(A, B, variables))
+  if (verbose) {
+    message(sprintf(
+      "Preparing unsupervised MEC for %d records in A, %d records in B, and %d key variable(s).",
+      nrow(A),
+      nrow(B),
+      length(variables)
+    ))
+  }
   data.table::set(A, j = "a", value = seq_len(nrow(A)))
   data.table::set(B, j = "b", value = seq_len(nrow(B)))
   M <- merge(
@@ -306,6 +316,13 @@ mec <- function(A,
     b = Omega[["b"]]
   )[M[, c("a", "b"), with = FALSE], on = c("a", "b"), nomatch = 0L][["omega_idx"]]
   n <- NROW(Omega)
+  if (verbose) {
+    message(sprintf(
+      "Created %d comparison vector(s) and initialized MEC with %d exact-agreement seed match(es).",
+      n,
+      length(exact_match_idx)
+    ))
+  }
   exact_match_mask <- rep(FALSE, n)
   exact_match_mask[exact_match_idx] <- TRUE
   M_idx <- exact_match_idx
@@ -749,6 +766,9 @@ mec <- function(A,
   flr_est <- selection_summary$flr_est
   mmr_est <- selection_summary$mmr_est
   iter_bisection <- selection_summary$iter
+  if (verbose) {
+    message(sprintf("Finished MEC with %d predicted match(es).", NROW(M)))
+  }
 
   if (!is.null(true_matches)) {
 
@@ -1375,9 +1395,44 @@ fit_mec_unsupervised_omega <- function(A,
 #' training blocks.
 #'
 #' @return
-#' Returns an object of class `"mec_blocking"` containing predicted matches,
-#' estimated match counts, block summaries, selected training blocks, fitted
-#' density-ratio components, and optional evaluation diagnostics.
+#' Returns a list of class `"mec_blocking"` containing:
+#' \itemize{
+#' \item{`M_est` -- a `data.table` with predicted matches and columns `a`, `b`, `block`, and `ratio`,}
+#' \item{`n_M_est` -- estimated total number of matches across all blocks,}
+#' \item{`flr_est` -- estimated false link rate (FLR),}
+#' \item{`mmr_est` -- estimated missing match rate (MMR),}
+#' \item{`training_rule` -- training-block selection rule used by the function,}
+#' \item{`block_estimates` -- a `data.table` with block-level match-count and error-rate estimates,}
+#' \item{`training_blocks` -- a `data.table` with blocks selected for pooled MEC training,}
+#' \item{`block_summary` -- a `data.table` describing the final disjoint blocks,}
+#' \item{`excluded_records` -- a list with records from `A` and `B` excluded by blocking,}
+#' \item{`pooled_model` -- fitted pooled MEC density-ratio model used for blockwise scoring,}
+#' \item{`b_vars` -- variables used for the `"binary"` method, with the prefix `"gamma_"`,}
+#' \item{`cpar_vars` -- variables used for the `"continuous_parametric"` method, with the prefix `"gamma_"`,}
+#' \item{`cnonpar_vars` -- variables used for the `"continuous_nonparametric"` method, currently `NULL`,}
+#' \item{`hm_vars` -- variables used for the `"hit_miss"` method, currently `NULL`,}
+#' \item{`b_params` -- parameters estimated using the `"binary"` method,}
+#' \item{`cpar_params` -- parameters estimated using the `"continuous_parametric"` method,}
+#' \item{`cnonpar_params` -- parameters estimated using the `"continuous_nonparametric"` method, currently `NULL`,}
+#' \item{`hm_params` -- parameters estimated using the `"hit_miss"` method, currently `NULL`,}
+#' \item{`ratio_kliep` -- result of \link[densityratio:kliep]{kliep()}, currently `NULL`,}
+#' \item{`ratio_kliep_list` -- variable-specific KLIEP results, currently `NULL`,}
+#' \item{`variables` -- key variables used for comparison,}
+#' \item{`comparators` -- comparison functions used to create comparison vectors,}
+#' \item{`methods` -- MEC estimation methods used for the key variables,}
+#' \item{`nonmatch_sample_size` -- number of full Cartesian-product pairs used to estimate nonmatch parameters,}
+#' \item{`nonmatch_sampling_seed` -- seed used for nonmatch-pair sampling,}
+#' \item{`prob_ratio` -- probability/density ratio type used for blockwise match-count estimation,}
+#' \item{`delta` -- tolerance for changes in the estimated number of matches,}
+#' \item{`eps` -- tolerance for changes in model parameters,}
+#' \item{`controls_nleqslv` -- controls passed to \link[nleqslv:nleqslv]{nleqslv()},}
+#' \item{`controls_blocking` -- additional arguments passed to \link[blocking:blocking]{blocking()},}
+#' \item{`blocking_result` -- raw object returned by \link[blocking:blocking]{blocking()} if `keep_blocking_result = TRUE`; otherwise `NULL`,}
+#' \item{`training_Omega` -- pooled training comparison vectors if `keep_training_data = TRUE`; otherwise `NULL`,}
+#' \item{`blocking_eval` -- blocking diagnostics if `true_matches` is provided; otherwise `NULL`,}
+#' \item{`eval_metrics` -- standard linkage quality metrics if `true_matches` is provided; otherwise `NULL`,}
+#' \item{`confusion` -- confusion matrix if `true_matches` is provided; otherwise `NULL`.}
+#' }
 #'
 #' @examples
 #' df_1 <- data.frame(

@@ -16,6 +16,7 @@
   max_iter = 50,
   data_type = c("data.frame", "data.table", "matrix"),
   true_matches = NULL,
+  verbose = FALSE,
   ...
 )
 }
@@ -45,6 +46,8 @@
 used only if \code{object} is from \code{\link[=custom_rec_lin_model]{custom_rec_lin_model()}}).}
 
 \item{true_matches}{A \code{data.frame} or \code{data.table} indicating true matches.}
+
+\item{verbose}{Logical indicating whether to print progress messages.}
 
 \item{...}{Additional controls passed to \code{\link[=predict.rec_lin_model]{predict.rec_lin_model()}} for custom ML model
 (used only if the \code{object} is from \code{\link[=custom_rec_lin_model]{custom_rec_lin_model()}}).}
