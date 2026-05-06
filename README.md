@@ -384,6 +384,12 @@ result_xgb
 #> Estimated missing match rate (MMR): 15.9112 %.
 ```
 
+## Integration with the `blocking` package
+
+The `automatedRecLin` R package can be integrated with the
+[`blocking`](https://cran.r-project.org/package=blocking) package. For
+details, see the vignette entitled *MEC with blocking*.
+
 ## Funding
 
 Work on this package is supported by the National Science Centre, OPUS

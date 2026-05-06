@@ -3,5 +3,5 @@
 .DS_Store
 AGENTS.html
 .positai
-codex_tests/
 test-data/
+codex_tests/

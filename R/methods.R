@@ -169,8 +169,8 @@ print.mec_rec_lin <- function(x, ...) {
 #' @exportS3Method
 print.mec_blocking <- function(x, ...) {
 
-  cat("Blocked MEC record linkage based on the following variables: ",
-      paste(x$variables, collapse = ", "), ".\n", sep = "")
+  cat("Blocked MEC record linkage based on the following variables: ", "\n")
+  cat(paste(x$variables, collapse = ", "), ".\n", sep = "")
   cat("========================================================\n")
   cat("Number of final blocks: ", NROW(x$block_summary), ".\n", sep = "")
   cat("Training rule: ", x$training_rule, ".\n", sep = "")

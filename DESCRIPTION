@@ -30,9 +30,12 @@ Imports:
     stats,
     utils
 Suggests: 
+    knitr,
+    rmarkdown,
     tinytest,
     xgboost
 Depends: 
     R (>= 4.1.0)
 LazyData: true
+VignetteBuilder: knitr
 Config/roxygen2/version: 8.0.0
