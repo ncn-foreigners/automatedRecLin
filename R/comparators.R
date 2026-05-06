@@ -20,18 +20,18 @@ abs_distance <- function() {
 
 #' @importFrom reclin2 cmp_jarowinkler
 #'
-#' @title Jaro-Winkler Distance Complement
+#' @title Jaro-Winkler Distance
 #'
 #' @author Adam Struzik
 #'
 #' @description
-#' Creates a function that calculates the complement of the Jaro-Winkler
-#' distance between two strings (i.e.,
-#' \eqn{1 - \text{Jaro-Winkler distance}}).
+#' Creates a function that calculates the Jaro-Winkler distance between
+#' two strings, defined as
+#' \eqn{1 - \text{Jaro-Winkler similarity}}.
 #'
 #' @return
 #' Returns a function taking two string arguments, `x` and `y`,
-#' and returning the complement of the Jaro-Winkler distance.
+#' and returning the Jaro-Winkler distance.
 #'
 #' @export
 jarowinkler_complement <- function() {

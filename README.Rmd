@@ -43,7 +43,7 @@ pak::pkg_install("ncn-foreigners/automatedRecLin")
 
 Load the package for the examples.
 
-```{r}
+```{r, message=FALSE}
 library(automatedRecLin)
 ```
 
@@ -81,7 +81,7 @@ df_1
 df_2
 ```
 
-Specify the key variables used for record linkage. Select a comparison function (i.e., a function to compare pairs of records) for each variable. For example, use the `jarowinkler_complement` function from the `automatedRecLin` package (1 - Jaro-Winkler distance). Choose a method for estimating the probability or density ratio for each variable. The available methods are: `"binary"`, `"continuous_parametric"`, `"continuous_nonparametric"`, and `"hit_miss"` (only for unsupervised learning).
+Specify the key variables used for record linkage. Select a comparison function (i.e., a function to compare pairs of records) for each variable. For example, use `jarowinkler_complement()` from the `automatedRecLin` package (the Jaro-Winkler distance, i.e., `1 - Jaro-Winkler similarity`). Choose a method for estimating the probability or density ratio for each variable. The available methods are: `"binary"`, `"continuous_parametric"`, `"continuous_nonparametric"`, and `"hit_miss"` (only for unsupervised learning).
 
 ```{r}
 variables <- c("name", "surname", "city")
@@ -97,7 +97,7 @@ methods <- list(
 )
 ```
 
-Perform record linkage using the `mec` function. The output contains the following information:
+Perform record linkage using `mec()`. The output contains the following information:
 
 + the names of key variables,
 + the number of predicted matches,
@@ -116,7 +116,7 @@ unsup_result <- mec(A = df_1, B = df_2,
 unsup_result
 ```
 
-### Supervised maximimum entropy classifier for record linkage
+### Supervised maximum entropy classifier for record linkage
 
 Generate two simple training datasets that contain some common records, with typos in some cases.
 
@@ -156,7 +156,7 @@ methods_train <- list("name" = "continuous_nonparametric",
 matches_train <- data.frame("a" = 1:4, "b" = 1:4)
 ```
 
-Train a record linkage model using the `train_rec_lin` function. 
+Train a record linkage model using `train_rec_lin()`.
 
 ```{r}
 model <- train_rec_lin(A = df_1_train, B = df_2_train,
@@ -182,7 +182,7 @@ df_1_new
 df_2_new
 ```
 
-Predict matches using the `predict` function. The output has a similar structure to that of the `mec` function.
+Predict matches using the `predict()` method for `rec_lin_model` objects. The output has a similar structure to that of `mec()`.
 
 ```{r}
 result_sup <- predict(model, df_1_new, df_2_new)
@@ -198,8 +198,8 @@ The `automatedRecLin` package supports supervised record linkage using a custom 
 library(xgboost)
 ```
 
-Use the same data, variables, and comparators as in the previous example. First, use the `comparison_vectors` function to create comparison vectors that the model will be trained on.
- 
+Use the same data, variables, and comparators as in the previous example. First, use `comparison_vectors()` to create comparison vectors that the model will be trained on.
+
 ```{r}
 vectors <- comparison_vectors(A = df_1_train, B = df_2_train,
                               variables = variables_train,
@@ -224,7 +224,7 @@ custom_xgb_model <- custom_rec_lin_model(model_xgb, vectors)
 custom_xgb_model
 ```
 
-Use the model for predictions. Note that the `xgboost` package requires a matrix as input for the `predict` function and that needs to be specified in the `data_type` argument. Set `type = "response"` to ensure the XGBoost model predicts the probability of matching (this argument may vary depending on the model or library used).
+Use the model for predictions. Note that the `xgboost` package requires a matrix as input for the `predict()` method for `rec_lin_model` objects and that needs to be specified in the `data_type` argument. Set `type = "response"` to ensure the XGBoost model predicts the probability of matching (this argument may vary depending on the model or library used).
 
 ```{r}
 result_xgb <- predict(custom_xgb_model, df_1_new, df_2_new,
@@ -238,7 +238,7 @@ Work on this package is supported by the National Science Centre, OPUS 20 grant 
 
 ## References
 
-Lee, D., Zhang, L.-C. and Kim, J. K. (2022). [Maximum entropy classification for record linkage.](https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm) Survey Methodology, Statistics Canada, Catalogue No. 12-001-X, Vol. 48, No. 1. 
+Lee, D., Zhang, L.-C. and Kim, J. K. (2022). [Maximum entropy classification for record linkage.](https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm) Survey Methodology, Statistics Canada, Catalogue No. 12-001-X, Vol. 48, No. 1.
 
 Vo, T. H., Chauvet, G., Happe, A., Oger, E., Paquelet, S., and Garès, V. (2023). [Extending the Fellegi-Sunter record linkage model for mixed-type data with application to the French national health data system.](https://ideas.repec.org/a/eee/csdana/v179y2023ics0167947322002365.html) Computational Statistics & Data Analysis, 179, 107656.
 

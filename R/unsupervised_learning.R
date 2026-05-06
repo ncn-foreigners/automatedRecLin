@@ -36,9 +36,9 @@
 #' (used only if the `"hit_miss"` method has been chosen for at least one variable).
 #' @param tol_em Error tolerance in the EM algorithm
 #' (used only if the `"hit_miss"` method has been chosen for at least one variable).
-#' @param controls_nleqslv Controls passed to the \link[nleqslv]{nleqslv} function
+#' @param controls_nleqslv Controls passed to the \link[nleqslv:nleqslv]{nleqslv()} function
 #' (only if the `"continuous_parametric"` method has been chosen for at least one variable).
-#' @param controls_kliep Controls passed to the \link[densityratio]{kliep} function
+#' @param controls_kliep Controls passed to the \link[densityratio:kliep]{kliep()} function
 #' (only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
 #' @param true_matches A `data.frame` or `data.table` indicating known matches.
 #'
@@ -63,15 +63,15 @@
 #' \item{\eqn{d(x,y) = 0} if and only if \eqn{x = y},}
 #' \item{\eqn{d(x,y) = d(y,x)}.}
 #' }
-#' For example, we can use \eqn{1 - \text{Jaro-Winkler distance}} for character variables
-#' (which is implemented in the `automatedRecLin` package as the `jarowinkler_complement` function)
+#' For example, we can use the Jaro-Winkler distance for character variables
+#' (which is implemented in the `automatedRecLin` package as [jarowinkler_complement()])
 #' or the Euclidean distance for numerical variables. The `automatedRecLin` package allows the use of
 #' a different comparison function for each key variable (which should be specified
 #' as a list in the `comparators` argument). The default function
-#' for each key variable is \link[reclin2]{cmp_identical}
+#' for each key variable is \link[reclin2:cmp_identical]{cmp_identical()}
 #' (the binary comparison function).
 #'
-#' The `mec` function offers different approaches to estimate the
+#' The [mec()] function offers different approaches to estimate the
 #' probability/density ratio between matches and non-matches,
 #' which should be specified as a list in the `methods` argument.
 #' The available methods suitable for the binary comparison function
@@ -109,10 +109,10 @@
 #' the Kullback-Leibler Importance Estimation Procedure (KLIEP).
 #' For details see [Sugiyama et al. (2008)](https://link.springer.com/article/10.1007/s10463-008-0197-x).
 #'
-#' The `mec` function allows the construction of the predicted set
+#' The [mec()] function allows the construction of the predicted set
 #' of matches using its estimated size or the bisection procedure,
 #' described in [Lee et al. (2022)](https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm),
-#' based on a target False Link Rate (FLR)
+#' based on a target false link rate (FLR)
 #' or missing match rate (MMR). To use the second option, set `set_construction = "flr"`
 #' or `set_construction = "mmr"` and
 #' specify a target error rate using the `target_rate` argument.
@@ -136,7 +136,7 @@
 #' \item{`b_params` -- parameters estimated using the `"binary"` method,}
 #' \item{`cpar_params` -- parameters estimated using the `"continuous_parametric"` method,}
 #' \item{`hm_params` -- parameters estimated using the `"hit_miss"` method,}
-#' \item{`ratio_kliep` -- a result of the \link[densityratio]{kliep} function,}
+#' \item{`ratio_kliep` -- a result of the \link[densityratio:kliep]{kliep()} function,}
 #' \item{`variables` -- a character vector of key variables used for comparison,}
 #' \item{`set_construction` -- a method for constructing the predicted set of matches,}
 #' \item{`eval_metrics` -- standard metrics for quality assessment (if `true_matches` is provided),}
@@ -1306,7 +1306,7 @@ fit_mec_unsupervised_omega <- function(A,
 #' @author Adam Struzik
 #'
 #' @description
-#' Runs graph-based blocking using \link[blocking:blocking]{blocking::blocking()},
+#' Runs graph-based blocking using \link[blocking:blocking]{blocking()},
 #' fits one pooled unsupervised maximum entropy classifier (MEC) on selected
 #' within-block pairs, and applies the fitted density-ratio model blockwise.
 #'
@@ -1316,14 +1316,14 @@ fit_mec_unsupervised_omega <- function(A,
 #' @param comparators A named list of functions for comparing pairs of records.
 #' @param methods A named list of methods used for estimation (`"binary"` or
 #' `"continuous_parametric"`). Other unsupervised MEC methods are not
-#' supported by `mec_blocking()` at this stage.
-#' @param blocking_x Optional input passed as `x` to \link[blocking:blocking]{blocking::blocking()}.
-#' @param blocking_y Optional input passed as `y` to \link[blocking:blocking]{blocking::blocking()}.
+#' supported by [mec_blocking()] at this stage.
+#' @param blocking_x Optional input passed as `x` to \link[blocking:blocking]{blocking()}.
+#' @param blocking_y Optional input passed as `y` to \link[blocking:blocking]{blocking()}.
 #' @param blocking_variables Variables used to create blocking strings when
 #' `blocking_x` and `blocking_y` are not supplied.
 #' @param blocking_sep Separator used when concatenating `blocking_variables`.
 #' @param controls_blocking A list of additional arguments passed to
-#' \link[blocking:blocking]{blocking::blocking()}, except `x` and `y`.
+#' \link[blocking:blocking]{blocking()}, except `x` and `y`.
 #' @param min_training_pairs Minimum number of within-block training pairs.
 #' If `NULL`, `min_training_nonmatches` should also be `NULL`, and all blocks
 #' are used for training.
@@ -1339,22 +1339,22 @@ fit_mec_unsupervised_omega <- function(A,
 #' default `"2"` uses the blockwise fixed-point equation.
 #' @param start_params Start parameters for the `"binary"` and
 #' `"continuous_parametric"` methods.
-#' @param nonpar_hurdle Currently unused in `mec_blocking()`.
+#' @param nonpar_hurdle Currently unused in [mec_blocking()].
 #' @param fixed_method A method for solving blockwise fixed-point equations using
-#' the \link[FixedPoint]{FixedPoint} function.
+#' the \link[FixedPoint:FixedPoint]{FixedPoint()} function.
 #' @param delta A numeric value specifying the tolerance for the change in the
 #' estimated number of matches between MEC iterations.
 #' @param eps A numeric value specifying the tolerance for the change in model
 #' parameters between MEC iterations.
-#' @param max_iter_em Currently unused in `mec_blocking()`.
-#' @param tol_em Currently unused in `mec_blocking()`.
-#' @param controls_nleqslv Controls passed to the \link[nleqslv]{nleqslv} function
+#' @param max_iter_em Currently unused in [mec_blocking()].
+#' @param tol_em Currently unused in [mec_blocking()].
+#' @param controls_nleqslv Controls passed to the \link[nleqslv:nleqslv]{nleqslv()} function
 #' (only if the `"continuous_parametric"` method has been chosen for at least one
 #' variable).
-#' @param controls_kliep Currently unused in `mec_blocking()`.
+#' @param controls_kliep Currently unused in [mec_blocking()].
 #' @param true_matches A `data.frame` or `data.table` indicating known matches.
 #' @param keep_blocking_result Logical indicating whether to store the raw object
-#' returned by \link[blocking:blocking]{blocking::blocking()}.
+#' returned by \link[blocking:blocking]{blocking()}.
 #' @param keep_training_data Logical indicating whether to store pooled training
 #' comparison vectors.
 #' @param verbose Logical indicating whether to print progress messages.
@@ -1363,7 +1363,7 @@ fit_mec_unsupervised_omega <- function(A,
 #' The function assumes one-to-one linkage. The blocking stage defines disjoint
 #' bipartite blocks. MEC is trained once on the pooled union of selected
 #' within-block Cartesian products and is then applied separately in each final
-#' block. The ANN distance returned by `blocking::blocking()` is not used.
+#' block. The ANN distance returned by \link[blocking:blocking]{blocking()} is not used.
 #'
 #' If both `min_training_pairs` and `min_training_nonmatches` are `NULL`, all
 #' final blocks are used for pooled training. If both are supplied, blocks are

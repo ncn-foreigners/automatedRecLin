@@ -1,15 +1,15 @@
-#' @title Controls for the `kliep` Function
+#' @title Controls for the \link[densityratio:kliep]{kliep()} Function
 #'
 #' @author Adam Struzik
 #'
 #' @description
-#' Controls for the \link[densityratio]{kliep} function used in the package.
+#' Controls for the \link[densityratio:kliep]{kliep()} function used in the package.
 #'
 #' @param scale `"numerator"`, `"denominator"` or `NULL`, indicating whether to standardize each numeric variable according
 #' to the numerator means and standard deviations, the denominator means and standard deviations,
 #' or apply no standardization at all.
-#' @param progressbar Logical indicating whether or not to display a progressbar.
-#' @param nfold Number of cross-validation folds used in order to calculate the optimal sigma value (default is 2-fold cv).
+#' @param progressbar Logical indicating whether or not to display a progress bar.
+#' @param nfold Number of cross-validation folds used in order to calculate the optimal sigma value (default is 2-fold cross-validation).
 #' @param ... Additional arguments.
 #'
 #' @return

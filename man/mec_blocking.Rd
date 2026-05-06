@@ -47,11 +47,11 @@ mec_blocking(
 
 \item{methods}{A named list of methods used for estimation (\code{"binary"} or
 \code{"continuous_parametric"}). Other unsupervised MEC methods are not
-supported by \code{mec_blocking()} at this stage.}
+supported by \code{\link[=mec_blocking]{mec_blocking()}} at this stage.}
 
-\item{blocking_x}{Optional input passed as \code{x} to \link[blocking:blocking]{blocking::blocking()}.}
+\item{blocking_x}{Optional input passed as \code{x} to \link[blocking:blocking]{blocking()}.}
 
-\item{blocking_y}{Optional input passed as \code{y} to \link[blocking:blocking]{blocking::blocking()}.}
+\item{blocking_y}{Optional input passed as \code{y} to \link[blocking:blocking]{blocking()}.}
 
 \item{blocking_variables}{Variables used to create blocking strings when
 \code{blocking_x} and \code{blocking_y} are not supplied.}
@@ -59,7 +59,7 @@ supported by \code{mec_blocking()} at this stage.}
 \item{blocking_sep}{Separator used when concatenating \code{blocking_variables}.}
 
 \item{controls_blocking}{A list of additional arguments passed to
-\link[blocking:blocking]{blocking::blocking()}, except \code{x} and \code{y}.}
+\link[blocking:blocking]{blocking()}, except \code{x} and \code{y}.}
 
 \item{min_training_pairs}{Minimum number of within-block training pairs.
 If \code{NULL}, \code{min_training_nonmatches} should also be \code{NULL}, and all blocks
@@ -83,10 +83,10 @@ default \code{"2"} uses the blockwise fixed-point equation.}
 \item{start_params}{Start parameters for the \code{"binary"} and
 \code{"continuous_parametric"} methods.}
 
-\item{nonpar_hurdle}{Currently unused in \code{mec_blocking()}.}
+\item{nonpar_hurdle}{Currently unused in \code{\link[=mec_blocking]{mec_blocking()}}.}
 
 \item{fixed_method}{A method for solving blockwise fixed-point equations using
-the \link[FixedPoint]{FixedPoint} function.}
+the \link[FixedPoint:FixedPoint]{FixedPoint()} function.}
 
 \item{delta}{A numeric value specifying the tolerance for the change in the
 estimated number of matches between MEC iterations.}
@@ -94,20 +94,20 @@ estimated number of matches between MEC iterations.}
 \item{eps}{A numeric value specifying the tolerance for the change in model
 parameters between MEC iterations.}
 
-\item{max_iter_em}{Currently unused in \code{mec_blocking()}.}
+\item{max_iter_em}{Currently unused in \code{\link[=mec_blocking]{mec_blocking()}}.}
 
-\item{tol_em}{Currently unused in \code{mec_blocking()}.}
+\item{tol_em}{Currently unused in \code{\link[=mec_blocking]{mec_blocking()}}.}
 
-\item{controls_nleqslv}{Controls passed to the \link[nleqslv]{nleqslv} function
+\item{controls_nleqslv}{Controls passed to the \link[nleqslv:nleqslv]{nleqslv()} function
 (only if the \code{"continuous_parametric"} method has been chosen for at least one
 variable).}
 
-\item{controls_kliep}{Currently unused in \code{mec_blocking()}.}
+\item{controls_kliep}{Currently unused in \code{\link[=mec_blocking]{mec_blocking()}}.}
 
 \item{true_matches}{A \code{data.frame} or \code{data.table} indicating known matches.}
 
 \item{keep_blocking_result}{Logical indicating whether to store the raw object
-returned by \link[blocking:blocking]{blocking::blocking()}.}
+returned by \link[blocking:blocking]{blocking()}.}
 
 \item{keep_training_data}{Logical indicating whether to store pooled training
 comparison vectors.}
@@ -120,7 +120,7 @@ estimated match counts, block summaries, selected training blocks, fitted
 density-ratio components, and optional evaluation diagnostics.
 }
 \description{
-Runs graph-based blocking using \link[blocking:blocking]{blocking::blocking()},
+Runs graph-based blocking using \link[blocking:blocking]{blocking()},
 fits one pooled unsupervised maximum entropy classifier (MEC) on selected
 within-block pairs, and applies the fitted density-ratio model blockwise.
 }
@@ -128,7 +128,7 @@ within-block pairs, and applies the fitted density-ratio model blockwise.
 The function assumes one-to-one linkage. The blocking stage defines disjoint
 bipartite blocks. MEC is trained once on the pooled union of selected
 within-block Cartesian products and is then applied separately in each final
-block. The ANN distance returned by \code{blocking::blocking()} is not used.
+block. The ANN distance returned by \link[blocking:blocking]{blocking()} is not used.
 
 If both \code{min_training_pairs} and \code{min_training_nonmatches} are \code{NULL}, all
 final blocks are used for pooled training. If both are supplied, blocks are

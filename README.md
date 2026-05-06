@@ -107,12 +107,13 @@ df_2
 
 Specify the key variables used for record linkage. Select a comparison
 function (i.e., a function to compare pairs of records) for each
-variable. For example, use the `jarowinkler_complement` function from
-the `automatedRecLin` package (1 - Jaro-Winkler distance). Choose a
-method for estimating the probability or density ratio for each
-variable. The available methods are: `"binary"`,
-`"continuous_parametric"`, `"continuous_nonparametric"`, and
-`"hit_miss"` (only for unsupervised learning).
+variable. For example, use `jarowinkler_complement()` from the
+`automatedRecLin` package (the Jaro-Winkler distance, i.e.,
+`1 - Jaro-Winkler similarity`). Choose a method for estimating the
+probability or density ratio for each variable. The available methods
+are: `"binary"`, `"continuous_parametric"`,
+`"continuous_nonparametric"`, and `"hit_miss"` (only for unsupervised
+learning).
 
 ``` r
 variables <- c("name", "surname", "city")
@@ -128,8 +129,8 @@ methods <- list(
 )
 ```
 
-Perform record linkage using the `mec` function. The output contains the
-following information:
+Perform record linkage using `mec()`. The output contains the following
+information:
 
 - the names of key variables,
 - the number of predicted matches,
@@ -175,7 +176,7 @@ unsup_result
 #> 3:    gamma_city 0.500   6.512723  135.163 0.03333333 5.233194  9.313035
 ```
 
-### Supervised maximimum entropy classifier for record linkage
+### Supervised maximum entropy classifier for record linkage
 
 Generate two simple training datasets that contain some common records,
 with typos in some cases.
@@ -240,7 +241,7 @@ methods_train <- list("name" = "continuous_nonparametric",
 matches_train <- data.frame("a" = 1:4, "b" = 1:4)
 ```
 
-Train a record linkage model using the `train_rec_lin` function.
+Train a record linkage model using `train_rec_lin()`.
 
 ``` r
 model <- train_rec_lin(A = df_1_train, B = df_2_train,
@@ -285,8 +286,8 @@ df_2_new
 #> 4 Michael Henders
 ```
 
-Predict matches using the `predict` function. The output has a similar
-structure to that of the `mec` function.
+Predict matches using the `predict()` method for `rec_lin_model`
+objects. The output has a similar structure to that of `mec()`.
 
 ``` r
 result_sup <- predict(model, df_1_new, df_2_new)
@@ -317,8 +318,8 @@ library(xgboost)
 ```
 
 Use the same data, variables, and comparators as in the previous
-example. First, use the `comparison_vectors` function to create
-comparison vectors that the model will be trained on.
+example. First, use `comparison_vectors()` to create comparison vectors
+that the model will be trained on.
 
 ``` r
 vectors <- comparison_vectors(A = df_1_train, B = df_2_train,
@@ -360,10 +361,11 @@ custom_xgb_model
 ```
 
 Use the model for predictions. Note that the `xgboost` package requires
-a matrix as input for the `predict` function and that needs to be
-specified in the `data_type` argument. Set `type = "response"` to ensure
-the XGBoost model predicts the probability of matching (this argument
-may vary depending on the model or library used).
+a matrix as input for the `predict()` method for `rec_lin_model` objects
+and that needs to be specified in the `data_type` argument. Set
+`type = "response"` to ensure the XGBoost model predicts the probability
+of matching (this argument may vary depending on the model or library
+used).
 
 ``` r
 result_xgb <- predict(custom_xgb_model, df_1_new, df_2_new,

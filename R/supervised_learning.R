@@ -20,8 +20,8 @@
 #' @param prob_ratio Probability/density ratio type (`"1"` or `"2"`).
 #' @param nonpar_hurdle Logical indicating whether to use a hurdle model or not
 #' (used only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
-#' @param controls_nleqslv Controls passed to the \link[nleqslv]{nleqslv} function (only if the `"continuous_parametric"` method has been chosen for at least one variable).
-#' @param controls_kliep Controls passed to the \link[densityratio]{kliep} function (only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
+#' @param controls_nleqslv Controls passed to the \link[nleqslv:nleqslv]{nleqslv()} function (only if the `"continuous_parametric"` method has been chosen for at least one variable).
+#' @param controls_kliep Controls passed to the \link[densityratio:kliep]{kliep()} function (only if the `"continuous_nonparametric"` method has been chosen for at least one variable).
 #'
 #' @details
 #' Consider two datasets: \eqn{A} and \eqn{B}.
@@ -44,19 +44,19 @@
 #' \item{\eqn{d(x,y) = 0} if and only if \eqn{x = y},}
 #' \item{\eqn{d(x,y) = d(y,x)}.}
 #' }
-#' For example, we can use \eqn{1 - \text{Jaro-Winkler distance}} for character variables
-#' (which is implemented in the `automatedRecLin` package as the `jarowinkler_complement` function)
+#' For example, we can use the Jaro-Winkler distance for character variables
+#' (which is implemented in the `automatedRecLin` package as [jarowinkler_complement()])
 #' or the Euclidean distance for numerical variables. The `automatedRecLin` package allows the use of
 #' a different comparison function for each key variable (which should be specified
 #' as a list in the `comparators` argument). The default function
-#' for each key variable is \link[reclin2]{cmp_identical}
+#' for each key variable is \link[reclin2:cmp_identical]{cmp_identical()}
 #' (the binary comparison function).
 #'
-#' The `train_rec_lin` function is used to train a record linkage model,
+#' The [train_rec_lin()] function is used to train a record linkage model,
 #' when \eqn{M} and \eqn{U} are known (which might later serve as a classifier
 #' for pairs outside \eqn{\Omega}). It offers different approaches to estimate the
 #' probability/density ratio between matches and non-matches, which should be
-#' specified as a list in the methods argument. The method suitable for the binary
+#' specified as a list in the `methods` argument. The method suitable for the binary
 #' comparison function is `"binary"`, which is also the default method for each
 #' variable.
 #'
@@ -92,8 +92,8 @@
 #' \item{`b_params` -- parameters estimated using the `"binary"` method,}
 #' \item{`cpar_params` -- parameters estimated using the `"continuous_parametric"` method,}
 #' \item{`cnonpar_params` -- probability of exact matching estimated using the `"continuous_nonparametric"` method,}
-#' \item{`ratio_kliep` -- a result of the \link[densityratio]{kliep} function,}
-#' \item{`ratio_kliep_list` -- an object containing the results of the \link[densityratio]{kliep} function,}
+#' \item{`ratio_kliep` -- a result of the \link[densityratio:kliep]{kliep()} function,}
+#' \item{`ratio_kliep_list` -- an object containing the results of the \link[densityratio:kliep]{kliep()} function,}
 #' \item{`ml_model` -- here `NULL`,}
 #' \item{`pi_est` -- a prior probability of matching,}
 #' \item{`match_prop` -- proportion of matches in the smaller dataset,}
@@ -421,19 +421,19 @@ train_rec_lin <- function(
 #' Creates a supervised record linkage model using a custom machine learning (ML) classifier.
 #'
 #' @param ml_model A trained ML model that predicts the probability of a match based on comparison vectors.
-#' @param vectors An object of class `comparison_vectors` (a result of the `comparison_vectors` function), used for training the `ml_model`.
+#' @param vectors An object of class `comparison_vectors` (a result of [comparison_vectors()]), used for training the `ml_model`.
 #'
 #' @details
-#' The `custom_rec_lin_model` function creates a custom record linkage model,
+#' The [custom_rec_lin_model()] function creates a custom record linkage model,
 #' based on known matches and non-matches (which might later serve as a classifier
 #' for pairs outside training data). The procedure of creating a custom model
 #' based on training data is as follows.
 #' \enumerate{
-#' \item{Use the `comparison_vectors` function to compare pairs of records.}
+#' \item{Use [comparison_vectors()] to compare pairs of records.}
 #' \item{Train a machine learning classifier using the `Omega` element
-#' of the output of the `comparison_vectors` function. The classifier should
+#' of the output of [comparison_vectors()]. The classifier should
 #' predict the probability of matching based on a given vector.}
-#' \item{Use the `custom_rec_lin_model` function with
+#' \item{Use [custom_rec_lin_model()] with
 #' appropriate arguments.}
 #' }
 #'

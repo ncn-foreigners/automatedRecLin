@@ -20,7 +20,7 @@
 )
 }
 \arguments{
-\item{object}{A \code{rec_lin_model} object from the \code{train_rec_lin} or \code{custom_rec_lin_model} functions.}
+\item{object}{A \code{rec_lin_model} object from \code{\link[=train_rec_lin]{train_rec_lin()}} or \code{\link[=custom_rec_lin_model]{custom_rec_lin_model()}}.}
 
 \item{newdata_A}{A duplicate-free \code{data.frame} or \code{data.table}.}
 
@@ -30,7 +30,7 @@
 
 \item{set_construction}{A method for constructing the predicted set of matches (\code{"size"}, \code{"flr"} or \code{"mmr"}).}
 
-\item{fixed_method}{A method for solving fixed-point equations using the \link[FixedPoint]{FixedPoint} function.}
+\item{fixed_method}{A method for solving fixed-point equations using the \link[FixedPoint:FixedPoint]{FixedPoint()} function.}
 
 \item{target_rate}{A target false link rate (FLR) or missing match rate (MMR)
 (used only if \code{set_construction == "flr"} or \code{set_construction == "mmr"}).}
@@ -42,12 +42,12 @@
 (used only if \code{set_construction == "flr"} or \code{set_construction == "mmr"}).}
 
 \item{data_type}{Data type for predictions with a custom ML model (\code{"data.frame"}, \code{"data.table"} or \code{"matrix"};
-used only if \code{object} is from the \code{custom_rec_lin_model} function).}
+used only if \code{object} is from \code{\link[=custom_rec_lin_model]{custom_rec_lin_model()}}).}
 
 \item{true_matches}{A \code{data.frame} or \code{data.table} indicating true matches.}
 
-\item{...}{Additional controls passed to the \code{predict} function for custom ML model
-(used only if the \code{object} is from the \code{custom_rec_lin_model} function).}
+\item{...}{Additional controls passed to \code{\link[=predict.rec_lin_model]{predict.rec_lin_model()}} for custom ML model
+(used only if the \code{object} is from \code{\link[=custom_rec_lin_model]{custom_rec_lin_model()}}).}
 }
 \value{
 Returns a list containing:\cr
@@ -68,19 +68,19 @@ using the maximum entropy classification (MEC) algorithm
 (see \href{https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm}{Lee et al. (2022)}).
 }
 \details{
-The \code{predict} function estimates the probability/density ratio
+The \code{\link[=predict.rec_lin_model]{predict.rec_lin_model()}} method estimates the probability/density ratio
 between matches and non-matches for pairs in given
 datasets, based on a model obtained using the
-\code{train_rec_lin} or \code{custom_rec_lin_model} functions.
+\code{\link[=train_rec_lin]{train_rec_lin()}} or \code{\link[=custom_rec_lin_model]{custom_rec_lin_model()}}.
 Then, it estimates the number of matches and
 returns the predicted matches, using the maximum
 entropy classification (MEC) algorithm
 (see \href{https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm}{Lee et al. (2022)}).
 
-The \code{predict} function allows the construction of the predicted set
+The \code{\link[=predict.rec_lin_model]{predict.rec_lin_model()}} method allows the construction of the predicted set
 of matches using its estimated size or the bisection procedure,
 described in \href{https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm}{Lee et al. (2022)},
-based on a target False Link Rate (FLR)
+based on a target false link rate (FLR)
 or missing match rate (MMR). To use the second option, set \code{set_construction = "flr"}
 or \code{set_construction = "mmr"} and
 specify a target error rate using the \code{target_rate} argument.

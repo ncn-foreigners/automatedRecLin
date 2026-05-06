@@ -65,10 +65,10 @@ mec(
 \item{tol_em}{Error tolerance in the EM algorithm
 (used only if the \code{"hit_miss"} method has been chosen for at least one variable).}
 
-\item{controls_nleqslv}{Controls passed to the \link[nleqslv]{nleqslv} function
+\item{controls_nleqslv}{Controls passed to the \link[nleqslv:nleqslv]{nleqslv()} function
 (only if the \code{"continuous_parametric"} method has been chosen for at least one variable).}
 
-\item{controls_kliep}{Controls passed to the \link[densityratio]{kliep} function
+\item{controls_kliep}{Controls passed to the \link[densityratio:kliep]{kliep()} function
 (only if the \code{"continuous_nonparametric"} method has been chosen for at least one variable).}
 
 \item{true_matches}{A \code{data.frame} or \code{data.table} indicating known matches.}
@@ -88,7 +88,7 @@ Returns a list containing:\cr
 \item{\code{b_params} -- parameters estimated using the \code{"binary"} method,}
 \item{\code{cpar_params} -- parameters estimated using the \code{"continuous_parametric"} method,}
 \item{\code{hm_params} -- parameters estimated using the \code{"hit_miss"} method,}
-\item{\code{ratio_kliep} -- a result of the \link[densityratio]{kliep} function,}
+\item{\code{ratio_kliep} -- a result of the \link[densityratio:kliep]{kliep()} function,}
 \item{\code{variables} -- a character vector of key variables used for comparison,}
 \item{\code{set_construction} -- a method for constructing the predicted set of matches,}
 \item{\code{eval_metrics} -- standard metrics for quality assessment (if \code{true_matches} is provided),}
@@ -122,15 +122,15 @@ satisfying the following conditions:\cr
 \item{\eqn{d(x,y) = 0} if and only if \eqn{x = y},}
 \item{\eqn{d(x,y) = d(y,x)}.}
 }
-For example, we can use \eqn{1 - \text{Jaro-Winkler distance}} for character variables
-(which is implemented in the \code{automatedRecLin} package as the \code{jarowinkler_complement} function)
+For example, we can use the Jaro-Winkler distance for character variables
+(which is implemented in the \code{automatedRecLin} package as \code{\link[=jarowinkler_complement]{jarowinkler_complement()}})
 or the Euclidean distance for numerical variables. The \code{automatedRecLin} package allows the use of
 a different comparison function for each key variable (which should be specified
 as a list in the \code{comparators} argument). The default function
-for each key variable is \link[reclin2]{cmp_identical}
+for each key variable is \link[reclin2:cmp_identical]{cmp_identical()}
 (the binary comparison function).
 
-The \code{mec} function offers different approaches to estimate the
+The \code{\link[=mec]{mec()}} function offers different approaches to estimate the
 probability/density ratio between matches and non-matches,
 which should be specified as a list in the \code{methods} argument.
 The available methods suitable for the binary comparison function
@@ -168,10 +168,10 @@ estimates the density ratio between the matches and the non-matches, using
 the Kullback-Leibler Importance Estimation Procedure (KLIEP).
 For details see \href{https://link.springer.com/article/10.1007/s10463-008-0197-x}{Sugiyama et al. (2008)}.
 
-The \code{mec} function allows the construction of the predicted set
+The \code{\link[=mec]{mec()}} function allows the construction of the predicted set
 of matches using its estimated size or the bisection procedure,
 described in \href{https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm}{Lee et al. (2022)},
-based on a target False Link Rate (FLR)
+based on a target false link rate (FLR)
 or missing match rate (MMR). To use the second option, set \code{set_construction = "flr"}
 or \code{set_construction = "mmr"} and
 specify a target error rate using the \code{target_rate} argument.

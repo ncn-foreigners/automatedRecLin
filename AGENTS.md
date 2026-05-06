@@ -78,6 +78,9 @@ When writing documentation, stick to the following rules:
 - Use proper technical vocabulary.
 - Use proper function/package references according
 to CRAN policies.
+- To refer to functions from the package, use `[function()]`.
+- Refer to functions from other packages as `\link[package]{function()}`. Don't use `::`.
+- Use backticks instead of `\code{}`.
 
 ## The `blocking` R package
 

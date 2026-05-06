@@ -2,18 +2,18 @@
 % Please edit documentation in R/comparators.R
 \name{jarowinkler_complement}
 \alias{jarowinkler_complement}
-\title{Jaro-Winkler Distance Complement}
+\title{Jaro-Winkler Distance}
 \usage{
 jarowinkler_complement()
 }
 \value{
 Returns a function taking two string arguments, \code{x} and \code{y},
-and returning the complement of the Jaro-Winkler distance.
+and returning the Jaro-Winkler distance.
 }
 \description{
-Creates a function that calculates the complement of the Jaro-Winkler
-distance between two strings (i.e.,
-\eqn{1 - \text{Jaro-Winkler distance}}).
+Creates a function that calculates the Jaro-Winkler distance between
+two strings, defined as
+\eqn{1 - \text{Jaro-Winkler similarity}}.
 }
 \author{
 Adam Struzik
