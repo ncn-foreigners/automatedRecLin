@@ -4,7 +4,14 @@
 \alias{comparison_vectors}
 \title{Create Comparison Vectors for Record Linkage}
 \usage{
-comparison_vectors(A, B, variables, comparators = NULL, matches = NULL)
+comparison_vectors(
+  A,
+  B,
+  variables,
+  comparators = NULL,
+  pairs = NULL,
+  matches = NULL
+)
 }
 \arguments{
 \item{A}{A duplicate-free \code{data.frame} or \code{data.table}.}
@@ -15,12 +22,15 @@ comparison_vectors(A, B, variables, comparators = NULL, matches = NULL)
 
 \item{comparators}{A named list of functions for comparing pairs of records.}
 
+\item{pairs}{Optional. A \code{data.frame} or \code{data.table} with columns \code{a} and \code{b}
+indicating pairs for which comparison vectors should be created.}
+
 \item{matches}{Optional. A \code{data.frame} or \code{data.table} indicating known matches.}
 }
 \value{
 Returns a list containing:\cr
 \itemize{
-\item{\code{Omega} -- a \code{data.table} with comparison vectors between all records from both datasets,
+\item{\code{Omega} -- a \code{data.table} with comparison vectors between records from both datasets,
 including optional match information,}
 \item{\code{variables} -- a character vector of key variables used for comparison,}
 \item{\code{comparators} -- a list of functions used to compare pairs of records,}

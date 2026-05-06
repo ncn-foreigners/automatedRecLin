@@ -1,5 +1,9 @@
 # Development
 
++ Added `mec_blocking()` for blocked unsupervised MEC with pooled training
+and blockwise prediction using the `blocking` package.
++ Added support for creating comparison vectors on a supplied table of record pairs.
+
 # Version 1.0.1
 
 + Fixed CRAN errors.
@@ -19,4 +23,3 @@ or a target Missing Match Rate (MMR).
 + Implemented S3 methods for printing.
 + Added support for evaluation when true matches are known.
 + Added documentation and examples.
-

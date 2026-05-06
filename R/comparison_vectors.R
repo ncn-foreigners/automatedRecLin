@@ -13,6 +13,8 @@
 #' @param B A duplicate-free `data.frame` or `data.table`.
 #' @param variables A character vector of key variables used to create comparison vectors.
 #' @param comparators A named list of functions for comparing pairs of records.
+#' @param pairs Optional. A `data.frame` or `data.table` with columns `a` and `b`
+#' indicating pairs for which comparison vectors should be created.
 #' @param matches Optional. A `data.frame` or `data.table` indicating known matches.
 #'
 #' @details
@@ -29,7 +31,7 @@
 #' @return
 #' Returns a list containing:\cr
 #' \itemize{
-#' \item{`Omega` -- a `data.table` with comparison vectors between all records from both datasets,
+#' \item{`Omega` -- a `data.table` with comparison vectors between records from both datasets,
 #' including optional match information,}
 #' \item{`variables` -- a character vector of key variables used for comparison,}
 #' \item{`comparators` -- a list of functions used to compare pairs of records,}
@@ -57,6 +59,7 @@ comparison_vectors <- function(
     B,
     variables,
     comparators = NULL,
+    pairs = NULL,
     matches = NULL) {
 
   stopifnot("`A` should be a data.frame or a data.table." =
@@ -89,12 +92,53 @@ comparison_vectors <- function(
   n_A <- nrow(A)
   n_B <- nrow(B)
 
+  if (!is.null(pairs)) {
+    if (!(is.data.frame(pairs) || is.data.table(pairs))) {
+      stop("`pairs` should be a data.frame or a data.table.")
+    }
+
+    pairs <- data.table::copy(data.table::as.data.table(pairs))
+
+    if (!all(c("a", "b") %in% names(pairs))) {
+      stop("`pairs` should contain columns: a, b.")
+    }
+
+    if (anyNA(pairs[["a"]]) || anyNA(pairs[["b"]])) {
+      stop("`pairs` cannot contain missing values.")
+    }
+
+    if (!is.numeric(pairs[["a"]]) || !is.numeric(pairs[["b"]])) {
+      stop("`pairs` should contain numeric row indices in columns a and b.")
+    }
+
+    if (any(pairs[["a"]] != as.integer(pairs[["a"]])) ||
+        any(pairs[["b"]] != as.integer(pairs[["b"]]))) {
+      stop("`pairs` should contain integer row indices in columns a and b.")
+    }
+
+    if (any(pairs[["a"]] < 1) || any(pairs[["b"]] < 1)) {
+      stop("`pairs` should contain positive row indices in columns a and b.")
+    }
+
+    if (any(pairs[["a"]] > n_A) || any(pairs[["b"]] > n_B)) {
+      stop("`pairs` contains row indices outside the input datasets.")
+    }
+
+    if (anyDuplicated(pairs[, c("a", "b"), with = FALSE]) > 0L) {
+      stop("`pairs` should not contain duplicate record pairs.")
+    }
+  }
+
   if (!is.null(matches)) {
     validate_match_pairs(matches, n_A, n_B)
   }
 
-  Omega <- data.table::CJ(a = seq_len(n_A), b = seq_len(n_B))
-  data.table::setkey(Omega, NULL)
+  if (is.null(pairs)) {
+    Omega <- data.table::CJ(a = seq_len(n_A), b = seq_len(n_B))
+    data.table::setkey(Omega, NULL)
+  } else {
+    Omega <- pairs
+  }
 
   gamma_names <- paste0("gamma_", variables)
   omega_a <- Omega[["a"]]

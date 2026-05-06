@@ -162,3 +162,69 @@ print.mec_rec_lin <- function(x, ...) {
   }
 
 }
+
+#' @import data.table
+#' @importFrom utils head
+#' @method print mec_blocking
+#' @exportS3Method
+print.mec_blocking <- function(x, ...) {
+
+  cat("Blocked MEC record linkage based on the following variables: ",
+      paste(x$variables, collapse = ", "), ".\n", sep = "")
+  cat("========================================================\n")
+  cat("Number of final blocks: ", NROW(x$block_summary), ".\n", sep = "")
+  cat("Training rule: ", x$training_rule, ".\n", sep = "")
+  cat("Number of training blocks: ", NROW(x$training_blocks), ".\n", sep = "")
+  cat("Number of training pairs: ", sum(x$training_blocks[["pair_count"]]), ".\n", sep = "")
+  cat("Training nonmatch lower bound: ",
+      sum(x$training_blocks[["nonmatches_min"]]), ".\n", sep = "")
+  cat("========================================================\n")
+
+  if (NROW(x$M_est) == 0) {
+    cat("No matches were predicted.\n")
+  } else {
+    M_est <- data.table::copy(x$M_est)
+    data.table::set(M_est, j = "ratio / 1000", value = M_est[["ratio"]] / 1000)
+    data.table::set(M_est, j = "ratio", value = NULL)
+    M_est_head <- head(M_est, 6)
+    cat("The algorithm predicted", NROW(M_est), "matches.\n")
+    cat("The first", NROW(M_est_head), "predicted matches are:\n")
+    print(M_est_head)
+    cat("========================================================\n")
+  }
+
+  cat("Estimated false link rate (FLR): ", sprintf("%.4f", x$flr_est * 100), " %.\n", sep = "")
+  cat("Estimated missing match rate (MMR): ", sprintf("%.4f", x$mmr_est * 100), " %.\n", sep = "")
+
+  if (!is.null(x$blocking_eval)) {
+    cat("========================================================\n")
+    cat("Blocking diagnostics:\n")
+    blocking_match_counts <- c(
+      true_matches = x$blocking_eval[["true_matches"]],
+      preserved_matches = x$blocking_eval[["preserved_matches"]],
+      lost_matches = x$blocking_eval[["lost_matches"]]
+    )
+    blocking_pair_counts <- c(
+      blocked_pairs = x$blocking_eval[["blocked_pairs"]],
+      full_pairs = x$blocking_eval[["full_pairs"]]
+    )
+    blocking_metrics <- c(
+      blocking_recall = x$blocking_eval[["blocking_recall"]],
+      blocking_fnr = x$blocking_eval[["blocking_fnr"]]
+    )
+    blocking_metrics <- as.numeric(sprintf("%.4f", blocking_metrics))
+    names(blocking_metrics) <- c("blocking_recall", "blocking_fnr")
+    print(blocking_match_counts)
+    print(blocking_pair_counts)
+    print(blocking_metrics)
+  }
+
+  if (!is.null(x$eval_metrics)) {
+    cat("========================================================\n")
+    cat("Evaluation metrics:\n")
+    eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics))
+    names(eval_metrics) <- names(x$eval_metrics)
+    print(eval_metrics)
+  }
+
+}
