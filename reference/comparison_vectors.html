@@ -18,6 +18,10 @@ and comparison functions."><link rel="stylesheet" href="https://cdn.jsdelivr.net
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/mec-blocking.html">MEC with blocking</a></li>
+  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -42,7 +46,14 @@ and comparison functions.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">comparison_vectors</span><span class="op">(</span><span class="va">A</span>, <span class="va">B</span>, <span class="va">variables</span>, comparators <span class="op">=</span> <span class="cn">NULL</span>, matches <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">comparison_vectors</span><span class="op">(</span></span>
+<span>  <span class="va">A</span>,</span>
+<span>  <span class="va">B</span>,</span>
+<span>  <span class="va">variables</span>,</span>
+<span>  comparators <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  pairs <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  matches <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -65,13 +76,18 @@ and comparison functions.</p>
 <dd><p>A named list of functions for comparing pairs of records.</p></dd>
 
 
+<dt id="arg-pairs">pairs<a class="anchor" aria-label="anchor" href="#arg-pairs"></a></dt>
+<dd><p>Optional. A <code>data.frame</code> or <code>data.table</code> with columns <code>a</code> and <code>b</code>
+indicating pairs for which comparison vectors should be created.</p></dd>
+
+
 <dt id="arg-matches">matches<a class="anchor" aria-label="anchor" href="#arg-matches"></a></dt>
 <dd><p>Optional. A <code>data.frame</code> or <code>data.table</code> indicating known matches.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>Returns a list containing:<br></p><ul><li><p><code>Omega</code> – a <code>data.table</code> with comparison vectors between all records from both datasets,
+    <p>Returns a list containing:<br></p><ul><li><p><code>Omega</code> – a <code>data.table</code> with comparison vectors between records from both datasets,
 including optional match information,</p></li>
 <li><p><code>variables</code> – a character vector of key variables used for comparison,</p></li>
 <li><p><code>comparators</code> – a list of functions used to compare pairs of records,</p></li>

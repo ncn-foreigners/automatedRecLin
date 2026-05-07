@@ -10,8 +10,10 @@ CRAN release: 2025-12-13
 
 CRAN release: 2025-11-18
 
-- Implemented comparison functions `abs_distance` and
-  `jarowinkler_complement`.
+- Implemented comparison functions
+  [`abs_distance()`](https://ncn-foreigners.github.io/automatedRecLin/reference/abs_distance.md)
+  and
+  [`jarowinkler_complement()`](https://ncn-foreigners.github.io/automatedRecLin/reference/jarowinkler_complement.md).
 - Added support for comparing two datasets using comparison functions.
 - Added support for training a supervised record linkage model using
   probability or density ratio estimation, based on the following
@@ -23,10 +25,10 @@ CRAN release: 2025-11-18
 - Added the unsupervised maximum entropy classification (MEC) algorithm
   for record linkage. Supported methods are: `"binary"`,
   `"continuous_parametric"`, `"continuous_nonparametric"`, and
-  `"hit-miss"`.
+  `"hit_miss"`.
 - Added support for creating the predicted set of matches based on: its
-  estimated size, a target False Link Rate (FLR) or a target Missing
-  Match Rate (MMR).
+  estimated size, a target false link rate (FLR) or a target missing
+  match rate (MMR).
 - Implemented S3 methods for printing.
 - Added support for evaluation when true matches are known.
 - Added documentation and examples.

@@ -11,13 +11,21 @@
 - [`abs_distance()`](https://ncn-foreigners.github.io/automatedRecLin/reference/abs_distance.md)
   : Absolute Distance Comparison Function
 
+- [`census`](https://ncn-foreigners.github.io/automatedRecLin/reference/census.md)
+  : Fictional census data
+
+- [`cis`](https://ncn-foreigners.github.io/automatedRecLin/reference/cis.md)
+  : Fictional customer data
+
 - [`comparison_vectors()`](https://ncn-foreigners.github.io/automatedRecLin/reference/comparison_vectors.md)
   : Create Comparison Vectors for Record Linkage
 
 - [`control_kliep()`](https://ncn-foreigners.github.io/automatedRecLin/reference/control_kliep.md)
   :
 
-  Controls for the `kliep` Function
+  Controls for the
+  [kliep()](https://thomvolker.github.io/densityratio/reference/kliep.html)
+  Function
 
 - [`custom_rec_lin_model()`](https://ncn-foreigners.github.io/automatedRecLin/reference/custom_rec_lin_model.md)
   : Create a Custom Record Linkage Model
@@ -26,10 +34,13 @@
   : Parametric Bootstrap for Standard Error Estimation in MEC
 
 - [`jarowinkler_complement()`](https://ncn-foreigners.github.io/automatedRecLin/reference/jarowinkler_complement.md)
-  : Jaro-Winkler Distance Complement
+  : Jaro-Winkler Distance
 
 - [`mec()`](https://ncn-foreigners.github.io/automatedRecLin/reference/mec.md)
   : Unsupervised Maximum Entropy Classifier for Record Linkage
+
+- [`mec_blocking()`](https://ncn-foreigners.github.io/automatedRecLin/reference/mec_blocking.md)
+  : Blocked Unsupervised Maximum Entropy Classifier for Record Linkage
 
 - [`predict(`*`<rec_lin_model>`*`)`](https://ncn-foreigners.github.io/automatedRecLin/reference/predict.rec_lin_model.md)
   : Predict Matches Based on a Given Record Linkage Model

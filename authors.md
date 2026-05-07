@@ -3,6 +3,7 @@
 ## Authors
 
 - **Adam Struzik**. Author, maintainer.
+  [](https://orcid.org/0009-0002-2547-482X)
 
 - **Maciej Beręsewicz**. Author, contributor.
   [](https://orcid.org/0000-0002-8281-4301)

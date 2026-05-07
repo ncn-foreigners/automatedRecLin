@@ -16,6 +16,10 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/mec-blocking.html">MEC with blocking</a></li>
+  </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -38,13 +42,13 @@
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.0.0" id="version-100">Version 1.0.0<a class="anchor" aria-label="anchor" href="#version-100"></a></h2><p class="text-muted">CRAN release: 2025-11-18</p>
-<ul><li>Implemented comparison functions <code>abs_distance</code> and <code>jarowinkler_complement</code>.</li>
+<ul><li>Implemented comparison functions <code><a href="../reference/abs_distance.html">abs_distance()</a></code> and <code><a href="../reference/jarowinkler_complement.html">jarowinkler_complement()</a></code>.</li>
 <li>Added support for comparing two datasets using comparison functions.</li>
 <li>Added support for training a supervised record linkage model using probability or density ratio estimation, based on the following methods: <code>"binary"</code>, <code>"continuous_parametric"</code>, and <code>"continuous_nonparametric"</code>.</li>
 <li>Added support for creating a supervised record linkage model using a custom machine learning (ML) classifier.</li>
 <li>Added support for predicting matches based on a record linkage model.</li>
-<li>Added the unsupervised maximum entropy classification (MEC) algorithm for record linkage. Supported methods are: <code>"binary"</code>, <code>"continuous_parametric"</code>, <code>"continuous_nonparametric"</code>, and <code>"hit-miss"</code>.</li>
-<li>Added support for creating the predicted set of matches based on: its estimated size, a target False Link Rate (FLR) or a target Missing Match Rate (MMR).</li>
+<li>Added the unsupervised maximum entropy classification (MEC) algorithm for record linkage. Supported methods are: <code>"binary"</code>, <code>"continuous_parametric"</code>, <code>"continuous_nonparametric"</code>, and <code>"hit_miss"</code>.</li>
+<li>Added support for creating the predicted set of matches based on: its estimated size, a target false link rate (FLR) or a target missing match rate (MMR).</li>
 <li>Implemented S3 methods for printing.</li>
 <li>Added support for evaluation when true matches are known.</li>
 <li>Added documentation and examples.</li>

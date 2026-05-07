@@ -1,0 +1,154 @@
+# MEC with blocking
+
+## Setup
+
+Load required packages.
+
+``` r
+
+library(automatedRecLin)
+library(data.table)
+
+options("text2vec.mc.cores" = 1L)
+```
+
+## Data
+
+We use the full example Census and Customer Information System (CIS)
+datasets from [McLeod et
+al. (2011)](https://wayback.archive-it.org/12090/20231221144450/https://cros-legacy.ec.europa.eu/content/job-training_en).
+The goal is to link records from CIS to records from Census.
+
+``` r
+
+data("census", package = "automatedRecLin")
+data("cis", package = "automatedRecLin")
+setDT(census)
+setDT(cis)
+
+NROW(cis)
+#> [1] 24613
+NROW(census)
+#> [1] 25343
+```
+
+The `person_id` variable identifies the correct linkage. We use this
+information only to evaluate the result.
+
+``` r
+
+cis[is.na(cis)] <- ""
+census[is.na(census)] <- ""
+
+cis[, pername1 := gsub("-", "", pername1)]
+census[, pername1 := gsub("-", "", pername1)]
+
+true_matches <- merge(
+  x = cis[, .(a = .I, person_id)],
+  y = census[, .(b = .I, person_id)],
+  by = "person_id"
+)[, .(a, b)]
+
+NROW(true_matches)
+#> [1] 24043
+```
+
+## MEC with blocking
+
+We compare forename and surname using the Jaro-Winkler distance. These
+two comparison variables are modeled with the continuous parametric MEC
+method. Sex and date-of-birth variables use the default binary method.
+Address fields are used only to construct blocks.
+
+``` r
+
+variables <- c(
+  "pername1", "pername2", "sex",
+  "dob_day", "dob_mon", "dob_year"
+)
+
+comparators <- list(
+  "pername1" = jarowinkler_complement(),
+  "pername2" = jarowinkler_complement()
+)
+
+methods <- list(
+  "pername1" = "continuous_parametric",
+  "pername2" = "continuous_parametric"
+)
+
+blocking_variables <- c(variables, "enumcap", "enumpc")
+```
+
+Run blocked MEC. The model is trained on sampled blocks that contain at
+least the requested number of pairs and a lower bound on nonmatches.
+
+``` r
+
+set.seed(1)
+
+result <- mec_blocking(
+  A = cis,
+  B = census,
+  variables = variables,
+  comparators = comparators,
+  methods = methods,
+  blocking_variables = blocking_variables,
+  blocking_sep = "",
+  controls_blocking = list(seed = 1, n_threads = 1),
+  min_training_pairs = 1000,
+  min_training_nonmatches = 1000,
+  block_sampling_seed = 1,
+  nonmatch_sample_size = 100000,
+  nonmatch_sampling_seed = 1,
+  true_matches = true_matches
+)
+
+result
+#> Blocked MEC record linkage based on the following variables:  
+#> pername1, pername2, sex, dob_day, dob_mon, dob_year.
+#> ========================================================
+#> Number of final blocks: 23725.
+#> Training rule: threshold_sampling.
+#> Number of training blocks: 14813.
+#> Number of training pairs: 15813.
+#> Training nonmatch lower bound: 1000.
+#> ========================================================
+#> The algorithm predicted 23717 matches.
+#> The first 6 predicted matches are:
+#>        a     b block ratio / 1000
+#>    <int> <int> <num>        <num>
+#> 1:  8152     1     1    137901.96
+#> 2:  8584     2     2    604248.89
+#> 3: 20590     3     3    999468.99
+#> 4: 18456     4     4     50922.36
+#> 5: 17257     5     5    315391.85
+#> 6: 19868     6     6    315391.85
+#> ========================================================
+#> Estimated false link rate (FLR): 0.0034 %.
+#> Estimated missing match rate (MMR): 0.0034 %.
+#> ========================================================
+#> Blocking diagnostics:
+#>      true_matches preserved_matches      lost_matches 
+#>             24043             23687               356 
+#> blocked_pairs    full_pairs 
+#>         25343     623767259 
+#> blocking_recall    blocking_fnr 
+#>          0.9852          0.0148 
+#> ========================================================
+#> Evaluation metrics:
+#>    FLR    MMR 
+#> 0.0016 0.0151
+```
+
+## What blocking buys us
+
+The full Cartesian product contains 623,767,259 record pairs. Blocking
+reduces this to 25,343 candidate pairs, while retaining 98.52% of known
+links. The final linkage set contains 23,717 predicted matches.
+
+    #>        step                                result
+    #>      <char>                                <char>
+    #> 1: Training   threshold_sampling on 14,813 blocks
+    #> 2: Blocking 23,687 of 24,043 known links retained
+    #> 3:  Linkage              FLR = 0.16%; MMR = 1.51%

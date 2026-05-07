@@ -18,7 +18,8 @@ train_rec_lin(
   prob_ratio = NULL,
   nonpar_hurdle = TRUE,
   controls_nleqslv = list(),
-  controls_kliep = control_kliep()
+  controls_kliep = control_kliep(),
+  verbose = FALSE
 )
 ```
 
@@ -62,16 +63,20 @@ train_rec_lin(
 - controls_nleqslv:
 
   Controls passed to the
-  [nleqslv](https://rdrr.io/pkg/nleqslv/man/nleqslv.html) function (only
-  if the `"continuous_parametric"` method has been chosen for at least
-  one variable).
+  [nleqslv()](https://bertcarnell.github.io/nleqslv/reference/nleqslv.html)
+  function (only if the `"continuous_parametric"` method has been chosen
+  for at least one variable).
 
 - controls_kliep:
 
   Controls passed to the
-  [kliep](https://thomvolker.github.io/densityratio/reference/kliep.html)
+  [kliep()](https://thomvolker.github.io/densityratio/reference/kliep.html)
   function (only if the `"continuous_nonparametric"` method has been
   chosen for at least one variable).
+
+- verbose:
+
+  Logical indicating whether to print progress messages.
 
 ## Value
 
@@ -95,11 +100,11 @@ Returns a list containing:
   `"continuous_nonparametric"` method,
 
 - `ratio_kliep` – a result of the
-  [kliep](https://thomvolker.github.io/densityratio/reference/kliep.html)
+  [kliep()](https://thomvolker.github.io/densityratio/reference/kliep.html)
   function,
 
 - `ratio_kliep_list` – an object containing the results of the
-  [kliep](https://thomvolker.github.io/densityratio/reference/kliep.html)
+  [kliep()](https://thomvolker.github.io/densityratio/reference/kliep.html)
   function,
 
 - `ml_model` – here `NULL`,
@@ -139,23 +144,23 @@ following conditions:
 
 3.  \\d(x,y) = d(y,x)\\.
 
-For example, we can use \\1 - \text{Jaro-Winkler distance}\\ for
-character variables (which is implemented in the `automatedRecLin`
-package as the `jarowinkler_complement` function) or the Euclidean
-distance for numerical variables. The `automatedRecLin` package allows
-the use of a different comparison function for each key variable (which
-should be specified as a list in the `comparators` argument). The
-default function for each key variable is
-[cmp_identical](https://rdrr.io/pkg/reclin2/man/comparators.html) (the
+For example, we can use the Jaro-Winkler distance for character
+variables (which is implemented in the `automatedRecLin` package as
+[`jarowinkler_complement()`](https://ncn-foreigners.github.io/automatedRecLin/reference/jarowinkler_complement.md))
+or the Euclidean distance for numerical variables. The `automatedRecLin`
+package allows the use of a different comparison function for each key
+variable (which should be specified as a list in the `comparators`
+argument). The default function for each key variable is
+[cmp_identical()](https://rdrr.io/pkg/reclin2/man/comparators.html) (the
 binary comparison function).
 
-The `train_rec_lin` function is used to train a record linkage model,
+The `train_rec_lin()` function is used to train a record linkage model,
 when \\M\\ and \\U\\ are known (which might later serve as a classifier
 for pairs outside \\\Omega\\). It offers different approaches to
 estimate the probability/density ratio between matches and non-matches,
-which should be specified as a list in the methods argument. The method
-suitable for the binary comparison function is `"binary"`, which is also
-the default method for each variable.
+which should be specified as a list in the `methods` argument. The
+method suitable for the binary comparison function is `"binary"`, which
+is also the default method for each variable.
 
 For the continuous semi-metrics we suggest the usage of
 `"continuous_parametric"` or `"continuous_nonparametric"` method. The

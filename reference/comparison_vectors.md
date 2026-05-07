@@ -6,7 +6,14 @@ specified variables and comparison functions.
 ## Usage
 
 ``` r
-comparison_vectors(A, B, variables, comparators = NULL, matches = NULL)
+comparison_vectors(
+  A,
+  B,
+  variables,
+  comparators = NULL,
+  pairs = NULL,
+  matches = NULL
+)
 ```
 
 ## Arguments
@@ -27,6 +34,11 @@ comparison_vectors(A, B, variables, comparators = NULL, matches = NULL)
 
   A named list of functions for comparing pairs of records.
 
+- pairs:
+
+  Optional. A `data.frame` or `data.table` with columns `a` and `b`
+  indicating pairs for which comparison vectors should be created.
+
 - matches:
 
   Optional. A `data.frame` or `data.table` indicating known matches.
@@ -35,8 +47,8 @@ comparison_vectors(A, B, variables, comparators = NULL, matches = NULL)
 
 Returns a list containing:  
 
-- `Omega` – a `data.table` with comparison vectors between all records
-  from both datasets, including optional match information,
+- `Omega` – a `data.table` with comparison vectors between records from
+  both datasets, including optional match information,
 
 - `variables` – a character vector of key variables used for comparison,
 

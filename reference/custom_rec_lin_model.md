@@ -18,8 +18,9 @@ custom_rec_lin_model(ml_model, vectors)
 
 - vectors:
 
-  An object of class `comparison_vectors` (a result of the
-  `comparison_vectors` function), used for training the `ml_model`.
+  An object of class `comparison_vectors` (a result of
+  [`comparison_vectors()`](https://ncn-foreigners.github.io/automatedRecLin/reference/comparison_vectors.md)),
+  used for training the `ml_model`.
 
 ## Value
 
@@ -57,18 +58,22 @@ Returns a list containing:
 
 ## Details
 
-The `custom_rec_lin_model` function creates a custom record linkage
+The `custom_rec_lin_model()` function creates a custom record linkage
 model, based on known matches and non-matches (which might later serve
 as a classifier for pairs outside training data). The procedure of
 creating a custom model based on training data is as follows.
 
-1.  Use the `comparison_vectors` function to compare pairs of records.
+1.  Use
+    [`comparison_vectors()`](https://ncn-foreigners.github.io/automatedRecLin/reference/comparison_vectors.md)
+    to compare pairs of records.
 
 2.  Train a machine learning classifier using the `Omega` element of the
-    output of the `comparison_vectors` function. The classifier should
-    predict the probability of matching based on a given vector.
+    output of
+    [`comparison_vectors()`](https://ncn-foreigners.github.io/automatedRecLin/reference/comparison_vectors.md).
+    The classifier should predict the probability of matching based on a
+    given vector.
 
-3.  Use the `custom_rec_lin_model` function with appropriate arguments.
+3.  Use `custom_rec_lin_model()` with appropriate arguments.
 
 ## Author
 
@@ -98,7 +103,7 @@ if (requireNamespace("xgboost", quietly = TRUE)) {
   model_xgb <- xgboost::xgboost(x = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
                        y = factor(vectors$Omega$match),
                        objective = "binary:logistic", eval_metric = "logloss",
-                       nrounds = 100, verbosity = 0)
+                       nrounds = 100, verbosity = 0, nthread = 1)
   custom_xgb_model <- custom_rec_lin_model(model_xgb, vectors)
   custom_xgb_model
 }

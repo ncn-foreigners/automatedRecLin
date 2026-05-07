@@ -35,6 +35,12 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="articles/mec-blocking.html">MEC with blocking</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -132,7 +138,7 @@
 <span><span class="co">#&gt; 10  Benjamin       Lee       Miami</span></span>
 <span><span class="co">#&gt; 11    Amelia Hernandez      Boston</span></span>
 <span><span class="co">#&gt; 12     Lucas     Clark      Denver</span></span></code></pre></div>
-<p>Specify the key variables used for record linkage. Select a comparison function (i.e., a function to compare pairs of records) for each variable. For example, use the <code>jarowinkler_complement</code> function from the <code>automatedRecLin</code> package (1 - Jaro-Winkler distance). Choose a method for estimating the probability or density ratio for each variable. The available methods are: <code>"binary"</code>, <code>"continuous_parametric"</code>, <code>"continuous_nonparametric"</code>, and <code>"hit_miss"</code> (only for unsupervised learning).</p>
+<p>Specify the key variables used for record linkage. Select a comparison function (i.e., a function to compare pairs of records) for each variable. For example, use <code><a href="reference/jarowinkler_complement.html">jarowinkler_complement()</a></code> from the <code>automatedRecLin</code> package (the Jaro-Winkler distance, i.e., <code>1 - Jaro-Winkler similarity</code>). Choose a method for estimating the probability or density ratio for each variable. The available methods are: <code>"binary"</code>, <code>"continuous_parametric"</code>, <code>"continuous_nonparametric"</code>, and <code>"hit_miss"</code> (only for unsupervised learning).</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">variables</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"surname"</span>, <span class="st">"city"</span><span class="op">)</span></span>
 <span><span class="va">comparators</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -145,7 +151,7 @@
 <span>  <span class="st">"surname"</span> <span class="op">=</span> <span class="st">"continuous_parametric"</span>,</span>
 <span>  <span class="st">"city"</span> <span class="op">=</span> <span class="st">"continuous_parametric"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>Perform record linkage using the <code>mec</code> function. The output contains the following information:</p>
+<p>Perform record linkage using <code><a href="reference/mec.html">mec()</a></code>. The output contains the following information:</p>
 <ul>
 <li>the names of key variables,</li>
 <li>the number of predicted matches,</li>
@@ -167,7 +173,7 @@
 <span><span class="co">#&gt; The algorithm predicted 8 matches.</span></span>
 <span><span class="co">#&gt; The first 6 predicted matches are:</span></span>
 <span><span class="co">#&gt;        a     b ratio / 1000</span></span>
-<span><span class="co">#&gt;    &lt;num&gt; &lt;num&gt;        &lt;num&gt;</span></span>
+<span><span class="co">#&gt;    &lt;int&gt; &lt;int&gt;        &lt;num&gt;</span></span>
 <span><span class="co">#&gt; 1:     6     6 1.433031e+08</span></span>
 <span><span class="co">#&gt; 2:     8     8 3.198692e+07</span></span>
 <span><span class="co">#&gt; 3:     7     7 9.673745e+05</span></span>
@@ -177,7 +183,7 @@
 <span><span class="co">#&gt; ========================================================</span></span>
 <span><span class="co">#&gt; The construction of the classification set was based on estimates of its size.</span></span>
 <span><span class="co">#&gt; Estimated false link rate (FLR): 0.2066 %.</span></span>
-<span><span class="co">#&gt; Estimated missing match rate (MMR): 0.0000 %.</span></span>
+<span><span class="co">#&gt; Estimated missing match rate (MMR): 0.2066 %.</span></span>
 <span><span class="co">#&gt; ========================================================</span></span>
 <span><span class="co">#&gt; Variables selected for the continuous parametric method: name, surname, city.</span></span>
 <span><span class="co">#&gt; Estimated parameters for the continuous parametric method:</span></span>
@@ -188,7 +194,7 @@
 <span><span class="co">#&gt; 3:    gamma_city 0.500   6.512723  135.163 0.03333333 5.233194  9.313035</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="supervised-maximimum-entropy-classifier-for-record-linkage">Supervised maximimum entropy classifier for record linkage<a class="anchor" aria-label="anchor" href="#supervised-maximimum-entropy-classifier-for-record-linkage"></a>
+<h3 id="supervised-maximum-entropy-classifier-for-record-linkage">Supervised maximum entropy classifier for record linkage<a class="anchor" aria-label="anchor" href="#supervised-maximum-entropy-classifier-for-record-linkage"></a>
 </h3>
 <p>Generate two simple training datasets that contain some common records, with typos in some cases.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
@@ -244,7 +250,7 @@
 <span><span class="va">methods_train</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"name"</span> <span class="op">=</span> <span class="st">"continuous_nonparametric"</span>,</span>
 <span>                      <span class="st">"surname"</span> <span class="op">=</span> <span class="st">"continuous_nonparametric"</span><span class="op">)</span></span>
 <span><span class="va">matches_train</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="st">"a"</span> <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="st">"b"</span> <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">)</span></span></code></pre></div>
-<p>Train a record linkage model using the <code>train_rec_lin</code> function.</p>
+<p>Train a record linkage model using <code><a href="reference/train_rec_lin.html">train_rec_lin()</a></code>.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/train_rec_lin.html">train_rec_lin</a></span><span class="op">(</span>A <span class="op">=</span> <span class="va">df_1_train</span>, B <span class="op">=</span> <span class="va">df_2_train</span>,</span>
 <span>                       matches <span class="op">=</span> <span class="va">matches_train</span>,</span>
@@ -283,21 +289,21 @@
 <span><span class="co">#&gt; 2   Emely Johnson</span></span>
 <span><span class="co">#&gt; 3    Mark  Tailor</span></span>
 <span><span class="co">#&gt; 4 Michael Henders</span></span></code></pre></div>
-<p>Predict matches using the <code>predict</code> function. The output has a similar structure to that of the <code>mec</code> function.</p>
+<p>Predict matches using the <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> method for <code>rec_lin_model</code> objects. The output has a similar structure to that of <code><a href="reference/mec.html">mec()</a></code>.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result_sup</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">model</span>, <span class="va">df_1_new</span>, <span class="va">df_2_new</span><span class="op">)</span></span>
 <span><span class="va">result_sup</span></span>
 <span><span class="co">#&gt; The algorithm predicted 3 matches.</span></span>
 <span><span class="co">#&gt; The first 3 predicted matches are:</span></span>
 <span><span class="co">#&gt;        a     b ratio / 1000</span></span>
-<span><span class="co">#&gt;    &lt;num&gt; &lt;num&gt;        &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:     2     2   0.04572852</span></span>
-<span><span class="co">#&gt; 2:     3     3   0.02813814</span></span>
-<span><span class="co">#&gt; 3:     1     1   0.02560156</span></span>
+<span><span class="co">#&gt;    &lt;int&gt; &lt;int&gt;        &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:     2     2   0.04761403</span></span>
+<span><span class="co">#&gt; 2:     3     3   0.02929836</span></span>
+<span><span class="co">#&gt; 3:     1     1   0.02665718</span></span>
 <span><span class="co">#&gt; ========================================================</span></span>
 <span><span class="co">#&gt; The construction of the classification set was based on estimates of its size.</span></span>
-<span><span class="co">#&gt; Estimated false link rate (FLR): 15.3038 %.</span></span>
-<span><span class="co">#&gt; Estimated missing match rate (MMR): 15.3038 %.</span></span></code></pre></div>
+<span><span class="co">#&gt; Estimated false link rate (FLR): 0.0000 %.</span></span>
+<span><span class="co">#&gt; Estimated missing match rate (MMR): 0.0000 %.</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -307,7 +313,7 @@
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("xgboost") # uncomment if needed</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/dmlc/xgboost" class="external-link">xgboost</a></span><span class="op">)</span></span></code></pre></div>
-<p>Use the same data, variables, and comparators as in the previous example. First, use the <code>comparison_vectors</code> function to create comparison vectors that the model will be trained on.</p>
+<p>Use the same data, variables, and comparators as in the previous example. First, use <code><a href="reference/comparison_vectors.html">comparison_vectors()</a></code> to create comparison vectors that the model will be trained on.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">vectors</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/comparison_vectors.html">comparison_vectors</a></span><span class="op">(</span>A <span class="op">=</span> <span class="va">df_1_train</span>, B <span class="op">=</span> <span class="va">df_2_train</span>,</span>
 <span>                              variables <span class="op">=</span> <span class="va">variables_train</span>,</span>
@@ -329,7 +335,7 @@
 <code class="sourceCode R"><span><span class="va">model_xgb</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/xgboost/man/xgboost.html" class="external-link">xgboost</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">vectors</span><span class="op">$</span><span class="va">Omega</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"gamma_name"</span>, <span class="st">"gamma_surname"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span>,</span>
 <span>                     y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">vectors</span><span class="op">$</span><span class="va">Omega</span><span class="op">$</span><span class="va">match</span><span class="op">)</span>,</span>
 <span>                     objective <span class="op">=</span> <span class="st">"binary:logistic"</span>, eval_metric <span class="op">=</span> <span class="st">"logloss"</span>,</span>
-<span>                     nrounds <span class="op">=</span> <span class="fl">100</span>, verbosity <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
+<span>                     nrounds <span class="op">=</span> <span class="fl">100</span>, verbosity <span class="op">=</span> <span class="fl">0</span>, nthread <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 <p>Create the XGBoost-based record linkage model.</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">custom_xgb_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/custom_rec_lin_model.html">custom_rec_lin_model</a></span><span class="op">(</span><span class="va">model_xgb</span>, <span class="va">vectors</span><span class="op">)</span></span>
@@ -339,7 +345,7 @@
 <span><span class="co">#&gt; The prior probability of matching is 0.04.</span></span>
 <span><span class="co">#&gt; ========================================================</span></span>
 <span><span class="co">#&gt; Probability/density ratio type: 2.</span></span></code></pre></div>
-<p>Use the model for predictions. Note that the <code>xgboost</code> package requires a matrix as input for the <code>predict</code> function and that needs to be specified in the <code>data_type</code> argument. Set <code>type = "response"</code> to ensure the XGBoost model predicts the probability of matching (this argument may vary depending on the model or library used).</p>
+<p>Use the model for predictions. Note that the <code>xgboost</code> package requires a matrix as input for the <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> method for <code>rec_lin_model</code> objects and that needs to be specified in the <code>data_type</code> argument. Set <code>type = "response"</code> to ensure the XGBoost model predicts the probability of matching (this argument may vary depending on the model or library used).</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result_xgb</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">custom_xgb_model</span>, <span class="va">df_1_new</span>, <span class="va">df_2_new</span>,</span>
 <span>                      data_type <span class="op">=</span> <span class="st">"matrix"</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span>
@@ -347,7 +353,7 @@
 <span><span class="co">#&gt; The algorithm predicted 3 matches.</span></span>
 <span><span class="co">#&gt; The first 3 predicted matches are:</span></span>
 <span><span class="co">#&gt;        a     b ratio / 1000</span></span>
-<span><span class="co">#&gt;    &lt;num&gt; &lt;num&gt;        &lt;num&gt;</span></span>
+<span><span class="co">#&gt;    &lt;int&gt; &lt;int&gt;        &lt;num&gt;</span></span>
 <span><span class="co">#&gt; 1:     1     1    0.0299477</span></span>
 <span><span class="co">#&gt; 2:     2     2    0.0299477</span></span>
 <span><span class="co">#&gt; 3:     3     3    0.0299477</span></span>
@@ -355,6 +361,11 @@
 <span><span class="co">#&gt; The construction of the classification set was based on estimates of its size.</span></span>
 <span><span class="co">#&gt; Estimated false link rate (FLR): 15.9112 %.</span></span>
 <span><span class="co">#&gt; Estimated missing match rate (MMR): 15.9112 %.</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="integration-with-the-blocking-package">Integration with the <code>blocking</code> package<a class="anchor" aria-label="anchor" href="#integration-with-the-blocking-package"></a>
+</h2>
+<p>The <code>automatedRecLin</code> R package can be integrated with the <a href="https://cran.r-project.org/package=blocking" class="external-link"><code>blocking</code></a> package. For details, see the vignette entitled <em>MEC with blocking</em>.</p>
 </div>
 <div class="section level2">
 <h2 id="funding">Funding<a class="anchor" aria-label="anchor" href="#funding"></a>
@@ -396,7 +407,7 @@
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>Adam Struzik <br><small class="roles"> Author, maintainer </small>   </li>
+<li>Adam Struzik <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0009-0002-2547-482X" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
 <li>Maciej Beręsewicz <br><small class="roles"> Author, contributor </small> <a href="https://orcid.org/0000-0002-8281-4301" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
 </ul>
 </div>

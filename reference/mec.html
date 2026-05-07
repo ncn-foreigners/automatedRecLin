@@ -22,6 +22,10 @@ based on comparison vectors."><link rel="stylesheet" href="https://cdn.jsdelivr.
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/mec-blocking.html">MEC with blocking</a></li>
+  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -67,7 +71,8 @@ based on comparison vectors.</p>
 <span>  tol_em <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  controls_nleqslv <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  controls_kliep <span class="op">=</span> <span class="fu"><a href="control_kliep.html">control_kliep</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  true_matches <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  true_matches <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -146,17 +151,21 @@ based on comparison vectors.</p>
 
 
 <dt id="arg-controls-nleqslv">controls_nleqslv<a class="anchor" aria-label="anchor" href="#arg-controls-nleqslv"></a></dt>
-<dd><p>Controls passed to the <a href="https://rdrr.io/pkg/nleqslv/man/nleqslv.html" class="external-link">nleqslv</a> function
+<dd><p>Controls passed to the <a href="https://bertcarnell.github.io/nleqslv/reference/nleqslv.html" class="external-link">nleqslv()</a> function
 (only if the <code>"continuous_parametric"</code> method has been chosen for at least one variable).</p></dd>
 
 
 <dt id="arg-controls-kliep">controls_kliep<a class="anchor" aria-label="anchor" href="#arg-controls-kliep"></a></dt>
-<dd><p>Controls passed to the <a href="https://thomvolker.github.io/densityratio/reference/kliep.html" class="external-link">kliep</a> function
+<dd><p>Controls passed to the <a href="https://thomvolker.github.io/densityratio/reference/kliep.html" class="external-link">kliep()</a> function
 (only if the <code>"continuous_nonparametric"</code> method has been chosen for at least one variable).</p></dd>
 
 
 <dt id="arg-true-matches">true_matches<a class="anchor" aria-label="anchor" href="#arg-true-matches"></a></dt>
 <dd><p>A <code>data.frame</code> or <code>data.table</code> indicating known matches.</p></dd>
+
+
+<dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
+<dd><p>Logical indicating whether to print progress messages.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -173,7 +182,7 @@ based on comparison vectors.</p>
 <li><p><code>b_params</code> – parameters estimated using the <code>"binary"</code> method,</p></li>
 <li><p><code>cpar_params</code> – parameters estimated using the <code>"continuous_parametric"</code> method,</p></li>
 <li><p><code>hm_params</code> – parameters estimated using the <code>"hit_miss"</code> method,</p></li>
-<li><p><code>ratio_kliep</code> – a result of the <a href="https://thomvolker.github.io/densityratio/reference/kliep.html" class="external-link">kliep</a> function,</p></li>
+<li><p><code>ratio_kliep</code> – a result of the <a href="https://thomvolker.github.io/densityratio/reference/kliep.html" class="external-link">kliep()</a> function,</p></li>
 <li><p><code>variables</code> – a character vector of key variables used for comparison,</p></li>
 <li><p><code>set_construction</code> – a method for constructing the predicted set of matches,</p></li>
 <li><p><code>eval_metrics</code> – standard metrics for quality assessment (if <code>true_matches</code> is provided),</p></li>
@@ -197,14 +206,14 @@ semi-metric, i.e., a function \(d: A \times B \to \mathbb{R}\),
 satisfying the following conditions:<br></p><ol><li><p>\(d(x,y) \geq 0\),</p></li>
 <li><p>\(d(x,y) = 0\) if and only if \(x = y\),</p></li>
 <li><p>\(d(x,y) = d(y,x)\).</p></li>
-</ol><p>For example, we can use \(1 - \text{Jaro-Winkler distance}\) for character variables
-(which is implemented in the <code>automatedRecLin</code> package as the <code>jarowinkler_complement</code> function)
+</ol><p>For example, we can use the Jaro-Winkler distance for character variables
+(which is implemented in the <code>automatedRecLin</code> package as <code><a href="jarowinkler_complement.html">jarowinkler_complement()</a></code>)
 or the Euclidean distance for numerical variables. The <code>automatedRecLin</code> package allows the use of
 a different comparison function for each key variable (which should be specified
 as a list in the <code>comparators</code> argument). The default function
-for each key variable is <a href="https://rdrr.io/pkg/reclin2/man/comparators.html" class="external-link">cmp_identical</a>
+for each key variable is <a href="https://rdrr.io/pkg/reclin2/man/comparators.html" class="external-link">cmp_identical()</a>
 (the binary comparison function).</p>
-<p>The <code>mec</code> function offers different approaches to estimate the
+<p>The <code>mec()</code> function offers different approaches to estimate the
 probability/density ratio between matches and non-matches,
 which should be specified as a list in the <code>methods</code> argument.
 The available methods suitable for the binary comparison function
@@ -240,10 +249,10 @@ the distributions of the comparison vectors. It iteratively directly
 estimates the density ratio between the matches and the non-matches, using
 the Kullback-Leibler Importance Estimation Procedure (KLIEP).
 For details see <a href="https://link.springer.com/article/10.1007/s10463-008-0197-x" class="external-link">Sugiyama et al. (2008)</a>.</p>
-<p>The <code>mec</code> function allows the construction of the predicted set
+<p>The <code>mec()</code> function allows the construction of the predicted set
 of matches using its estimated size or the bisection procedure,
 described in <a href="https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm" class="external-link">Lee et al. (2022)</a>,
-based on a target False Link Rate (FLR)
+based on a target false link rate (FLR)
 or missing match rate (MMR). To use the second option, set <code>set_construction = "flr"</code>
 or <code>set_construction = "mmr"</code> and
 specify a target error rate using the <code>target_rate</code> argument.</p>
@@ -323,7 +332,7 @@ Ann Inst Stat Math 60, 699–746 (2008). <a href="https://doi.org/10.1007/s10463
 <span class="r-out co"><span class="r-pr">#&gt;</span> The algorithm predicted 8 matches.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> The first 6 predicted matches are:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>        a     b ratio / 1000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;num&gt; &lt;num&gt;        &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;        &lt;num&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:     6     6 1.433031e+08</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2:     8     8 3.198692e+07</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3:     7     7 9.673745e+05</span>
@@ -333,7 +342,7 @@ Ann Inst Stat Math 60, 699–746 (2008). <a href="https://doi.org/10.1007/s10463
 <span class="r-out co"><span class="r-pr">#&gt;</span> ========================================================</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> The construction of the classification set was based on estimates of its size.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Estimated false link rate (FLR): 0.2066 %.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Estimated missing match rate (MMR): 0.0000 %.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Estimated missing match rate (MMR): 0.2066 %.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ========================================================</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Variables selected for the continuous parametric method: name, surname, city.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Estimated parameters for the continuous parametric method:</span>

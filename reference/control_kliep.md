@@ -1,7 +1,7 @@
-# Controls for the `kliep` Function
+# Controls for the [kliep()](https://thomvolker.github.io/densityratio/reference/kliep.html) Function
 
 Controls for the
-[kliep](https://thomvolker.github.io/densityratio/reference/kliep.html)
+[kliep()](https://thomvolker.github.io/densityratio/reference/kliep.html)
 function used in the package.
 
 ## Usage
@@ -21,12 +21,12 @@ control_kliep(scale = NULL, progressbar = FALSE, nfold = 2, ...)
 
 - progressbar:
 
-  Logical indicating whether or not to display a progressbar.
+  Logical indicating whether or not to display a progress bar.
 
 - nfold:
 
   Number of cross-validation folds used in order to calculate the
-  optimal sigma value (default is 2-fold cv).
+  optimal sigma value (default is 2-fold cross-validation).
 
 - ...:
 

@@ -28,7 +28,8 @@ mec(
   tol_em = 1,
   controls_nleqslv = list(),
   controls_kliep = control_kliep(),
-  true_matches = NULL
+  true_matches = NULL,
+  verbose = FALSE
 )
 ```
 
@@ -114,20 +115,24 @@ mec(
 - controls_nleqslv:
 
   Controls passed to the
-  [nleqslv](https://rdrr.io/pkg/nleqslv/man/nleqslv.html) function (only
-  if the `"continuous_parametric"` method has been chosen for at least
-  one variable).
+  [nleqslv()](https://bertcarnell.github.io/nleqslv/reference/nleqslv.html)
+  function (only if the `"continuous_parametric"` method has been chosen
+  for at least one variable).
 
 - controls_kliep:
 
   Controls passed to the
-  [kliep](https://thomvolker.github.io/densityratio/reference/kliep.html)
+  [kliep()](https://thomvolker.github.io/densityratio/reference/kliep.html)
   function (only if the `"continuous_nonparametric"` method has been
   chosen for at least one variable).
 
 - true_matches:
 
   A `data.frame` or `data.table` indicating known matches.
+
+- verbose:
+
+  Logical indicating whether to print progress messages.
 
 ## Value
 
@@ -164,7 +169,7 @@ Returns a list containing:
 - `hm_params` – parameters estimated using the `"hit_miss"` method,
 
 - `ratio_kliep` – a result of the
-  [kliep](https://thomvolker.github.io/densityratio/reference/kliep.html)
+  [kliep()](https://thomvolker.github.io/densityratio/reference/kliep.html)
   function,
 
 - `variables` – a character vector of key variables used for comparison,
@@ -201,17 +206,17 @@ following conditions:
 
 3.  \\d(x,y) = d(y,x)\\.
 
-For example, we can use \\1 - \text{Jaro-Winkler distance}\\ for
-character variables (which is implemented in the `automatedRecLin`
-package as the `jarowinkler_complement` function) or the Euclidean
-distance for numerical variables. The `automatedRecLin` package allows
-the use of a different comparison function for each key variable (which
-should be specified as a list in the `comparators` argument). The
-default function for each key variable is
-[cmp_identical](https://rdrr.io/pkg/reclin2/man/comparators.html) (the
+For example, we can use the Jaro-Winkler distance for character
+variables (which is implemented in the `automatedRecLin` package as
+[`jarowinkler_complement()`](https://ncn-foreigners.github.io/automatedRecLin/reference/jarowinkler_complement.md))
+or the Euclidean distance for numerical variables. The `automatedRecLin`
+package allows the use of a different comparison function for each key
+variable (which should be specified as a list in the `comparators`
+argument). The default function for each key variable is
+[cmp_identical()](https://rdrr.io/pkg/reclin2/man/comparators.html) (the
 binary comparison function).
 
-The `mec` function offers different approaches to estimate the
+The `mec()` function offers different approaches to estimate the
 probability/density ratio between matches and non-matches, which should
 be specified as a list in the `methods` argument. The available methods
 suitable for the binary comparison function are `"binary"` and
@@ -245,11 +250,11 @@ using the Kullback-Leibler Importance Estimation Procedure (KLIEP). For
 details see [Sugiyama et al.
 (2008)](https://link.springer.com/article/10.1007/s10463-008-0197-x).
 
-The `mec` function allows the construction of the predicted set of
+The `mec()` function allows the construction of the predicted set of
 matches using its estimated size or the bisection procedure, described
 in [Lee et al.
 (2022)](https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm),
-based on a target False Link Rate (FLR) or missing match rate (MMR). To
+based on a target false link rate (FLR) or missing match rate (MMR). To
 use the second option, set `set_construction = "flr"` or
 `set_construction = "mmr"` and specify a target error rate using the
 `target_rate` argument.
@@ -336,7 +341,7 @@ result
 #> The algorithm predicted 8 matches.
 #> The first 6 predicted matches are:
 #>        a     b ratio / 1000
-#>    <num> <num>        <num>
+#>    <int> <int>        <num>
 #> 1:     6     6 1.433031e+08
 #> 2:     8     8 3.198692e+07
 #> 3:     7     7 9.673745e+05
@@ -346,7 +351,7 @@ result
 #> ========================================================
 #> The construction of the classification set was based on estimates of its size.
 #> Estimated false link rate (FLR): 0.2066 %.
-#> Estimated missing match rate (MMR): 0.0000 %.
+#> Estimated missing match rate (MMR): 0.2066 %.
 #> ========================================================
 #> Variables selected for the continuous parametric method: name, surname, city.
 #> Estimated parameters for the continuous parametric method:

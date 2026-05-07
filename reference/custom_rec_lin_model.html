@@ -16,6 +16,10 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/mec-blocking.html">MEC with blocking</a></li>
+  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -51,7 +55,7 @@
 
 
 <dt id="arg-vectors">vectors<a class="anchor" aria-label="anchor" href="#arg-vectors"></a></dt>
-<dd><p>An object of class <code>comparison_vectors</code> (a result of the <code>comparison_vectors</code> function), used for training the <code>ml_model</code>.</p></dd>
+<dd><p>An object of class <code>comparison_vectors</code> (a result of <code><a href="comparison_vectors.html">comparison_vectors()</a></code>), used for training the <code>ml_model</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -74,14 +78,14 @@
 </ul></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>The <code>custom_rec_lin_model</code> function creates a custom record linkage model,
+    <p>The <code>custom_rec_lin_model()</code> function creates a custom record linkage model,
 based on known matches and non-matches (which might later serve as a classifier
 for pairs outside training data). The procedure of creating a custom model
-based on training data is as follows.</p><ol><li><p>Use the <code>comparison_vectors</code> function to compare pairs of records.</p></li>
+based on training data is as follows.</p><ol><li><p>Use <code><a href="comparison_vectors.html">comparison_vectors()</a></code> to compare pairs of records.</p></li>
 <li><p>Train a machine learning classifier using the <code>Omega</code> element
-of the output of the <code>comparison_vectors</code> function. The classifier should
+of the output of <code><a href="comparison_vectors.html">comparison_vectors()</a></code>. The classifier should
 predict the probability of matching based on a given vector.</p></li>
-<li><p>Use the <code>custom_rec_lin_model</code> function with
+<li><p>Use <code>custom_rec_lin_model()</code> with
 appropriate arguments.</p></li>
 </ol></div>
     <div class="section level2">
@@ -112,7 +116,7 @@ appropriate arguments.</p></li>
 <span class="r-in"><span>  <span class="va">model_xgb</span> <span class="op">&lt;-</span> <span class="fu">xgboost</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/xgboost/man/xgboost.html" class="external-link">xgboost</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">vectors</span><span class="op">$</span><span class="va">Omega</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"gamma_name"</span>, <span class="st">"gamma_surname"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                       y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">vectors</span><span class="op">$</span><span class="va">Omega</span><span class="op">$</span><span class="va">match</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                       objective <span class="op">=</span> <span class="st">"binary:logistic"</span>, eval_metric <span class="op">=</span> <span class="st">"logloss"</span>,</span></span>
-<span class="r-in"><span>                       nrounds <span class="op">=</span> <span class="fl">100</span>, verbosity <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
+<span class="r-in"><span>                       nrounds <span class="op">=</span> <span class="fl">100</span>, verbosity <span class="op">=</span> <span class="fl">0</span>, nthread <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">custom_xgb_model</span> <span class="op">&lt;-</span> <span class="fu">custom_rec_lin_model</span><span class="op">(</span><span class="va">model_xgb</span>, <span class="va">vectors</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">custom_xgb_model</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
