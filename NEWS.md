@@ -1,8 +1,17 @@
-# Development
+# Version 1.1.0
 
 + Added `mec_blocking()` for blocked unsupervised MEC with pooled training
 and blockwise prediction using the `blocking` package.
-+ Added support for creating comparison vectors on a supplied table of record pairs.
++ Added support for creating comparison vectors on a supplied table of record pairs
+through the `pairs` argument in `comparison_vectors()`.
++ Added `census` and `cis` example datasets for larger record linkage examples.
++ Added a vignette showing MEC with blocking on the `cis` and `census` datasets.
++ Added optional progress messages via the `verbose` argument in `mec()`,
+`train_rec_lin()`, `predict.rec_lin_model()`, and `mec_blocking()`.
++ Improved validation of supplied match and pair tables, including clearer checks
+for row indices, duplicate pairs, missing values, and non-finite comparison values.
++ Improved print methods for linkage results, including consistent percentage
+formatting for error rates.
 
 # Version 1.0.1
 
