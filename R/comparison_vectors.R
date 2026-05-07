@@ -13,6 +13,8 @@
 #' @param B A duplicate-free `data.frame` or `data.table`.
 #' @param variables A character vector of key variables used to create comparison vectors.
 #' @param comparators A named list of functions for comparing pairs of records.
+#' @param pairs Optional. A `data.frame` or `data.table` with columns `a` and `b`
+#' indicating pairs for which comparison vectors should be created.
 #' @param matches Optional. A `data.frame` or `data.table` indicating known matches.
 #'
 #' @details
@@ -29,7 +31,7 @@
 #' @return
 #' Returns a list containing:\cr
 #' \itemize{
-#' \item{`Omega` -- a `data.table` with comparison vectors between all records from both datasets,
+#' \item{`Omega` -- a `data.table` with comparison vectors between records from both datasets,
 #' including optional match information,}
 #' \item{`variables` -- a character vector of key variables used for comparison,}
 #' \item{`comparators` -- a list of functions used to compare pairs of records,}
@@ -57,31 +59,25 @@ comparison_vectors <- function(
     B,
     variables,
     comparators = NULL,
+    pairs = NULL,
     matches = NULL) {
 
   stopifnot("`A` should be a data.frame or a data.table." =
-            is.data.frame(A) | is.data.table(A))
+              is.data.frame(A) | is.data.table(A))
   stopifnot("`B` should be a data.frame or a data.table." =
-            is.data.frame(B) | is.data.table(B))
+              is.data.frame(B) | is.data.table(B))
   stopifnot("`variables` should be a character vector." =
-            is.character(variables))
-
+              is.character(variables))
+  stopifnot("`variables` should contain at least one variable." =
+              length(variables) > 0L)
   stopifnot("Not all variables are present in A." =
-            all(variables %in% names(A)))
+              all(variables %in% names(A)))
   stopifnot("Not all variables are present in B." =
-            all(variables %in% names(B)))
+              all(variables %in% names(B)))
 
   if (!is.null(comparators)) {
     stopifnot("`comparators` should be a list." =
-              is.list(comparators))
-  }
-
-  if (!is.null(matches)) {
-    stopifnot("`matches` should be a data.frame or a data.table." =
-              is.data.frame(matches) | is.data.table(matches))
-    stopifnot("`matches` should consist of two columns: a, b." =
-              length(colnames(matches)) == 2,
-              all(colnames(matches) == c("a", "b")))
+                is.list(comparators))
   }
 
   K <- length(variables)
@@ -93,29 +89,99 @@ comparison_vectors <- function(
 
   data.table::setDT(A)
   data.table::setDT(B)
-  A <- A[, variables, with = FALSE]
-  B <- B[, variables, with = FALSE]
-  data.table::set(A, j = "a", value = seq_len(nrow(A)))
-  data.table::set(B, j = "b", value = seq_len(nrow(B)))
+  n_A <- nrow(A)
+  n_B <- nrow(B)
 
-  Omega <- data.table::CJ(a = A[["a"]], b = B[["b"]])
-  data.table::setkey(Omega, NULL)
-  A_values <- A[Omega$a, ]
-  B_values <- B[Omega$b, ]
-  data.table::set(A, j = "a", value = NULL)
-  data.table::set(B, j = "b", value = NULL)
+  if (!is.null(pairs)) {
+    if (!(is.data.frame(pairs) || is.data.table(pairs))) {
+      stop("`pairs` should be a data.frame or a data.table.")
+    }
+
+    pairs <- data.table::copy(data.table::as.data.table(pairs))
+
+    if (!all(c("a", "b") %in% names(pairs))) {
+      stop("`pairs` should contain columns: a, b.")
+    }
+
+    if (anyNA(pairs[["a"]]) || anyNA(pairs[["b"]])) {
+      stop("`pairs` cannot contain missing values.")
+    }
+
+    if (!is.numeric(pairs[["a"]]) || !is.numeric(pairs[["b"]])) {
+      stop("`pairs` should contain numeric row indices in columns a and b.")
+    }
+
+    if (any(pairs[["a"]] != as.integer(pairs[["a"]])) ||
+        any(pairs[["b"]] != as.integer(pairs[["b"]]))) {
+      stop("`pairs` should contain integer row indices in columns a and b.")
+    }
+
+    if (any(pairs[["a"]] < 1) || any(pairs[["b"]] < 1)) {
+      stop("`pairs` should contain positive row indices in columns a and b.")
+    }
+
+    if (any(pairs[["a"]] > n_A) || any(pairs[["b"]] > n_B)) {
+      stop("`pairs` contains row indices outside the input datasets.")
+    }
+
+    if (anyDuplicated(pairs[, c("a", "b"), with = FALSE]) > 0L) {
+      stop("`pairs` should not contain duplicate record pairs.")
+    }
+  }
+
+  if (!is.null(matches)) {
+    validate_match_pairs(matches, n_A, n_B)
+  }
+
+  if (is.null(pairs)) {
+    Omega <- data.table::CJ(a = seq_len(n_A), b = seq_len(n_B))
+    data.table::setkey(Omega, NULL)
+  } else {
+    Omega <- pairs
+  }
 
   gamma_names <- paste0("gamma_", variables)
+  omega_a <- Omega[["a"]]
+  omega_b <- Omega[["b"]]
+
+  # Compute one comparison column at a time to avoid copying the full key-variable blocks.
   gamma_list <- lapply(1:K, function(x) {
     variable <- variables[x]
-    return(as.numeric(comparators[[x]](A_values[[variable]], B_values[[variable]])))
+    as.numeric(comparators[[x]](A[[variable]][omega_a], B[[variable]][omega_b]))
   })
+
+  invalid_counts <- vapply(gamma_list, function(gamma) {
+    sum(!is.finite(gamma))
+  }, numeric(1))
+
+  if (any(invalid_counts > 0)) {
+    invalid_vars <- variables[invalid_counts > 0]
+    invalid_details <- sprintf(
+      "%s (%d invalid value%s)",
+      invalid_vars,
+      invalid_counts[invalid_counts > 0],
+      ifelse(invalid_counts[invalid_counts > 0] == 1, "", "s")
+    )
+    stop(
+      sprintf(
+        "Comparison variables produced missing or non-finite values: %s. Please handle missing key values or adjust comparators before running record linkage.",
+        paste(invalid_details, collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
 
   Omega[, (gamma_names) := gamma_list]
 
-  if(!is.null(matches)) {
+  if (!is.null(matches)) {
     data.table::setDT(matches)
-    Omega[, match := as.numeric(paste(.SD[["a"]], .SD[["b"]]) %in% paste(matches[["a"]], matches[["b"]]))]
+    match_idx <- data.table(
+      omega_idx = seq_len(NROW(Omega)),
+      a = Omega[["a"]],
+      b = Omega[["b"]]
+    )[matches[, c("a", "b"), with = FALSE], on = c("a", "b"), nomatch = 0L][["omega_idx"]]
+    Omega[, match := 0]
+    Omega[match_idx, match := 1]
   }
 
   structure(
@@ -123,7 +189,7 @@ comparison_vectors <- function(
       Omega = data.table(Omega),
       variables = variables,
       comparators = comparators,
-      match_prop = if (is.null(matches)) NULL else NROW(matches) / NROW(Omega) * max(NROW(A), NROW(B))
+      match_prop = if (is.null(matches)) NULL else NROW(matches) / NROW(Omega) * max(n_A, n_B)
     ),
     class = "comparison_vectors"
   )

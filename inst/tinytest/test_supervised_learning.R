@@ -36,6 +36,13 @@ confusion_cpar <- matrix(c(2, 0, 1, 17), nrow = 2, ncol = 2)
 rownames(confusion_cpar) <- c("Actual Positive", "Actual Negative")
 colnames(confusion_cpar) <- c("Predicted Positive", "Predicted Negative")
 
+expect_rate_bounds <- function(result) {
+  expect_true(is.finite(result$flr_est))
+  expect_true(result$flr_est >= 0 && result$flr_est <= 1)
+  expect_true(is.finite(result$mmr_est))
+  expect_true(result$mmr_est >= 0 && result$mmr_est <= 1)
+}
+
 expect_silent(
   train_rec_lin(A = df_1, B = df_2,
                 variables = c("name", "surname"),
@@ -123,6 +130,30 @@ expect_equal(
              "p_0_U_cnonpar" = c(0.02, 0.02))
 )
 
+kliep_model <- densityratio::kliep(
+  df_numerator = data.table("gamma_name" = c(0.1, 0.2, 0.3)),
+  df_denominator = data.table("gamma_name" = c(0.2, 0.4, 0.6)),
+  progressbar = FALSE,
+  nfold = 2
+)
+kliep_pred <- as.vector(stats::predict(
+  kliep_model,
+  data.table("gamma_name" = 0.4)
+))
+
+expect_equal(
+  automatedRecLin:::kliep_hurdle_ratio(
+    df = data.table("gamma_name" = c(0, 0.4)),
+    variables = "gamma_name",
+    p_0_numerator = 0.4,
+    p_0_denominator = 0.2,
+    ratio_kliep_list = list(
+      "gamma_name" = kliep_model
+    )
+  ),
+  c(2, (1 - 0.4) / (1 - 0.2) * kliep_pred)
+)
+
 model_b <- train_rec_lin(A = df_1, B = df_2,
                          variables = c("name", "surname"),
                          matches = matches)
@@ -130,6 +161,11 @@ model_b <- train_rec_lin(A = df_1, B = df_2,
 expect_equal(
   predict(model_b, df_new_1, df_new_2)$M_est,
   data.table("a" = 1:3, "b" = 1:3, "ratio" = rep(12.75510204081633602868, 3))
+)
+
+expect_equal(
+  predict(model_b, df_new_1, df_new_2)$n_M_est,
+  3.35401915868387945352
 )
 
 model_cpar <- train_rec_lin(A = df_1, B = df_2,
@@ -142,6 +178,16 @@ expect_equal(
   predict(model_cpar, df_new_1, df_new_2)$M_est,
   data.table("a" = c(1, 3), "b" = c(1, 3),
              "ratio" = c(59126.609831455622042995, 4201.052699951693284675))
+)
+
+expect_equal(
+  predict(model_cpar, df_new_1, df_new_2)$n_M_est,
+  2.000000561079755989624
+)
+
+expect_equal(
+  predict(model_cpar, df_new_1, df_new_2)$mmr_est,
+  0
 )
 
 expect_equal(
@@ -163,8 +209,21 @@ model_cnonpar <- train_rec_lin(A = df_1, B = df_2,
 expect_equal(
   predict(model_cnonpar, df_new_1, df_new_2)$M_est,
   data.table("a" = c(2, 3, 1), "b" = c(2, 3, 1),
-             "ratio" = c(45.72851745592178218658, 28.13814113792743043518, 25.60155559185211160411))
+             "ratio" = c(47.61403316943127350669, 29.29835603699235235808, 26.65717991654741325647))
 )
+
+expect_equal(
+  predict(model_cnonpar, df_new_1, df_new_2)$mmr_est,
+  0
+)
+
+pred_cpar_flr <- predict(model_cpar, df_new_1, df_new_2,
+                         set_construction = "flr", target_rate = 0.1)
+expect_rate_bounds(pred_cpar_flr)
+
+pred_cpar_mmr <- predict(model_cpar, df_new_1, df_new_2,
+                         set_construction = "mmr", target_rate = 0.1)
+expect_rate_bounds(pred_cpar_mmr)
 
 # custom model
 
@@ -173,7 +232,7 @@ vectors <- comparison_vectors(A = df_1, B = df_2, variables = c("name", "surname
 model_xgb <- xgboost::xgboost(x = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
                               y = factor(vectors$Omega$match),
                               objective = "binary:logistic", eval_metric = "logloss",
-                              nrounds = 100, verbosity = 0)
+                              nrounds = 100, verbosity = 0, nthread = 1)
 
 expect_silent(
   custom_rec_lin_model(model_xgb, vectors)

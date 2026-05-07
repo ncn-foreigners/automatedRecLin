@@ -5,7 +5,8 @@ Authors@R:
   c(person(given = "Adam",
            family = "Struzik",
            role = c("aut", "cre"),
-           email = "adastr5@st.amu.edu.pl"),
+           email = "adastr5@st.amu.edu.pl",
+           comment = c(ORCID = "0009-0002-2547-482X")),
     person(given = "Maciej",
            family = "Beręsewicz",
            role = c("aut", "ctb"),
@@ -17,8 +18,8 @@ Encoding: UTF-8
 URL: https://github.com/ncn-foreigners/automatedRecLin, http://ncn-foreigners.ue.poznan.pl/automatedRecLin/
 BugReports: https://github.com/ncn-foreigners/automatedRecLin/issues
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Imports: 
+    blocking,
     data.table,
     densityratio,
     FixedPoint,
@@ -29,8 +30,12 @@ Imports:
     stats,
     utils
 Suggests: 
+    knitr,
+    rmarkdown,
     tinytest,
     xgboost
 Depends: 
     R (>= 4.1.0)
 LazyData: true
+VignetteBuilder: knitr
+Config/roxygen2/version: 8.0.0

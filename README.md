@@ -107,12 +107,13 @@ df_2
 
 Specify the key variables used for record linkage. Select a comparison
 function (i.e., a function to compare pairs of records) for each
-variable. For example, use the `jarowinkler_complement` function from
-the `automatedRecLin` package (1 - Jaro-Winkler distance). Choose a
-method for estimating the probability or density ratio for each
-variable. The available methods are: `"binary"`,
-`"continuous_parametric"`, `"continuous_nonparametric"`, and
-`"hit_miss"` (only for unsupervised learning).
+variable. For example, use `jarowinkler_complement()` from the
+`automatedRecLin` package (the Jaro-Winkler distance, i.e.,
+`1 - Jaro-Winkler similarity`). Choose a method for estimating the
+probability or density ratio for each variable. The available methods
+are: `"binary"`, `"continuous_parametric"`,
+`"continuous_nonparametric"`, and `"hit_miss"` (only for unsupervised
+learning).
 
 ``` r
 variables <- c("name", "surname", "city")
@@ -128,8 +129,8 @@ methods <- list(
 )
 ```
 
-Perform record linkage using the `mec` function. The output contains the
-following information:
+Perform record linkage using `mec()`. The output contains the following
+information:
 
 - the names of key variables,
 - the number of predicted matches,
@@ -154,7 +155,7 @@ unsup_result
 #> The algorithm predicted 8 matches.
 #> The first 6 predicted matches are:
 #>        a     b ratio / 1000
-#>    <num> <num>        <num>
+#>    <int> <int>        <num>
 #> 1:     6     6 1.433031e+08
 #> 2:     8     8 3.198692e+07
 #> 3:     7     7 9.673745e+05
@@ -164,7 +165,7 @@ unsup_result
 #> ========================================================
 #> The construction of the classification set was based on estimates of its size.
 #> Estimated false link rate (FLR): 0.2066 %.
-#> Estimated missing match rate (MMR): 0.0000 %.
+#> Estimated missing match rate (MMR): 0.2066 %.
 #> ========================================================
 #> Variables selected for the continuous parametric method: name, surname, city.
 #> Estimated parameters for the continuous parametric method:
@@ -175,7 +176,7 @@ unsup_result
 #> 3:    gamma_city 0.500   6.512723  135.163 0.03333333 5.233194  9.313035
 ```
 
-### Supervised maximimum entropy classifier for record linkage
+### Supervised maximum entropy classifier for record linkage
 
 Generate two simple training datasets that contain some common records,
 with typos in some cases.
@@ -240,7 +241,7 @@ methods_train <- list("name" = "continuous_nonparametric",
 matches_train <- data.frame("a" = 1:4, "b" = 1:4)
 ```
 
-Train a record linkage model using the `train_rec_lin` function.
+Train a record linkage model using `train_rec_lin()`.
 
 ``` r
 model <- train_rec_lin(A = df_1_train, B = df_2_train,
@@ -285,8 +286,8 @@ df_2_new
 #> 4 Michael Henders
 ```
 
-Predict matches using the `predict` function. The output has a similar
-structure to that of the `mec` function.
+Predict matches using the `predict()` method for `rec_lin_model`
+objects. The output has a similar structure to that of `mec()`.
 
 ``` r
 result_sup <- predict(model, df_1_new, df_2_new)
@@ -294,14 +295,14 @@ result_sup
 #> The algorithm predicted 3 matches.
 #> The first 3 predicted matches are:
 #>        a     b ratio / 1000
-#>    <num> <num>        <num>
-#> 1:     2     2   0.04572852
-#> 2:     3     3   0.02813814
-#> 3:     1     1   0.02560156
+#>    <int> <int>        <num>
+#> 1:     2     2   0.04761403
+#> 2:     3     3   0.02929836
+#> 3:     1     1   0.02665718
 #> ========================================================
 #> The construction of the classification set was based on estimates of its size.
-#> Estimated false link rate (FLR): 15.3038 %.
-#> Estimated missing match rate (MMR): 15.3038 %.
+#> Estimated false link rate (FLR): 0.0000 %.
+#> Estimated missing match rate (MMR): 0.0000 %.
 ```
 
 ## Integration with a custom machine learning model
@@ -317,8 +318,8 @@ library(xgboost)
 ```
 
 Use the same data, variables, and comparators as in the previous
-example. First, use the `comparison_vectors` function to create
-comparison vectors that the model will be trained on.
+example. First, use `comparison_vectors()` to create comparison vectors
+that the model will be trained on.
 
 ``` r
 vectors <- comparison_vectors(A = df_1_train, B = df_2_train,
@@ -344,7 +345,7 @@ Train the XGBoost model.
 model_xgb <- xgboost(x = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
                      y = factor(vectors$Omega$match),
                      objective = "binary:logistic", eval_metric = "logloss",
-                     nrounds = 100, verbosity = 0)
+                     nrounds = 100, verbosity = 0, nthread = 1)
 ```
 
 Create the XGBoost-based record linkage model.
@@ -360,10 +361,11 @@ custom_xgb_model
 ```
 
 Use the model for predictions. Note that the `xgboost` package requires
-a matrix as input for the `predict` function and that needs to be
-specified in the `data_type` argument. Set `type = "response"` to ensure
-the XGBoost model predicts the probability of matching (this argument
-may vary depending on the model or library used).
+a matrix as input for the `predict()` method for `rec_lin_model` objects
+and that needs to be specified in the `data_type` argument. Set
+`type = "response"` to ensure the XGBoost model predicts the probability
+of matching (this argument may vary depending on the model or library
+used).
 
 ``` r
 result_xgb <- predict(custom_xgb_model, df_1_new, df_2_new,
@@ -372,7 +374,7 @@ result_xgb
 #> The algorithm predicted 3 matches.
 #> The first 3 predicted matches are:
 #>        a     b ratio / 1000
-#>    <num> <num>        <num>
+#>    <int> <int>        <num>
 #> 1:     1     1    0.0299477
 #> 2:     2     2    0.0299477
 #> 3:     3     3    0.0299477
@@ -381,6 +383,12 @@ result_xgb
 #> Estimated false link rate (FLR): 15.9112 %.
 #> Estimated missing match rate (MMR): 15.9112 %.
 ```
+
+## Integration with the `blocking` package
+
+The `automatedRecLin` R package can be integrated with the
+[`blocking`](https://cran.r-project.org/package=blocking) package. For
+details, see the vignette entitled *MEC with blocking*.
 
 ## Funding
 

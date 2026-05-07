@@ -14,7 +14,8 @@ train_rec_lin(
   prob_ratio = NULL,
   nonpar_hurdle = TRUE,
   controls_nleqslv = list(),
-  controls_kliep = control_kliep()
+  controls_kliep = control_kliep(),
+  verbose = FALSE
 )
 }
 \arguments{
@@ -35,9 +36,11 @@ train_rec_lin(
 \item{nonpar_hurdle}{Logical indicating whether to use a hurdle model or not
 (used only if the \code{"continuous_nonparametric"} method has been chosen for at least one variable).}
 
-\item{controls_nleqslv}{Controls passed to the \link[nleqslv]{nleqslv} function (only if the \code{"continuous_parametric"} method has been chosen for at least one variable).}
+\item{controls_nleqslv}{Controls passed to the \link[nleqslv:nleqslv]{nleqslv()} function (only if the \code{"continuous_parametric"} method has been chosen for at least one variable).}
 
-\item{controls_kliep}{Controls passed to the \link[densityratio]{kliep} function (only if the \code{"continuous_nonparametric"} method has been chosen for at least one variable).}
+\item{controls_kliep}{Controls passed to the \link[densityratio:kliep]{kliep()} function (only if the \code{"continuous_nonparametric"} method has been chosen for at least one variable).}
+
+\item{verbose}{Logical indicating whether to print progress messages.}
 }
 \value{
 Returns a list containing:\cr
@@ -48,8 +51,8 @@ Returns a list containing:\cr
 \item{\code{b_params} -- parameters estimated using the \code{"binary"} method,}
 \item{\code{cpar_params} -- parameters estimated using the \code{"continuous_parametric"} method,}
 \item{\code{cnonpar_params} -- probability of exact matching estimated using the \code{"continuous_nonparametric"} method,}
-\item{\code{ratio_kliep} -- a result of the \link[densityratio]{kliep} function,}
-\item{\code{ratio_kliep_list} -- an object containing the results of the \link[densityratio]{kliep} function,}
+\item{\code{ratio_kliep} -- a result of the \link[densityratio:kliep]{kliep()} function,}
+\item{\code{ratio_kliep_list} -- an object containing the results of the \link[densityratio:kliep]{kliep()} function,}
 \item{\code{ml_model} -- here \code{NULL},}
 \item{\code{pi_est} -- a prior probability of matching,}
 \item{\code{match_prop} -- proportion of matches in the smaller dataset,}
@@ -85,19 +88,19 @@ satisfying the following conditions:\cr
 \item{\eqn{d(x,y) = 0} if and only if \eqn{x = y},}
 \item{\eqn{d(x,y) = d(y,x)}.}
 }
-For example, we can use \eqn{1 - \text{Jaro-Winkler distance}} for character variables
-(which is implemented in the \code{automatedRecLin} package as the \code{jarowinkler_complement} function)
+For example, we can use the Jaro-Winkler distance for character variables
+(which is implemented in the \code{automatedRecLin} package as \code{\link[=jarowinkler_complement]{jarowinkler_complement()}})
 or the Euclidean distance for numerical variables. The \code{automatedRecLin} package allows the use of
 a different comparison function for each key variable (which should be specified
 as a list in the \code{comparators} argument). The default function
-for each key variable is \link[reclin2]{cmp_identical}
+for each key variable is \link[reclin2:cmp_identical]{cmp_identical()}
 (the binary comparison function).
 
-The \code{train_rec_lin} function is used to train a record linkage model,
+The \code{\link[=train_rec_lin]{train_rec_lin()}} function is used to train a record linkage model,
 when \eqn{M} and \eqn{U} are known (which might later serve as a classifier
 for pairs outside \eqn{\Omega}). It offers different approaches to estimate the
 probability/density ratio between matches and non-matches, which should be
-specified as a list in the methods argument. The method suitable for the binary
+specified as a list in the \code{methods} argument. The method suitable for the binary
 comparison function is \code{"binary"}, which is also the default method for each
 variable.
 

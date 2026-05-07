@@ -2,7 +2,7 @@
 % Please edit documentation in R/controls.R
 \name{control_kliep}
 \alias{control_kliep}
-\title{Controls for the \code{kliep} Function}
+\title{Controls for the \link[densityratio:kliep]{kliep()} Function}
 \usage{
 control_kliep(scale = NULL, progressbar = FALSE, nfold = 2, ...)
 }
@@ -11,9 +11,9 @@ control_kliep(scale = NULL, progressbar = FALSE, nfold = 2, ...)
 to the numerator means and standard deviations, the denominator means and standard deviations,
 or apply no standardization at all.}
 
-\item{progressbar}{Logical indicating whether or not to display a progressbar.}
+\item{progressbar}{Logical indicating whether or not to display a progress bar.}
 
-\item{nfold}{Number of cross-validation folds used in order to calculate the optimal sigma value (default is 2-fold cv).}
+\item{nfold}{Number of cross-validation folds used in order to calculate the optimal sigma value (default is 2-fold cross-validation).}
 
 \item{...}{Additional arguments.}
 }
@@ -21,7 +21,7 @@ or apply no standardization at all.}
 Returns a list with parameters.
 }
 \description{
-Controls for the \link[densityratio]{kliep} function used in the package.
+Controls for the \link[densityratio:kliep]{kliep()} function used in the package.
 }
 \author{
 Adam Struzik

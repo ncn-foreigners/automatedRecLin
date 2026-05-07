@@ -1,0 +1,151 @@
+---
+title: "MEC with blocking"
+author: "Adam Struzik"
+output: 
+    html_vignette:
+        df_print: kable
+        toc: true
+        number_sections: true
+        fig_width: 6
+        fig_height: 4
+vignette: >
+  %\VignetteIndexEntry{MEC with blocking}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Setup
+
+Load required packages.
+
+```{r setup, message = FALSE}
+library(automatedRecLin)
+library(data.table)
+
+options("text2vec.mc.cores" = 1L)
+```
+
+## Data
+
+We use the full example Census and Customer Information System (CIS) datasets
+from [McLeod et al. (2011)](https://wayback.archive-it.org/12090/20231221144450/https://cros-legacy.ec.europa.eu/content/job-training_en).
+The goal is to link records from CIS to records from Census.
+
+```{r data}
+data("census", package = "automatedRecLin")
+data("cis", package = "automatedRecLin")
+setDT(census)
+setDT(cis)
+
+NROW(cis)
+NROW(census)
+```
+
+The `person_id` variable identifies the correct linkage.
+We use this information only to evaluate the result.
+
+```{r true-matches}
+cis[is.na(cis)] <- ""
+census[is.na(census)] <- ""
+
+cis[, pername1 := gsub("-", "", pername1)]
+census[, pername1 := gsub("-", "", pername1)]
+
+true_matches <- merge(
+  x = cis[, .(a = .I, person_id)],
+  y = census[, .(b = .I, person_id)],
+  by = "person_id"
+)[, .(a, b)]
+
+NROW(true_matches)
+```
+
+## MEC with blocking
+
+We compare forename and surname using the Jaro-Winkler distance. These two
+comparison variables are modeled with the continuous parametric MEC method.
+Sex and date-of-birth variables use the default binary method. Address fields
+are used only to construct blocks.
+
+```{r model-specification}
+variables <- c(
+  "pername1", "pername2", "sex",
+  "dob_day", "dob_mon", "dob_year"
+)
+
+comparators <- list(
+  "pername1" = jarowinkler_complement(),
+  "pername2" = jarowinkler_complement()
+)
+
+methods <- list(
+  "pername1" = "continuous_parametric",
+  "pername2" = "continuous_parametric"
+)
+
+blocking_variables <- c(variables, "enumcap", "enumpc")
+```
+
+Run blocked MEC. The model is trained on sampled blocks that contain at least
+the requested number of pairs and a lower bound on nonmatches.
+
+```{r mec-blocking}
+set.seed(1)
+
+result <- mec_blocking(
+  A = cis,
+  B = census,
+  variables = variables,
+  comparators = comparators,
+  methods = methods,
+  blocking_variables = blocking_variables,
+  blocking_sep = "",
+  controls_blocking = list(seed = 1, n_threads = 1),
+  min_training_pairs = 1000,
+  min_training_nonmatches = 1000,
+  block_sampling_seed = 1,
+  nonmatch_sample_size = 100000,
+  nonmatch_sampling_seed = 1,
+  true_matches = true_matches
+)
+
+result
+```
+
+## What blocking buys us
+
+The full Cartesian product contains `r format(NROW(cis) * NROW(census), big.mark = ",")`
+record pairs. Blocking reduces this to `r format(result$blocking_eval[["blocked_pairs"]], big.mark = ",")`
+candidate pairs, while retaining `r sprintf("%.2f%%", 100 * result$blocking_eval[["blocking_recall"]])`
+of known links. The final linkage set contains `r format(NROW(result$M_est), big.mark = ",")`
+predicted matches.
+
+```{r results, echo = FALSE}
+data.table(
+  step = c("Training", "Blocking", "Linkage"),
+  result = c(
+    paste0(
+      result$training_rule, " on ",
+      format(NROW(result$training_blocks), big.mark = ","),
+      " blocks"
+    ),
+    paste0(
+      format(result$blocking_eval[["preserved_matches"]], big.mark = ","),
+      " of ",
+      format(result$blocking_eval[["true_matches"]], big.mark = ","),
+      " known links retained"
+    ),
+    paste0(
+      "FLR = ", sprintf("%.2f%%", 100 * result$eval_metrics[["FLR"]]),
+      "; MMR = ", sprintf("%.2f%%", 100 * result$eval_metrics[["MMR"]])
+    )
+  )
+)
+```

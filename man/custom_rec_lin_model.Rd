@@ -9,7 +9,7 @@ custom_rec_lin_model(ml_model, vectors)
 \arguments{
 \item{ml_model}{A trained ML model that predicts the probability of a match based on comparison vectors.}
 
-\item{vectors}{An object of class \code{comparison_vectors} (a result of the \code{comparison_vectors} function), used for training the \code{ml_model}.}
+\item{vectors}{An object of class \code{comparison_vectors} (a result of \code{\link[=comparison_vectors]{comparison_vectors()}}), used for training the \code{ml_model}.}
 }
 \value{
 Returns a list containing:\cr
@@ -35,16 +35,16 @@ Returns a list containing:\cr
 Creates a supervised record linkage model using a custom machine learning (ML) classifier.
 }
 \details{
-The \code{custom_rec_lin_model} function creates a custom record linkage model,
+The \code{\link[=custom_rec_lin_model]{custom_rec_lin_model()}} function creates a custom record linkage model,
 based on known matches and non-matches (which might later serve as a classifier
 for pairs outside training data). The procedure of creating a custom model
 based on training data is as follows.
 \enumerate{
-\item{Use the \code{comparison_vectors} function to compare pairs of records.}
+\item{Use \code{\link[=comparison_vectors]{comparison_vectors()}} to compare pairs of records.}
 \item{Train a machine learning classifier using the \code{Omega} element
-of the output of the \code{comparison_vectors} function. The classifier should
+of the output of \code{\link[=comparison_vectors]{comparison_vectors()}}. The classifier should
 predict the probability of matching based on a given vector.}
-\item{Use the \code{custom_rec_lin_model} function with
+\item{Use \code{\link[=custom_rec_lin_model]{custom_rec_lin_model()}} with
 appropriate arguments.}
 }
 }
@@ -70,7 +70,7 @@ if (requireNamespace("xgboost", quietly = TRUE)) {
   model_xgb <- xgboost::xgboost(x = as.matrix(vectors$Omega[, c("gamma_name", "gamma_surname")]),
                        y = factor(vectors$Omega$match),
                        objective = "binary:logistic", eval_metric = "logloss",
-                       nrounds = 100, verbosity = 0)
+                       nrounds = 100, verbosity = 0, nthread = 1)
   custom_xgb_model <- custom_rec_lin_model(model_xgb, vectors)
   custom_xgb_model
 }
