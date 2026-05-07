@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">automatedRecLin</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -187,19 +187,19 @@ nonmatches.</p>
 <span><span class="co">#&gt; Estimated missing match rate (MMR): 0.0034 %.</span></span>
 <span><span class="co">#&gt; ========================================================</span></span>
 <span><span class="co">#&gt; Blocking diagnostics:</span></span>
-<span><span class="co">#&gt;      true_matches preserved_matches      lost_matches </span></span>
-<span><span class="co">#&gt;             24043             23687               356 </span></span>
-<span><span class="co">#&gt; blocked_pairs    full_pairs </span></span>
-<span><span class="co">#&gt;         25343     623767259 </span></span>
-<span><span class="co">#&gt; blocking_recall    blocking_fnr </span></span>
-<span><span class="co">#&gt;          0.9852          0.0148 </span></span>
+<span><span class="co">#&gt; Known matches: 24043.</span></span>
+<span><span class="co">#&gt; Known matches retained by blocking: 23687.</span></span>
+<span><span class="co">#&gt; Known matches missed by blocking: 356.</span></span>
+<span><span class="co">#&gt; Blocking MMR: 1.4807 %.</span></span>
+<span><span class="co">#&gt; Candidate pairs retained: 25343 of 623767259.</span></span>
+<span><span class="co">#&gt; Candidate pair reduction: 99.9959 %.</span></span>
 <span><span class="co">#&gt; ========================================================</span></span>
 <span><span class="co">#&gt; Evaluation metrics:</span></span>
-<span><span class="co">#&gt;    FLR    MMR </span></span>
-<span><span class="co">#&gt; 0.0016 0.0151</span></span></code></pre></div>
+<span><span class="co">#&gt; FLR (%) MMR (%) </span></span>
+<span><span class="co">#&gt;  0.1560  1.5098</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="what-blocking-buys-us">What blocking buys us<a class="anchor" aria-label="anchor" href="#what-blocking-buys-us"></a>
+<h2 id="blocking-efficiency-and-linkage-results">Blocking efficiency and linkage results<a class="anchor" aria-label="anchor" href="#blocking-efficiency-and-linkage-results"></a>
 </h2>
 <p>The full Cartesian product contains 623,767,259 record pairs.
 Blocking reduces this to 25,343 candidate pairs, while retaining 98.52%

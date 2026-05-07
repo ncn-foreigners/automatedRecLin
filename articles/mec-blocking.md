@@ -129,19 +129,19 @@ result
 #> Estimated missing match rate (MMR): 0.0034 %.
 #> ========================================================
 #> Blocking diagnostics:
-#>      true_matches preserved_matches      lost_matches 
-#>             24043             23687               356 
-#> blocked_pairs    full_pairs 
-#>         25343     623767259 
-#> blocking_recall    blocking_fnr 
-#>          0.9852          0.0148 
+#> Known matches: 24043.
+#> Known matches retained by blocking: 23687.
+#> Known matches missed by blocking: 356.
+#> Blocking MMR: 1.4807 %.
+#> Candidate pairs retained: 25343 of 623767259.
+#> Candidate pair reduction: 99.9959 %.
 #> ========================================================
 #> Evaluation metrics:
-#>    FLR    MMR 
-#> 0.0016 0.0151
+#> FLR (%) MMR (%) 
+#>  0.1560  1.5098
 ```
 
-## What blocking buys us
+## Blocking efficiency and linkage results
 
 The full Cartesian product contains 623,767,259 record pairs. Blocking
 reduces this to 25,343 candidate pairs, while retaining 98.52% of known

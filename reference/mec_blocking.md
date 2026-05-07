@@ -366,14 +366,14 @@ result
 #> Estimated missing match rate (MMR): 0.0000 %.
 #> ========================================================
 #> Blocking diagnostics:
-#>      true_matches preserved_matches      lost_matches 
-#>                 5                 5                 0 
-#> blocked_pairs    full_pairs 
-#>             5            25 
-#> blocking_recall    blocking_fnr 
-#>               1               0 
+#> Known matches: 5.
+#> Known matches retained by blocking: 5.
+#> Known matches missed by blocking: 0.
+#> Blocking MMR: 0.0000 %.
+#> Candidate pairs retained: 5 of 25.
+#> Candidate pair reduction: 80.0000 %.
 #> ========================================================
 #> Evaluation metrics:
-#> FLR MMR 
-#>   0   0 
+#> FLR (%) MMR (%) 
+#>  0.0000  0.0000 
 ```

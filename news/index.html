@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">automatedRecLin</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,16 @@
       <small>Source: <a href="https://github.com/ncn-foreigners/automatedRecLin/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.1.0" id="version-110">Version 1.1.0<a class="anchor" aria-label="anchor" href="#version-110"></a></h2>
+<ul><li>Added <code><a href="../reference/mec_blocking.html">mec_blocking()</a></code> for blocked unsupervised MEC with pooled training and blockwise prediction using the <code>blocking</code> package.</li>
+<li>Added support for creating comparison vectors on a supplied table of record pairs through the <code>pairs</code> argument in <code><a href="../reference/comparison_vectors.html">comparison_vectors()</a></code>.</li>
+<li>Added <code>census</code> and <code>cis</code> example datasets for larger record linkage examples.</li>
+<li>Added a vignette showing MEC with blocking on the <code>cis</code> and <code>census</code> datasets.</li>
+<li>Added optional progress messages via the <code>verbose</code> argument in <code><a href="../reference/mec.html">mec()</a></code>, <code><a href="../reference/train_rec_lin.html">train_rec_lin()</a></code>, <code><a href="../reference/predict.rec_lin_model.html">predict.rec_lin_model()</a></code>, and <code><a href="../reference/mec_blocking.html">mec_blocking()</a></code>.</li>
+<li>Improved validation of supplied match and pair tables, including clearer checks for row indices, duplicate pairs, missing values, and non-finite comparison values.</li>
+<li>Improved print methods for linkage results, including consistent percentage formatting for error rates.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.0.1" id="version-101">Version 1.0.1<a class="anchor" aria-label="anchor" href="#version-101"></a></h2><p class="text-muted">CRAN release: 2025-12-13</p>
 <ul><li>Fixed CRAN errors.</li>
