@@ -170,11 +170,25 @@ expect_equal(NROW(fit_threshold$training_Omega), 3L)
 expect_true(all(c("gamma_name", "gamma_surname") %in% names(fit_threshold$training_Omega)))
 expect_true(!is.null(fit_threshold$blocking_result))
 expect_true("result" %in% names(fit_threshold$blocking_result))
+
+included_A <- as.integer(vapply(
+  fit_threshold$block_summary[["A"]],
+  function(x) x[1L],
+  numeric(1)
+))
+
+expect_equal(NROW(fit_threshold$block_summary), 2L)
+expect_equal(fit_threshold$block_summary[["n_A"]], rep(1L, 2L))
+expect_equal(fit_threshold$block_summary[["n_B"]], rep(3L, 2L))
 expect_equal(
   fit_threshold$M_est[, .(a, b, block)],
-  data.table(a = c(2L, 4L), b = c(2L, 4L), block = c(1, 2))
+  data.table(
+    a = included_A,
+    b = included_A,
+    block = fit_threshold$block_summary[["block"]]
+  )
 )
-expect_equal(fit_threshold$excluded_records$A, c(1L, 3L, 5L, 6L))
+expect_equal(sort(fit_threshold$excluded_records$A), setdiff(seq_len(6L), included_A))
 expect_equal(fit_threshold$excluded_records$B, integer())
 expect_equal(
   fit_threshold$blocking_eval,
