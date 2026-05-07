@@ -119,7 +119,7 @@ result <- mec_blocking(
 result
 ```
 
-## What blocking buys us
+## Blocking efficiency and linkage results
 
 The full Cartesian product contains `r format(NROW(cis) * NROW(census), big.mark = ",")`
 record pairs. Blocking reduces this to `r format(result$blocking_eval[["blocked_pairs"]], big.mark = ",")`

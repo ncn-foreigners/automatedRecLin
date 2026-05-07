@@ -49,6 +49,13 @@ print.rec_lin_model <- function(x, ...) {
 
 }
 
+# Keep printed evaluation errors on the same percentage scale as estimated rates.
+format_linkage_error_rates <- function(x) {
+  formatted_rates <- sprintf("%.4f", x * 100)
+  names(formatted_rates) <- paste0(names(x), " (%)")
+  noquote(formatted_rates)
+}
+
 #' @import data.table
 #' @importFrom utils head
 #' @method print rec_lin_predictions
@@ -86,9 +93,7 @@ print.rec_lin_predictions <- function(x, ...) {
   if (!is.null(x$eval_metrics)) {
     cat("========================================================\n")
     cat("Evaluation metrics:\n")
-    eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics))
-    names(eval_metrics) <- names(x$eval_metrics)
-    print(eval_metrics)
+    print(format_linkage_error_rates(x$eval_metrics))
   }
 
 }
@@ -156,9 +161,7 @@ print.mec_rec_lin <- function(x, ...) {
   if (!is.null(x$eval_metrics)) {
     cat("========================================================\n")
     cat("Evaluation metrics:\n")
-    eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics))
-    names(eval_metrics) <- names(x$eval_metrics)
-    print(eval_metrics)
+    print(format_linkage_error_rates(x$eval_metrics))
   }
 
 }
@@ -199,32 +202,20 @@ print.mec_blocking <- function(x, ...) {
   if (!is.null(x$blocking_eval)) {
     cat("========================================================\n")
     cat("Blocking diagnostics:\n")
-    blocking_match_counts <- c(
-      true_matches = x$blocking_eval[["true_matches"]],
-      preserved_matches = x$blocking_eval[["preserved_matches"]],
-      lost_matches = x$blocking_eval[["lost_matches"]]
-    )
-    blocking_pair_counts <- c(
-      blocked_pairs = x$blocking_eval[["blocked_pairs"]],
-      full_pairs = x$blocking_eval[["full_pairs"]]
-    )
-    blocking_metrics <- c(
-      blocking_recall = x$blocking_eval[["blocking_recall"]],
-      blocking_fnr = x$blocking_eval[["blocking_fnr"]]
-    )
-    blocking_metrics <- as.numeric(sprintf("%.4f", blocking_metrics))
-    names(blocking_metrics) <- c("blocking_recall", "blocking_fnr")
-    print(blocking_match_counts)
-    print(blocking_pair_counts)
-    print(blocking_metrics)
+    cat("Known matches: ", x$blocking_eval[["true_matches"]], ".\n", sep = "")
+    cat("Known matches retained by blocking: ", x$blocking_eval[["preserved_matches"]], ".\n", sep = "")
+    cat("Known matches missed by blocking: ", x$blocking_eval[["lost_matches"]], ".\n", sep = "")
+    cat("Blocking MMR: ", sprintf("%.4f", x$blocking_eval[["blocking_fnr"]] * 100), " %.\n", sep = "")
+    cat("Candidate pairs retained: ", x$blocking_eval[["blocked_pairs"]],
+        " of ", x$blocking_eval[["full_pairs"]], ".\n", sep = "")
+    pair_reduction <- 1 - x$blocking_eval[["blocked_pairs"]] / x$blocking_eval[["full_pairs"]]
+    cat("Candidate pair reduction: ", sprintf("%.4f", pair_reduction * 100), " %.\n", sep = "")
   }
 
   if (!is.null(x$eval_metrics)) {
     cat("========================================================\n")
     cat("Evaluation metrics:\n")
-    eval_metrics <- as.numeric(sprintf("%.4f", x$eval_metrics))
-    names(eval_metrics) <- names(x$eval_metrics)
-    print(eval_metrics)
+    print(format_linkage_error_rates(x$eval_metrics))
   }
 
 }
