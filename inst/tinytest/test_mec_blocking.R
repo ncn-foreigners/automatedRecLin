@@ -10,12 +10,26 @@ controls_blocking <- list(
   seed = 1
 )
 
-expect_rate_bounds <- function(result) {
-  expect_true(is.finite(result$flr_est))
-  expect_true(result$flr_est >= 0 && result$flr_est <= 1)
-  expect_true(is.finite(result$mmr_est))
-  expect_true(result$mmr_est >= 0 && result$mmr_est <= 1)
+expect_blocking_output_contract <- function(result) {
+  expect_false(any(c("flr_est", "mmr_est") %in% names(result)))
+  expect_equal(names(result$M_est), c("a", "b", "block", "ratio"))
+  expect_equal(
+    names(result$block_estimates),
+    c("block", "n_A", "n_B", "pair_count", "nonmatches_min", "n_M_est", "selected_pairs")
+  )
+  expect_true(all(result$block_estimates[["n_M_est"]] >= 0))
+  expect_true(all(result$block_estimates[["selected_pairs"]] >= 0))
+  expect_true(all(result$block_estimates[["n_M_est"]] <=
+                    pmin(result$block_estimates[["n_A"]], result$block_estimates[["n_B"]])))
+  expect_true(all(result$block_estimates[["selected_pairs"]] <=
+                    pmin(result$block_estimates[["n_A"]], result$block_estimates[["n_B"]])))
 }
+
+expect_equal(automatedRecLin:::select_singleton_mec_index(1), 1L)
+expect_equal(automatedRecLin:::select_singleton_mec_index(Inf), 1L)
+expect_equal(automatedRecLin:::select_singleton_mec_index(0.5), integer())
+expect_equal(automatedRecLin:::select_singleton_mec_index(NA_real_), integer())
+expect_equal(automatedRecLin:::select_singleton_mec_index(NaN), integer())
 
 unkey <- function(x) {
   data.table::setkey(x, NULL)
@@ -96,9 +110,17 @@ expect_equal(
 )
 expect_equal(fit_binary$eval_metrics, c(FLR = 0, MMR = 0))
 expect_equal(fit_binary$confusion, confusion_all_links)
-expect_rate_bounds(fit_binary)
+expect_blocking_output_contract(fit_binary)
+expect_true(all(fit_binary$M_est[["ratio"]] >= 1))
+expect_equal(fit_binary$block_estimates[["n_M_est"]], rep(1L, 5L))
+expect_equal(fit_binary$block_estimates[["selected_pairs"]], rep(1L, 5L))
 expect_null(fit_binary$blocking_result)
 expect_null(fit_binary$training_Omega)
+
+fit_binary_print <- paste(capture.output(print(fit_binary)), collapse = "\n")
+expect_false(grepl("Estimated false link rate", fit_binary_print))
+expect_false(grepl("Estimated missing match rate", fit_binary_print))
+expect_true(grepl("Evaluation metrics", fit_binary_print))
 
 set.seed(1)
 fit_cpar <- mec_blocking(
@@ -134,7 +156,34 @@ expect_true(all(is.finite(unlist(fit_cpar$cpar_params[, -"variable"]))))
 expect_equal(fit_cpar$b_params[["variable"]], "gamma_city")
 expect_true(all(is.finite(fit_cpar$b_params[["theta"]])))
 expect_true(all(is.finite(fit_cpar$b_params[["eta"]])))
-expect_rate_bounds(fit_cpar)
+expect_blocking_output_contract(fit_cpar)
+
+singleton_nonmatch_A <- data.frame(
+  name = c("same", "left"),
+  surname = c("person", "alpha")
+)
+singleton_nonmatch_B <- data.frame(
+  name = c("same", "right"),
+  surname = c("person", "beta")
+)
+singleton_nonmatch_blocking <- matrix(c(1, 2), ncol = 1)
+
+set.seed(1)
+fit_singleton_nonmatch <- mec_blocking(
+  A = singleton_nonmatch_A,
+  B = singleton_nonmatch_B,
+  variables = c("name", "surname"),
+  blocking_x = singleton_nonmatch_blocking,
+  blocking_y = singleton_nonmatch_blocking,
+  controls_blocking = controls_blocking
+)
+
+expect_blocking_output_contract(fit_singleton_nonmatch)
+expect_equal(fit_singleton_nonmatch$M_est[, .(a, b)], data.table(a = 1L, b = 1L))
+expect_equal(
+  fit_singleton_nonmatch$block_estimates[block == 2, .(n_M_est, selected_pairs)],
+  data.table(n_M_est = 0L, selected_pairs = 0L)
+)
 
 threshold_A <- data.frame(
   name = c("A1", "A2", "A3", "B1", "B2", "B3"),
@@ -204,7 +253,7 @@ expect_equal(
 )
 expect_equal(fit_threshold$eval_metrics, c(FLR = 0, MMR = 2 / 3))
 expect_equal(fit_threshold$confusion, confusion_threshold)
-expect_rate_bounds(fit_threshold)
+expect_blocking_output_contract(fit_threshold)
 
 expect_error(
   mec_blocking(

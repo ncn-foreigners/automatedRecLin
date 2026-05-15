@@ -119,10 +119,8 @@ Returns a list of class \code{"mec_blocking"} containing:
 \itemize{
 \item{\code{M_est} -- a \code{data.table} with predicted matches and columns \code{a}, \code{b}, \code{block}, and \code{ratio},}
 \item{\code{n_M_est} -- estimated total number of matches across all blocks,}
-\item{\code{flr_est} -- estimated false link rate (FLR),}
-\item{\code{mmr_est} -- estimated missing match rate (MMR),}
 \item{\code{training_rule} -- training-block selection rule used by the function,}
-\item{\code{block_estimates} -- a \code{data.table} with block-level match-count and error-rate estimates,}
+\item{\code{block_estimates} -- a \code{data.table} with block-level size and match-count diagnostics,}
 \item{\code{training_blocks} -- a \code{data.table} with blocks selected for pooled MEC training,}
 \item{\code{block_summary} -- a \code{data.table} describing the final disjoint blocks,}
 \item{\code{excluded_records} -- a list with records from \code{A} and \code{B} excluded by blocking,}
@@ -150,8 +148,8 @@ Returns a list of class \code{"mec_blocking"} containing:
 \item{\code{blocking_result} -- raw object returned by \link[blocking:blocking]{blocking()} if \code{keep_blocking_result = TRUE}; otherwise \code{NULL},}
 \item{\code{training_Omega} -- pooled training comparison vectors if \code{keep_training_data = TRUE}; otherwise \code{NULL},}
 \item{\code{blocking_eval} -- blocking diagnostics if \code{true_matches} is provided; otherwise \code{NULL},}
-\item{\code{eval_metrics} -- standard linkage quality metrics if \code{true_matches} is provided; otherwise \code{NULL},}
-\item{\code{confusion} -- confusion matrix if \code{true_matches} is provided; otherwise \code{NULL}.}
+\item{\code{eval_metrics} -- empirical linkage quality metrics based on \code{true_matches}; otherwise \code{NULL},}
+\item{\code{confusion} -- empirical confusion matrix based on \code{true_matches}; otherwise \code{NULL}.}
 }
 }
 \description{
@@ -173,6 +171,11 @@ one threshold is an error.
 Nonmatch distribution parameters are estimated from a simple random sample
 from the full Cartesian product of \code{A} and \code{B}, not from the selected
 training blocks.
+
+Singleton blocks with one record from \code{A} and one record from \code{B} are
+classified directly using the fitted density ratio. The only pair is
+selected when its ratio is at least one and is otherwise treated as a
+nonmatch. Non-singleton blocks use the blockwise MEC procedure.
 }
 \examples{
 df_1 <- data.frame(

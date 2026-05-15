@@ -1,3 +1,7 @@
+# Version 1.1.1
+
++ Improved handling singleton blocks in the `mec_blocking()` function.
+
 # Version 1.1.0
 
 + Added `mec_blocking()` for blocked unsupervised MEC with pooled training

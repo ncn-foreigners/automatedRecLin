@@ -15,6 +15,7 @@ misc
 ^papers$
 ^codex_tests$
 ^test-data$
+^output_documents$
 
 ^\.positai$
 ^\.claude$

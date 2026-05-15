@@ -1394,15 +1394,18 @@ fit_mec_unsupervised_omega <- function(A,
 #' from the full Cartesian product of `A` and `B`, not from the selected
 #' training blocks.
 #'
+#' Singleton blocks with one record from `A` and one record from `B` are
+#' classified directly using the fitted density ratio. The only pair is
+#' selected when its ratio is at least one and is otherwise treated as a
+#' nonmatch. Non-singleton blocks use the blockwise MEC procedure.
+#'
 #' @return
 #' Returns a list of class `"mec_blocking"` containing:
 #' \itemize{
 #' \item{`M_est` -- a `data.table` with predicted matches and columns `a`, `b`, `block`, and `ratio`,}
 #' \item{`n_M_est` -- estimated total number of matches across all blocks,}
-#' \item{`flr_est` -- estimated false link rate (FLR),}
-#' \item{`mmr_est` -- estimated missing match rate (MMR),}
 #' \item{`training_rule` -- training-block selection rule used by the function,}
-#' \item{`block_estimates` -- a `data.table` with block-level match-count and error-rate estimates,}
+#' \item{`block_estimates` -- a `data.table` with block-level size and match-count diagnostics,}
 #' \item{`training_blocks` -- a `data.table` with blocks selected for pooled MEC training,}
 #' \item{`block_summary` -- a `data.table` describing the final disjoint blocks,}
 #' \item{`excluded_records` -- a list with records from `A` and `B` excluded by blocking,}
@@ -1430,8 +1433,8 @@ fit_mec_unsupervised_omega <- function(A,
 #' \item{`blocking_result` -- raw object returned by \link[blocking:blocking]{blocking()} if `keep_blocking_result = TRUE`; otherwise `NULL`,}
 #' \item{`training_Omega` -- pooled training comparison vectors if `keep_training_data = TRUE`; otherwise `NULL`,}
 #' \item{`blocking_eval` -- blocking diagnostics if `true_matches` is provided; otherwise `NULL`,}
-#' \item{`eval_metrics` -- standard linkage quality metrics if `true_matches` is provided; otherwise `NULL`,}
-#' \item{`confusion` -- confusion matrix if `true_matches` is provided; otherwise `NULL`.}
+#' \item{`eval_metrics` -- empirical linkage quality metrics based on `true_matches`; otherwise `NULL`,}
+#' \item{`confusion` -- empirical confusion matrix based on `true_matches`; otherwise `NULL`.}
 #' }
 #'
 #' @examples
@@ -1673,26 +1676,31 @@ mec_blocking <- function(
       pairs = pair_table
     )
     Omega_block <- score_mec_ratio(vectors$Omega, pooled_model)
-    local_size <- estimate_local_mec_size(
-      ratio = Omega_block[["ratio"]],
-      n_pairs = NROW(Omega_block),
-      n_A = current_summary[["n_A"]],
-      n_B = current_summary[["n_B"]],
-      fixed_method = fixed_method,
-      prob_ratio = prob_ratio,
-      prob_est = pooled_model$prob_est
-    )
-    data.table::set(Omega_block, j = "g_est", value = local_size$g_est)
-    selection_summary <- summarize_mec_selection(
-      a = Omega_block[["a"]],
-      b = Omega_block[["b"]],
-      ratio = Omega_block[["ratio"]],
-      g_est = Omega_block[["g_est"]],
-      n_M_est = local_size$n_M_est,
-      duplicates_in_A = FALSE,
-      set_construction = "size"
-    )
-    M_block <- Omega_block[selection_summary$selected_idx, c("a", "b", "block", "ratio", "g_est"), with = FALSE]
+
+    if (current_summary[["n_A"]] == 1L && current_summary[["n_B"]] == 1L) {
+      selected_idx <- select_singleton_mec_index(Omega_block[["ratio"]])
+      local_n_M_est <- length(selected_idx)
+    } else {
+      local_size <- estimate_local_mec_size(
+        ratio = Omega_block[["ratio"]],
+        n_pairs = NROW(Omega_block),
+        n_A = current_summary[["n_A"]],
+        n_B = current_summary[["n_B"]],
+        fixed_method = fixed_method,
+        prob_ratio = prob_ratio,
+        prob_est = pooled_model$prob_est
+      )
+      selected_idx <- select_mec_indices(
+        a = Omega_block[["a"]],
+        b = Omega_block[["b"]],
+        ratio = Omega_block[["ratio"]],
+        n_M = local_size$n_M_est,
+        duplicates_in_A = FALSE
+      )
+      local_n_M_est <- local_size$n_M_est
+    }
+
+    M_block <- Omega_block[selected_idx, c("a", "b", "block", "ratio"), with = FALSE]
     block_estimate <- current_summary[, .(
       block,
       n_A,
@@ -1700,10 +1708,8 @@ mec_blocking <- function(
       pair_count,
       nonmatches_min
     )]
-    block_estimate[, n_M_est := local_size$n_M_est]
+    block_estimate[, n_M_est := local_n_M_est]
     block_estimate[, selected_pairs := NROW(M_block)]
-    block_estimate[, flr_est := selection_summary$flr_est]
-    block_estimate[, mmr_est := selection_summary$mmr_est]
 
     list(M_est = M_block, block_estimate = block_estimate)
   })
@@ -1711,13 +1717,6 @@ mec_blocking <- function(
   M_est_full <- data.table::rbindlist(lapply(block_results, `[[`, "M_est"), use.names = TRUE, fill = TRUE)
   block_estimates <- data.table::rbindlist(lapply(block_results, `[[`, "block_estimate"), use.names = TRUE)
   n_M_est <- sum(block_estimates[["n_M_est"]])
-  selected_g_est <- M_est_full[["g_est"]]
-  flr_est <- if (NROW(M_est_full) == 0L) Inf else mean(1 - selected_g_est)
-  mmr_est <- if (n_M_est == 0) {
-    1
-  } else {
-    max(0, min(1, 1 - sum(selected_g_est) / n_M_est))
-  }
   M_est <- M_est_full[, c("a", "b", "block", "ratio"), with = FALSE]
 
   block_pairs <- make_block_pair_table(block_summary)
@@ -1750,8 +1749,6 @@ mec_blocking <- function(
     list(
       M_est = M_est,
       n_M_est = n_M_est,
-      flr_est = flr_est,
-      mmr_est = mmr_est,
       training_rule = training_rule,
       block_estimates = block_estimates,
       training_blocks = training_blocks,

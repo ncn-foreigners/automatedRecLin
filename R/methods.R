@@ -196,9 +196,6 @@ print.mec_blocking <- function(x, ...) {
     cat("========================================================\n")
   }
 
-  cat("Estimated false link rate (FLR): ", sprintf("%.4f", x$flr_est * 100), " %.\n", sep = "")
-  cat("Estimated missing match rate (MMR): ", sprintf("%.4f", x$mmr_est * 100), " %.\n", sep = "")
-
   if (!is.null(x$blocking_eval)) {
     cat("========================================================\n")
     cat("Blocking diagnostics:\n")

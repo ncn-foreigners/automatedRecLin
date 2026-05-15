@@ -1112,6 +1112,19 @@ estimate_local_mec_size <- function(ratio,
 }
 
 #' @noRd
+# Singleton blocks have no one-to-one conflict, so classify the only pair by
+# its fitted density ratio.
+select_singleton_mec_index <- function(ratio) {
+  ratio <- ratio[1L]
+
+  if (!is.na(ratio) && ratio >= 1) {
+    return(1L)
+  }
+
+  integer()
+}
+
+#' @noRd
 blocking_diagnostics <- function(true_matches, block_pairs, n_full_pairs) {
   true_matches <- data.table::copy(true_matches)
   data.table::setkey(true_matches, a, b)
