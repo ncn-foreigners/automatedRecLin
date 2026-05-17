@@ -61,38 +61,35 @@ supported by \code{\link[=mec_blocking]{mec_blocking()}} at this stage.}
 \item{controls_blocking}{A list of additional arguments passed to
 \link[blocking:blocking]{blocking()}, except \code{x} and \code{y}.}
 
-\item{min_training_pairs}{Minimum number of within-block training pairs.
-If \code{NULL}, \code{min_training_nonmatches} should also be \code{NULL}, and all blocks
-are used for training.}
+\item{min_training_pairs}{Retained for compatibility. The current inverted
+blocked MEC workflow validates this argument when supplied but uses all
+candidate pairs for fitting.}
 
-\item{min_training_nonmatches}{Minimum lower bound on within-block nonmatches.
-If \code{NULL}, \code{min_training_pairs} should also be \code{NULL}, and all blocks are
-used for training.}
+\item{min_training_nonmatches}{Retained for compatibility. It should be
+supplied together with \code{min_training_pairs} or left \code{NULL}.}
 
-\item{block_sampling_seed}{Optional seed for random training-block sampling.}
+\item{block_sampling_seed}{Retained for compatibility and currently unused.}
 
-\item{nonmatch_sample_size}{Number of pairs sampled from the full
-Cartesian product of \code{A} and \code{B} to estimate nonmatch distribution
-parameters. If \code{NULL}, all pairs are used.}
+\item{nonmatch_sample_size}{Retained for compatibility and validated when
+supplied. The current workflow does not sample the full Cartesian product.}
 
-\item{nonmatch_sampling_seed}{Optional seed for nonmatch pair sampling.}
+\item{nonmatch_sampling_seed}{Retained for compatibility and currently unused.}
 
-\item{prob_ratio}{Probability/density ratio type (\code{"1"} or \code{"2"}). The
-default \code{"2"} uses the blockwise fixed-point equation.}
+\item{prob_ratio}{Retained for compatibility and currently unused by the
+inverted blocked MEC workflow.}
 
 \item{start_params}{Start parameters for the \code{"binary"} and
 \code{"continuous_parametric"} methods.}
 
 \item{nonpar_hurdle}{Currently unused in \code{\link[=mec_blocking]{mec_blocking()}}.}
 
-\item{fixed_method}{A method for solving blockwise fixed-point equations using
-the \link[FixedPoint:FixedPoint]{FixedPoint()} function.}
+\item{fixed_method}{Retained for compatibility and currently unused.}
 
 \item{delta}{A numeric value specifying the tolerance for the change in the
-estimated number of matches between MEC iterations.}
+estimated number of nonmatches between MEC iterations.}
 
 \item{eps}{A numeric value specifying the tolerance for the change in model
-parameters between MEC iterations.}
+parameters on the nonmatch side between MEC iterations.}
 
 \item{max_iter_em}{Currently unused in \code{\link[=mec_blocking]{mec_blocking()}}.}
 
@@ -119,12 +116,17 @@ Returns a list of class \code{"mec_blocking"} containing:
 \itemize{
 \item{\code{M_est} -- a \code{data.table} with predicted matches and columns \code{a}, \code{b}, \code{block}, and \code{ratio},}
 \item{\code{n_M_est} -- estimated total number of matches across all blocks,}
-\item{\code{training_rule} -- training-block selection rule used by the function,}
+\item{\code{n_U_est} -- estimated total number of candidate nonmatches,}
+\item{\code{n_U_min} -- lower bound on the number of candidate nonmatches,}
+\item{\code{nu} -- maximum feasible one-to-one matching size in the candidate-pair graph,}
+\item{\code{candidate_pair_count} -- number of candidate pairs in \eqn{\Omega_B},}
+\item{\code{ratio_orientation} -- density-ratio orientation, equal to \code{"u_over_m"},}
+\item{\code{training_rule} -- fitting rule used by the function, equal to \code{"all_candidate_pairs"},}
 \item{\code{block_estimates} -- a \code{data.table} with block-level size and match-count diagnostics,}
-\item{\code{training_blocks} -- a \code{data.table} with blocks selected for pooled MEC training,}
+\item{\code{training_blocks} -- a \code{data.table} with all final blocks used to define \eqn{\Omega_B},}
 \item{\code{block_summary} -- a \code{data.table} describing the final disjoint blocks,}
 \item{\code{excluded_records} -- a list with records from \code{A} and \code{B} excluded by blocking,}
-\item{\code{pooled_model} -- fitted pooled MEC density-ratio model used for blockwise scoring,}
+\item{\code{pooled_model} -- fitted inverted MEC model on the candidate-pair space,}
 \item{\code{b_vars} -- variables used for the \code{"binary"} method, with the prefix \code{"gamma_"},}
 \item{\code{cpar_vars} -- variables used for the \code{"continuous_parametric"} method, with the prefix \code{"gamma_"},}
 \item{\code{cnonpar_vars} -- variables used for the \code{"continuous_nonparametric"} method, currently \code{NULL},}
@@ -138,15 +140,15 @@ Returns a list of class \code{"mec_blocking"} containing:
 \item{\code{variables} -- key variables used for comparison,}
 \item{\code{comparators} -- comparison functions used to create comparison vectors,}
 \item{\code{methods} -- MEC estimation methods used for the key variables,}
-\item{\code{nonmatch_sample_size} -- number of full Cartesian-product pairs used to estimate nonmatch parameters,}
-\item{\code{nonmatch_sampling_seed} -- seed used for nonmatch-pair sampling,}
-\item{\code{prob_ratio} -- probability/density ratio type used for blockwise match-count estimation,}
-\item{\code{delta} -- tolerance for changes in the estimated number of matches,}
-\item{\code{eps} -- tolerance for changes in model parameters,}
+\item{\code{nonmatch_sample_size} -- compatibility field, currently \code{NULL},}
+\item{\code{nonmatch_sampling_seed} -- compatibility field, currently \code{NULL},}
+\item{\code{prob_ratio} -- compatibility argument value, currently unused by the algorithm,}
+\item{\code{delta} -- tolerance for changes in the estimated number of nonmatches,}
+\item{\code{eps} -- tolerance for changes in nonmatch-side model parameters,}
 \item{\code{controls_nleqslv} -- controls passed to \link[nleqslv:nleqslv]{nleqslv()},}
 \item{\code{controls_blocking} -- additional arguments passed to \link[blocking:blocking]{blocking()},}
 \item{\code{blocking_result} -- raw object returned by \link[blocking:blocking]{blocking()} if \code{keep_blocking_result = TRUE}; otherwise \code{NULL},}
-\item{\code{training_Omega} -- pooled training comparison vectors if \code{keep_training_data = TRUE}; otherwise \code{NULL},}
+\item{\code{training_Omega} -- candidate-space comparison vectors with inverted scores if \code{keep_training_data = TRUE}; otherwise \code{NULL},}
 \item{\code{blocking_eval} -- blocking diagnostics if \code{true_matches} is provided; otherwise \code{NULL},}
 \item{\code{eval_metrics} -- empirical linkage quality metrics based on \code{true_matches}; otherwise \code{NULL},}
 \item{\code{confusion} -- empirical confusion matrix based on \code{true_matches}; otherwise \code{NULL}.}
@@ -154,28 +156,37 @@ Returns a list of class \code{"mec_blocking"} containing:
 }
 \description{
 Runs graph-based blocking using \link[blocking:blocking]{blocking()},
-fits one pooled unsupervised maximum entropy classifier (MEC) on selected
-within-block pairs, and applies the fitted density-ratio model blockwise.
+defines a blocking candidate-pair space, and fits an inverted unsupervised
+maximum entropy classifier (MEC) directly on all candidate pairs.
 }
 \details{
 The function assumes one-to-one linkage. The blocking stage defines disjoint
-bipartite blocks. MEC is trained once on the pooled union of selected
-within-block Cartesian products and is then applied separately in each final
-block. The ANN distance returned by \link[blocking:blocking]{blocking()} is not used.
+bipartite blocks, and the candidate-pair space \eqn{\Omega_B} is the union of
+within-block Cartesian products. Duplicate candidate pairs are removed
+deterministically before MEC fitting.
 
-If both \code{min_training_pairs} and \code{min_training_nonmatches} are \code{NULL}, all
-final blocks are used for pooled training. If both are supplied, blocks are
-sampled without replacement until both thresholds are reached. Supplying only
-one threshold is an error.
+The blocked MEC fit is inverted relative to \code{\link[=mec]{mec()}}. Match-side parameters
+are estimated once from all candidate pairs in \eqn{\Omega_B}. Initial
+feasible matches are selected greedily by an unweighted disagreement norm:
+binary agreement indicators use \code{1 - gamma}, while continuous dissimilarities
+use \code{gamma} unchanged. At each iteration, nonmatch-side parameters are
+estimated from the complement of the current greedy one-to-one match set.
 
-Nonmatch distribution parameters are estimated from a simple random sample
-from the full Cartesian product of \code{A} and \code{B}, not from the selected
-training blocks.
+The returned \code{ratio} is \eqn{s = u / m}, where \eqn{u} and \eqn{m} denote
+the estimated nonmatch and match comparison-vector densities. Smaller values
+are therefore more match-like. Updated match sets are selected greedily in
+ascending order of this ratio.
 
-Singleton blocks with one record from \code{A} and one record from \code{B} are
-classified directly using the fitted density ratio. The only pair is
-selected when its ratio is at least one and is otherwise treated as a
-nonmatch. Non-singleton blocks use the blockwise MEC procedure.
+If \eqn{N = |\Omega_B|} and \eqn{\nu} is the maximum feasible one-to-one
+matching size in the candidate graph, the estimated number of nonmatches is
+bounded below by \eqn{N - \nu}. For the disjoint complete blocks reconstructed
+by this function, \eqn{\nu = \sum_h \min(n_{Ah}, n_{Bh})}.
+
+If every candidate pair is structurally needed by the one-to-one bound
+(\eqn{N = \nu}), there is no candidate complement from which to estimate
+nonmatch parameters. In that case the function returns the structurally
+feasible initialized match set, sets \code{n_U_est = 0}, and leaves nonmatch-side
+parameters unavailable.
 }
 \examples{
 df_1 <- data.frame(

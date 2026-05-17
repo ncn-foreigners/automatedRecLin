@@ -1321,14 +1321,573 @@ fit_mec_unsupervised_omega <- function(A,
   )
 }
 
+#' @noRd
+validate_mec_blocking_compatibility_args <- function(min_training_pairs,
+                                                     min_training_nonmatches,
+                                                     nonmatch_sample_size,
+                                                     n_A,
+                                                     n_B) {
+  if (is.null(min_training_pairs) != is.null(min_training_nonmatches)) {
+    stop("`min_training_pairs` and `min_training_nonmatches` should both be supplied or both be `NULL`.")
+  }
+
+  if (!is.null(min_training_pairs) &&
+      (length(min_training_pairs) != 1L || is.na(min_training_pairs) ||
+       min_training_pairs <= 0)) {
+    stop("`min_training_pairs` should be a positive number.")
+  }
+
+  if (!is.null(min_training_nonmatches) &&
+      (length(min_training_nonmatches) != 1L || is.na(min_training_nonmatches) ||
+       min_training_nonmatches <= 0)) {
+    stop("`min_training_nonmatches` should be a positive number.")
+  }
+
+  if (!is.null(nonmatch_sample_size)) {
+    validate_nonmatch_sample_size(
+      nonmatch_sample_size = nonmatch_sample_size,
+      n_A = n_A,
+      n_B = n_B
+    )
+  }
+
+  invisible(NULL)
+}
+
+#' @noRd
+prepare_inverted_start_params <- function(start_params, cpar_vars) {
+  if (!is.null(start_params)) {
+    stopifnot("`start_params` should be a list." =
+                is.list(start_params))
+    return(start_params)
+  }
+
+  start_params <- list()
+  if (length(cpar_vars) > 0L) {
+    start_params[["continuous_parametric"]] <- data.table(
+      variable = cpar_vars,
+      p_0_M = stats::runif(length(cpar_vars), min = 0.8, max = 0.9),
+      alpha_M = stats::runif(length(cpar_vars), min = 0.1, max = 1),
+      beta_M = stats::runif(length(cpar_vars), min = 10, max = 20)
+    )
+  }
+
+  start_params
+}
+
+#' @noRd
+get_hurdle_gamma_fallback <- function(fallback_params, variables, side) {
+  if (is.null(fallback_params)) {
+    return(NULL)
+  }
+
+  alpha_col <- paste0("alpha_", side)
+  beta_col <- paste0("beta_", side)
+  if (!all(c("variable", alpha_col, beta_col) %in% names(fallback_params))) {
+    return(NULL)
+  }
+
+  fallback_params <- align_parameter_table(fallback_params, variables)
+  list(
+    alpha = fallback_params[[alpha_col]],
+    beta = fallback_params[[beta_col]]
+  )
+}
+
+#' @noRd
+estimate_hurdle_gamma_params <- function(df,
+                                         variables,
+                                         side,
+                                         fallback_params = NULL,
+                                         controls_nleqslv = list(),
+                                         context = "mec_blocking()") {
+  if (length(variables) == 0L) {
+    return(NULL)
+  }
+
+  p_0 <- p_0_formula(df)
+  alpha <- stats::setNames(rep(NA_real_, length(variables)), variables)
+  beta <- stats::setNames(rep(NA_real_, length(variables)), variables)
+  fallback <- get_hurdle_gamma_fallback(fallback_params, variables, side)
+  modified_nleqslv <- purrr::partial(nleqslv::nleqslv, control = controls_nleqslv)
+
+  for (i in seq_along(variables)) {
+    variable <- variables[i]
+    gamma <- df[[variable]]
+    positive_gamma <- gamma[gamma > 0]
+
+    if (length(positive_gamma) >= 2L) {
+      estimated_alpha <- tryCatch(
+        alpha_formula(df[, variable, with = FALSE], modified_nleqslv)[1L],
+        error = function(e) NA_real_
+      )
+      estimated_beta <- estimated_alpha / mean(positive_gamma)
+
+      if (is.finite(estimated_alpha) && is.finite(estimated_beta) &&
+          estimated_alpha > 0 && estimated_beta > 0) {
+        alpha[i] <- estimated_alpha
+        beta[i] <- estimated_beta
+        next
+      }
+    }
+
+    has_fallback <- !is.null(fallback) &&
+      is.finite(fallback$alpha[i]) && is.finite(fallback$beta[i]) &&
+      fallback$alpha[i] > 0 && fallback$beta[i] > 0
+
+    if (!has_fallback) {
+      stop(
+        sprintf(
+          "%s cannot estimate %s-side Gamma parameters for `%s`; at least two positive continuous comparisons or finite fallback parameters are required.",
+          context,
+          if (side == "M") "match" else "nonmatch",
+          variable
+        ),
+        call. = FALSE
+      )
+    }
+
+    alpha[i] <- fallback$alpha[i]
+    beta[i] <- fallback$beta[i]
+  }
+
+  params <- data.table(variable = variables)
+  data.table::set(params, j = paste0("p_0_", side), value = as.numeric(p_0))
+  data.table::set(params, j = paste0("alpha_", side), value = as.numeric(alpha))
+  data.table::set(params, j = paste0("beta_", side), value = as.numeric(beta))
+  params
+}
+
+#' @noRd
+estimate_inverted_match_parameters <- function(Omega,
+                                               b_vars,
+                                               cpar_vars,
+                                               start_params,
+                                               controls_nleqslv,
+                                               context = "mec_blocking()") {
+  b_params <- NULL
+  if (length(b_vars) > 0L) {
+    b_params <- data.table(
+      variable = b_vars,
+      theta = binary_formula(Omega[, b_vars, with = FALSE])
+    )
+  }
+
+  cpar_params <- NULL
+  if (length(cpar_vars) > 0L) {
+    cpar_params <- estimate_hurdle_gamma_params(
+      df = Omega[, cpar_vars, with = FALSE],
+      variables = cpar_vars,
+      side = "M",
+      fallback_params = start_params$continuous_parametric,
+      controls_nleqslv = controls_nleqslv,
+      context = context
+    )
+  }
+
+  list(binary = b_params, continuous_parametric = cpar_params)
+}
+
+#' @noRd
+estimate_inverted_nonmatch_parameters <- function(Omega,
+                                                  U_idx,
+                                                  b_vars,
+                                                  cpar_vars,
+                                                  previous_params,
+                                                  controls_nleqslv,
+                                                  context = "mec_blocking()") {
+  if (length(U_idx) == 0L) {
+    stop(sprintf("%s cannot estimate nonmatch parameters from an empty candidate-pair complement.", context),
+         call. = FALSE)
+  }
+
+  b_params <- NULL
+  if (length(b_vars) > 0L) {
+    b_params <- data.table(
+      variable = b_vars,
+      eta = binary_formula(Omega[U_idx, b_vars, with = FALSE])
+    )
+  }
+
+  cpar_params <- NULL
+  if (length(cpar_vars) > 0L) {
+    cpar_params <- estimate_hurdle_gamma_params(
+      df = Omega[U_idx, cpar_vars, with = FALSE],
+      variables = cpar_vars,
+      side = "U",
+      fallback_params = previous_params$continuous_parametric,
+      controls_nleqslv = controls_nleqslv,
+      context = context
+    )
+  }
+
+  list(binary = b_params, continuous_parametric = cpar_params)
+}
+
+#' @noRd
+combine_inverted_parameters <- function(match_params, nonmatch_params, b_vars, cpar_vars) {
+  b_params <- NULL
+  if (length(b_vars) > 0L) {
+    b_params <- data.table(
+      variable = b_vars,
+      theta = match_params$binary$theta,
+      eta = nonmatch_params$binary$eta
+    )
+  }
+
+  cpar_params <- NULL
+  if (length(cpar_vars) > 0L) {
+    cpar_params <- data.table::copy(match_params$continuous_parametric)
+    data.table::set(cpar_params, j = "p_0_U", value = nonmatch_params$continuous_parametric$p_0_U)
+    data.table::set(cpar_params, j = "alpha_U", value = nonmatch_params$continuous_parametric$alpha_U)
+    data.table::set(cpar_params, j = "beta_U", value = nonmatch_params$continuous_parametric$beta_U)
+  }
+
+  list(binary = b_params, continuous_parametric = cpar_params)
+}
+
+#' @noRd
+inverted_nonmatch_param_vector <- function(nonmatch_params) {
+  params <- numeric()
+
+  if (!is.null(nonmatch_params$binary)) {
+    params <- c(params, nonmatch_params$binary$eta)
+  }
+
+  if (!is.null(nonmatch_params$continuous_parametric)) {
+    params <- c(
+      params,
+      nonmatch_params$continuous_parametric$p_0_U,
+      nonmatch_params$continuous_parametric$alpha_U,
+      nonmatch_params$continuous_parametric$beta_U
+    )
+  }
+
+  params
+}
+
+#' @noRd
+score_inverted_mec_ratio <- function(Omega, b_vars, cpar_vars, b_params, cpar_params) {
+  data.table::set(Omega, j = "ratio", value = 1)
+
+  if (length(b_vars) > 0L) {
+    Omega_b <- Omega[, b_vars, with = FALSE]
+    data.table::set(
+      Omega,
+      j = "ratio",
+      value = Omega[["ratio"]] * bernoulli_ratio(Omega_b, b_params$eta, b_params$theta)
+    )
+  }
+
+  if (length(cpar_vars) > 0L) {
+    Omega_cpar <- Omega[, cpar_vars, with = FALSE]
+    data.table::set(
+      Omega,
+      j = "ratio",
+      value = Omega[["ratio"]] * hurdle_gamma_ratio(
+        Omega_cpar,
+        cpar_params$p_0_U,
+        cpar_params$alpha_U,
+        cpar_params$beta_U,
+        cpar_params$p_0_M,
+        cpar_params$alpha_M,
+        cpar_params$beta_M
+      )
+    )
+  }
+
+  ratio <- Omega[["ratio"]]
+  ratio[is.na(ratio) | ratio < 0] <- Inf
+  data.table::set(Omega, j = "ratio", value = ratio)
+  Omega
+}
+
+#' @noRd
+blocking_disagreement_norm <- function(Omega, b_vars, cpar_vars) {
+  components <- list()
+
+  if (length(b_vars) > 0L) {
+    components[["binary"]] <- 1 - as.matrix(Omega[, b_vars, with = FALSE])
+  }
+
+  if (length(cpar_vars) > 0L) {
+    components[["continuous_parametric"]] <- as.matrix(Omega[, cpar_vars, with = FALSE])
+  }
+
+  disagreement <- do.call(cbind, components)
+  sqrt(rowSums(disagreement ^ 2))
+}
+
+#' @noRd
+select_inverted_mec_indices <- function(a, b, block, ratio, n_M) {
+  n_target <- round(n_M)
+
+  if (n_target <= 0L || length(ratio) == 0L) {
+    return(integer())
+  }
+
+  ratio_order <- ratio
+  ratio_order[is.na(ratio_order) | ratio_order < 0] <- Inf
+  order_idx <- order(ratio_order, a, b, block)
+  selected_idx <- integer(length(order_idx))
+  n_selected <- 0L
+  used_a <- rep(FALSE, max(a))
+  used_b <- rep(FALSE, max(b))
+
+  for (idx in order_idx) {
+    current_a <- a[idx]
+    current_b <- b[idx]
+
+    if (!used_a[current_a] && !used_b[current_b]) {
+      n_selected <- n_selected + 1L
+      selected_idx[n_selected] <- idx
+      used_a[current_a] <- TRUE
+      used_b[current_b] <- TRUE
+    }
+
+    if (n_selected >= n_target) {
+      break
+    }
+  }
+
+  if (n_selected == 0L) {
+    return(integer())
+  }
+
+  selected_idx[seq_len(n_selected)]
+}
+
+#' @noRd
+estimate_inverted_q <- function(ratio, n_U_current, N) {
+  denominator <- n_U_current * (ratio - 1) + N
+  q_est <- n_U_current * ratio / denominator
+  q_est[is.infinite(ratio) & ratio > 0] <- 1
+  q_est[ratio == 0 & denominator > 0] <- 0
+  q_est <- pmin(q_est, 1)
+  q_est <- pmax(q_est, 0)
+  q_est[!is.finite(q_est)] <- 1
+  q_est
+}
+
+#' @noRd
+fit_mec_blocking_inverted_omega <- function(A,
+                                            B,
+                                            variables,
+                                            comparators,
+                                            methods,
+                                            Omega,
+                                            start_params = NULL,
+                                            delta = 0.5,
+                                            eps = 0.05,
+                                            controls_nleqslv = list(),
+                                            n_U_min,
+                                            nu,
+                                            context = "mec_blocking()") {
+  method_variables <- extract_method_variables(methods, include_hit_miss = FALSE)
+  b_vars <- method_variables$b_vars
+  cpar_vars <- method_variables$cpar_vars
+  N <- NROW(Omega)
+  all_idx <- seq_len(N)
+  start_params <- prepare_inverted_start_params(start_params, cpar_vars)
+  max_iter_inverted <- 1000L
+
+  match_params <- estimate_inverted_match_parameters(
+    Omega = Omega,
+    b_vars = b_vars,
+    cpar_vars = cpar_vars,
+    start_params = start_params,
+    controls_nleqslv = controls_nleqslv,
+    context = context
+  )
+
+  init_disagreement <- blocking_disagreement_norm(Omega, b_vars, cpar_vars)
+  data.table::set(Omega, j = "init_disagreement", value = init_disagreement)
+  M_idx <- select_inverted_mec_indices(
+    a = Omega[["a"]],
+    b = Omega[["b"]],
+    block = Omega[["block"]],
+    ratio = Omega[["init_disagreement"]],
+    n_M = nu
+  )
+  U_idx <- setdiff(all_idx, M_idx)
+
+  if (length(U_idx) == 0L) {
+    if (N != nu) {
+      stop(sprintf("%s initialized an empty nonmatch complement before reaching the structural one-to-one bound.",
+                   context),
+           call. = FALSE)
+    }
+
+    data.table::set(Omega, j = "ratio", value = 0)
+    data.table::set(Omega, j = "q_est", value = 0)
+    M_est <- Omega[M_idx, c("a", "b", "block", "ratio"), with = FALSE]
+    model <- list(
+      b_vars = if (length(b_vars) == 0L) NULL else b_vars,
+      cpar_vars = if (length(cpar_vars) == 0L) NULL else cpar_vars,
+      cnonpar_vars = NULL,
+      hm_vars = NULL,
+      b_params = match_params$binary,
+      cpar_params = match_params$continuous_parametric,
+      cnonpar_params = NULL,
+      hm_params = NULL,
+      ratio_kliep = NULL,
+      ratio_kliep_list = NULL,
+      nonmatch_params = NULL,
+      variables = variables,
+      comparators = comparators,
+      methods = methods,
+      n_M_est = NROW(M_est),
+      n_U_est = 0L,
+      n_U_min = n_U_min,
+      nu = nu,
+      candidate_pair_count = N,
+      prob_est = if (N == 0L) NA_real_ else NROW(M_est) / N,
+      ratio_orientation = "u_over_m",
+      iter = 0L,
+      convergence_reason = "structural_no_nonmatch_complement"
+    )
+
+    return(list(
+      model = model,
+      Omega = Omega,
+      M_est = M_est,
+      n_M_est = NROW(M_est),
+      n_U_est = 0L,
+      n_U_min = n_U_min,
+      nu = nu,
+      candidate_pair_count = N,
+      iter = 0L,
+      convergence_reason = "structural_no_nonmatch_complement"
+    ))
+  }
+
+  iter <- 1L
+  n_U_old <- length(U_idx)
+  previous_nonmatch_params <- NULL
+  previous_param_vector <- NULL
+  convergence_reason <- "max_iter"
+
+  repeat {
+    nonmatch_params <- estimate_inverted_nonmatch_parameters(
+      Omega = Omega,
+      U_idx = U_idx,
+      b_vars = b_vars,
+      cpar_vars = cpar_vars,
+      previous_params = previous_nonmatch_params,
+      controls_nleqslv = controls_nleqslv,
+      context = context
+    )
+    combined_params <- combine_inverted_parameters(
+      match_params = match_params,
+      nonmatch_params = nonmatch_params,
+      b_vars = b_vars,
+      cpar_vars = cpar_vars
+    )
+    Omega <- score_inverted_mec_ratio(
+      Omega = Omega,
+      b_vars = b_vars,
+      cpar_vars = cpar_vars,
+      b_params = combined_params$binary,
+      cpar_params = combined_params$continuous_parametric
+    )
+
+    q_est <- estimate_inverted_q(
+      ratio = Omega[["ratio"]],
+      n_U_current = length(U_idx),
+      N = N
+    )
+    data.table::set(Omega, j = "q_est", value = q_est)
+    n_U_raw <- sum(q_est)
+    n_U_est <- max(n_U_min, min(N, round(n_U_raw)))
+    n_M_est <- N - n_U_est
+    M_idx_new <- select_inverted_mec_indices(
+      a = Omega[["a"]],
+      b = Omega[["b"]],
+      block = Omega[["block"]],
+      ratio = Omega[["ratio"]],
+      n_M = n_M_est
+    )
+    U_idx_new <- setdiff(all_idx, M_idx_new)
+    param_vector <- inverted_nonmatch_param_vector(nonmatch_params)
+
+    if (abs(n_U_est - n_U_old) < delta) {
+      convergence_reason <- "n_U_delta"
+    } else if (identical(sort(M_idx_new), sort(M_idx))) {
+      convergence_reason <- "match_set_unchanged"
+    } else if (!is.null(previous_param_vector) &&
+               norm(previous_param_vector - param_vector, type = "2") < eps) {
+      convergence_reason <- "nonmatch_parameter_eps"
+    } else if (iter >= max_iter_inverted) {
+      warning("mec_blocking() reached the maximum number of inverted MEC iterations.")
+      convergence_reason <- "max_iter"
+    } else {
+      previous_nonmatch_params <- nonmatch_params
+      previous_param_vector <- param_vector
+      n_U_old <- n_U_est
+      M_idx <- M_idx_new
+      U_idx <- U_idx_new
+      iter <- iter + 1L
+      next
+    }
+
+    M_idx <- M_idx_new
+    U_idx <- U_idx_new
+    previous_nonmatch_params <- nonmatch_params
+    previous_param_vector <- param_vector
+    break
+  }
+
+  M_est <- Omega[M_idx, c("a", "b", "block", "ratio"), with = FALSE]
+  n_M_selected <- NROW(M_est)
+  n_U_selected <- N - n_M_selected
+  model <- list(
+    b_vars = if (length(b_vars) == 0L) NULL else b_vars,
+    cpar_vars = if (length(cpar_vars) == 0L) NULL else cpar_vars,
+    cnonpar_vars = NULL,
+    hm_vars = NULL,
+    b_params = combined_params$binary,
+    cpar_params = combined_params$continuous_parametric,
+    cnonpar_params = NULL,
+    hm_params = NULL,
+    ratio_kliep = NULL,
+    ratio_kliep_list = NULL,
+    nonmatch_params = previous_nonmatch_params,
+    variables = variables,
+    comparators = comparators,
+    methods = methods,
+    n_M_est = n_M_selected,
+    n_U_est = n_U_selected,
+    n_U_min = n_U_min,
+    nu = nu,
+    candidate_pair_count = N,
+    prob_est = n_M_selected / N,
+    ratio_orientation = "u_over_m",
+    iter = iter,
+    convergence_reason = convergence_reason
+  )
+
+  list(
+    model = model,
+    Omega = Omega,
+    M_est = M_est,
+    n_M_est = n_M_selected,
+    n_U_est = n_U_selected,
+    n_U_min = n_U_min,
+    nu = nu,
+    candidate_pair_count = N,
+    iter = iter,
+    convergence_reason = convergence_reason
+  )
+}
+
 #' @title Blocked Unsupervised Maximum Entropy Classifier for Record Linkage
 #'
 #' @author Adam Struzik
 #'
 #' @description
 #' Runs graph-based blocking using \link[blocking:blocking]{blocking()},
-#' fits one pooled unsupervised maximum entropy classifier (MEC) on selected
-#' within-block pairs, and applies the fitted density-ratio model blockwise.
+#' defines a blocking candidate-pair space, and fits an inverted unsupervised
+#' maximum entropy classifier (MEC) directly on all candidate pairs.
 #'
 #' @param A A duplicate-free `data.frame` or `data.table`.
 #' @param B A duplicate-free `data.frame` or `data.table`.
@@ -1344,28 +1903,25 @@ fit_mec_unsupervised_omega <- function(A,
 #' @param blocking_sep Separator used when concatenating `blocking_variables`.
 #' @param controls_blocking A list of additional arguments passed to
 #' \link[blocking:blocking]{blocking()}, except `x` and `y`.
-#' @param min_training_pairs Minimum number of within-block training pairs.
-#' If `NULL`, `min_training_nonmatches` should also be `NULL`, and all blocks
-#' are used for training.
-#' @param min_training_nonmatches Minimum lower bound on within-block nonmatches.
-#' If `NULL`, `min_training_pairs` should also be `NULL`, and all blocks are
-#' used for training.
-#' @param block_sampling_seed Optional seed for random training-block sampling.
-#' @param nonmatch_sample_size Number of pairs sampled from the full
-#' Cartesian product of `A` and `B` to estimate nonmatch distribution
-#' parameters. If `NULL`, all pairs are used.
-#' @param nonmatch_sampling_seed Optional seed for nonmatch pair sampling.
-#' @param prob_ratio Probability/density ratio type (`"1"` or `"2"`). The
-#' default `"2"` uses the blockwise fixed-point equation.
+#' @param min_training_pairs Retained for compatibility. The current inverted
+#' blocked MEC workflow validates this argument when supplied but uses all
+#' candidate pairs for fitting.
+#' @param min_training_nonmatches Retained for compatibility. It should be
+#' supplied together with `min_training_pairs` or left `NULL`.
+#' @param block_sampling_seed Retained for compatibility and currently unused.
+#' @param nonmatch_sample_size Retained for compatibility and validated when
+#' supplied. The current workflow does not sample the full Cartesian product.
+#' @param nonmatch_sampling_seed Retained for compatibility and currently unused.
+#' @param prob_ratio Retained for compatibility and currently unused by the
+#' inverted blocked MEC workflow.
 #' @param start_params Start parameters for the `"binary"` and
 #' `"continuous_parametric"` methods.
 #' @param nonpar_hurdle Currently unused in [mec_blocking()].
-#' @param fixed_method A method for solving blockwise fixed-point equations using
-#' the \link[FixedPoint:FixedPoint]{FixedPoint()} function.
+#' @param fixed_method Retained for compatibility and currently unused.
 #' @param delta A numeric value specifying the tolerance for the change in the
-#' estimated number of matches between MEC iterations.
+#' estimated number of nonmatches between MEC iterations.
 #' @param eps A numeric value specifying the tolerance for the change in model
-#' parameters between MEC iterations.
+#' parameters on the nonmatch side between MEC iterations.
 #' @param max_iter_em Currently unused in [mec_blocking()].
 #' @param tol_em Currently unused in [mec_blocking()].
 #' @param controls_nleqslv Controls passed to the \link[nleqslv:nleqslv]{nleqslv()} function
@@ -1381,35 +1937,49 @@ fit_mec_unsupervised_omega <- function(A,
 #'
 #' @details
 #' The function assumes one-to-one linkage. The blocking stage defines disjoint
-#' bipartite blocks. MEC is trained once on the pooled union of selected
-#' within-block Cartesian products and is then applied separately in each final
-#' block. The ANN distance returned by \link[blocking:blocking]{blocking()} is not used.
+#' bipartite blocks, and the candidate-pair space \eqn{\Omega_B} is the union of
+#' within-block Cartesian products. Duplicate candidate pairs are removed
+#' deterministically before MEC fitting.
 #'
-#' If both `min_training_pairs` and `min_training_nonmatches` are `NULL`, all
-#' final blocks are used for pooled training. If both are supplied, blocks are
-#' sampled without replacement until both thresholds are reached. Supplying only
-#' one threshold is an error.
+#' The blocked MEC fit is inverted relative to [mec()]. Match-side parameters
+#' are estimated once from all candidate pairs in \eqn{\Omega_B}. Initial
+#' feasible matches are selected greedily by an unweighted disagreement norm:
+#' binary agreement indicators use `1 - gamma`, while continuous dissimilarities
+#' use `gamma` unchanged. At each iteration, nonmatch-side parameters are
+#' estimated from the complement of the current greedy one-to-one match set.
 #'
-#' Nonmatch distribution parameters are estimated from a simple random sample
-#' from the full Cartesian product of `A` and `B`, not from the selected
-#' training blocks.
+#' The returned `ratio` is \eqn{s = u / m}, where \eqn{u} and \eqn{m} denote
+#' the estimated nonmatch and match comparison-vector densities. Smaller values
+#' are therefore more match-like. Updated match sets are selected greedily in
+#' ascending order of this ratio.
 #'
-#' Singleton blocks with one record from `A` and one record from `B` are
-#' classified directly using the fitted density ratio. The only pair is
-#' selected when its ratio is at least one and is otherwise treated as a
-#' nonmatch. Non-singleton blocks use the blockwise MEC procedure.
+#' If \eqn{N = |\Omega_B|} and \eqn{\nu} is the maximum feasible one-to-one
+#' matching size in the candidate graph, the estimated number of nonmatches is
+#' bounded below by \eqn{N - \nu}. For the disjoint complete blocks reconstructed
+#' by this function, \eqn{\nu = \sum_h \min(n_{Ah}, n_{Bh})}.
+#'
+#' If every candidate pair is structurally needed by the one-to-one bound
+#' (\eqn{N = \nu}), there is no candidate complement from which to estimate
+#' nonmatch parameters. In that case the function returns the structurally
+#' feasible initialized match set, sets `n_U_est = 0`, and leaves nonmatch-side
+#' parameters unavailable.
 #'
 #' @return
 #' Returns a list of class `"mec_blocking"` containing:
 #' \itemize{
 #' \item{`M_est` -- a `data.table` with predicted matches and columns `a`, `b`, `block`, and `ratio`,}
 #' \item{`n_M_est` -- estimated total number of matches across all blocks,}
-#' \item{`training_rule` -- training-block selection rule used by the function,}
+#' \item{`n_U_est` -- estimated total number of candidate nonmatches,}
+#' \item{`n_U_min` -- lower bound on the number of candidate nonmatches,}
+#' \item{`nu` -- maximum feasible one-to-one matching size in the candidate-pair graph,}
+#' \item{`candidate_pair_count` -- number of candidate pairs in \eqn{\Omega_B},}
+#' \item{`ratio_orientation` -- density-ratio orientation, equal to `"u_over_m"`,}
+#' \item{`training_rule` -- fitting rule used by the function, equal to `"all_candidate_pairs"`,}
 #' \item{`block_estimates` -- a `data.table` with block-level size and match-count diagnostics,}
-#' \item{`training_blocks` -- a `data.table` with blocks selected for pooled MEC training,}
+#' \item{`training_blocks` -- a `data.table` with all final blocks used to define \eqn{\Omega_B},}
 #' \item{`block_summary` -- a `data.table` describing the final disjoint blocks,}
 #' \item{`excluded_records` -- a list with records from `A` and `B` excluded by blocking,}
-#' \item{`pooled_model` -- fitted pooled MEC density-ratio model used for blockwise scoring,}
+#' \item{`pooled_model` -- fitted inverted MEC model on the candidate-pair space,}
 #' \item{`b_vars` -- variables used for the `"binary"` method, with the prefix `"gamma_"`,}
 #' \item{`cpar_vars` -- variables used for the `"continuous_parametric"` method, with the prefix `"gamma_"`,}
 #' \item{`cnonpar_vars` -- variables used for the `"continuous_nonparametric"` method, currently `NULL`,}
@@ -1423,15 +1993,15 @@ fit_mec_unsupervised_omega <- function(A,
 #' \item{`variables` -- key variables used for comparison,}
 #' \item{`comparators` -- comparison functions used to create comparison vectors,}
 #' \item{`methods` -- MEC estimation methods used for the key variables,}
-#' \item{`nonmatch_sample_size` -- number of full Cartesian-product pairs used to estimate nonmatch parameters,}
-#' \item{`nonmatch_sampling_seed` -- seed used for nonmatch-pair sampling,}
-#' \item{`prob_ratio` -- probability/density ratio type used for blockwise match-count estimation,}
-#' \item{`delta` -- tolerance for changes in the estimated number of matches,}
-#' \item{`eps` -- tolerance for changes in model parameters,}
+#' \item{`nonmatch_sample_size` -- compatibility field, currently `NULL`,}
+#' \item{`nonmatch_sampling_seed` -- compatibility field, currently `NULL`,}
+#' \item{`prob_ratio` -- compatibility argument value, currently unused by the algorithm,}
+#' \item{`delta` -- tolerance for changes in the estimated number of nonmatches,}
+#' \item{`eps` -- tolerance for changes in nonmatch-side model parameters,}
 #' \item{`controls_nleqslv` -- controls passed to \link[nleqslv:nleqslv]{nleqslv()},}
 #' \item{`controls_blocking` -- additional arguments passed to \link[blocking:blocking]{blocking()},}
 #' \item{`blocking_result` -- raw object returned by \link[blocking:blocking]{blocking()} if `keep_blocking_result = TRUE`; otherwise `NULL`,}
-#' \item{`training_Omega` -- pooled training comparison vectors if `keep_training_data = TRUE`; otherwise `NULL`,}
+#' \item{`training_Omega` -- candidate-space comparison vectors with inverted scores if `keep_training_data = TRUE`; otherwise `NULL`,}
 #' \item{`blocking_eval` -- blocking diagnostics if `true_matches` is provided; otherwise `NULL`,}
 #' \item{`eval_metrics` -- empirical linkage quality metrics based on `true_matches`; otherwise `NULL`,}
 #' \item{`confusion` -- empirical confusion matrix based on `true_matches`; otherwise `NULL`.}
@@ -1529,7 +2099,9 @@ mec_blocking <- function(
   B <- data.table::copy(data.table::as.data.table(B))
   n_A_original <- nrow(A)
   n_B_original <- nrow(B)
-  nonmatch_sample_size <- validate_nonmatch_sample_size(
+  validate_mec_blocking_compatibility_args(
+    min_training_pairs = min_training_pairs,
+    min_training_nonmatches = min_training_nonmatches,
     nonmatch_sample_size = nonmatch_sample_size,
     n_A = n_A_original,
     n_B = n_B_original
@@ -1575,9 +2147,6 @@ mec_blocking <- function(
 
   data.table::set(A, j = "a", value = seq_len(n_A_original))
   data.table::set(B, j = "b", value = seq_len(n_B_original))
-  stopifnot("There are no records with perfect agreement on the key variables.
-            Please provide relevant datasets." =
-              has_perfect_agreement(A, B, variables))
 
   preprocessing <- drop_constant_key_variables(
     A = A,
@@ -1597,129 +2166,85 @@ mec_blocking <- function(
     warning(paste("The variable", var, "has only one unique value and has been removed."))
   }
 
-  exact_matches <- exact_match_pairs(A, B, variables)
-  training_selection <- select_training_blocks(
-    block_summary = block_summary,
-    min_training_pairs = min_training_pairs,
-    min_training_nonmatches = min_training_nonmatches,
-    block_sampling_seed = block_sampling_seed
+  candidate_pairs <- make_block_pair_table(block_summary)
+  if (NROW(candidate_pairs) == 0L) {
+    stop("Blocking produced no candidate pairs for mec_blocking().", call. = FALSE)
+  }
+  candidate_pairs <- candidate_pairs[, c("a", "b", "block"), with = FALSE]
+  data.table::setorder(candidate_pairs, block, a, b)
+  candidate_pairs <- unique(candidate_pairs, by = c("a", "b"))
+  data.table::setorder(candidate_pairs, block, a, b)
+
+  candidate_pair_count <- NROW(candidate_pairs)
+  nu <- sum(pmin(block_summary[["n_A"]], block_summary[["n_B"]]))
+  n_U_min <- candidate_pair_count - nu
+  training_rule <- "all_candidate_pairs"
+  training_blocks <- data.table::copy(block_summary)
+  data.table::set(training_blocks, j = "cumulative_pairs", value = cumsum(training_blocks[["pair_count"]]))
+  data.table::set(
+    training_blocks,
+    j = "cumulative_nonmatches_min",
+    value = cumsum(training_blocks[["nonmatches_min"]])
   )
-  training_rule <- training_selection$training_rule
-  training_blocks <- training_selection$training_blocks
-  training_pairs <- make_block_pair_table(block_summary, training_blocks[["block"]])
 
   if (verbose) {
     message(sprintf(
-      "Training MEC on %d pairs from %d block(s).",
-      NROW(training_pairs),
+      "Fitting inverted MEC on %d candidate pair(s) from %d block(s).",
+      candidate_pair_count,
       NROW(training_blocks)
     ))
   }
 
-  training_vectors <- comparison_vectors(
+  candidate_vectors <- comparison_vectors(
     A = A,
     B = B,
     variables = variables,
     comparators = comparators,
-    pairs = training_pairs
+    pairs = candidate_pairs
   )
-  training_Omega <- training_vectors$Omega
-  comparators <- training_vectors$comparators
+  candidate_Omega <- candidate_vectors$Omega
+  comparators <- candidate_vectors$comparators
 
-  if (verbose) {
-    message(sprintf(
-      "Estimating nonmatch parameters from %d pair(s).",
-      nonmatch_sample_size
-    ))
-  }
-
-  nonmatch_params <- estimate_nonmatch_parameters(
+  pooled_fit <- fit_mec_blocking_inverted_omega(
     A = A,
     B = B,
     variables = variables,
     comparators = comparators,
     methods = methods,
-    nonmatch_sample_size = nonmatch_sample_size,
-    nonmatch_sampling_seed = nonmatch_sampling_seed,
-    controls_nleqslv = controls_nleqslv
-  )
-
-  pooled_fit <- fit_mec_unsupervised_omega(
-    A = A,
-    B = B,
-    variables = variables,
-    comparators = comparators,
-    methods = methods,
-    Omega = training_Omega,
-    exact_matches = exact_matches,
+    Omega = candidate_Omega,
     start_params = start_params,
-    nonmatch_params = nonmatch_params,
-    nonpar_hurdle = nonpar_hurdle,
     delta = delta,
     eps = eps,
-    max_iter_em = max_iter_em,
-    tol_em = tol_em,
     controls_nleqslv = controls_nleqslv,
-    controls_kliep = controls_kliep,
+    n_U_min = n_U_min,
+    nu = nu,
     context = "mec_blocking()"
   )
   pooled_model <- pooled_fit$model
+  M_est <- pooled_fit$M_est
+  n_M_est <- pooled_fit$n_M_est
+  n_U_est <- pooled_fit$n_U_est
 
-  block_results <- lapply(seq_len(NROW(block_summary)), function(i) {
-    current_summary <- block_summary[i]
-    pair_table <- make_block_pair_table(current_summary)
-    vectors <- comparison_vectors(
-      A = A,
-      B = B,
-      variables = variables,
-      comparators = comparators,
-      pairs = pair_table
-    )
-    Omega_block <- score_mec_ratio(vectors$Omega, pooled_model)
+  block_estimates <- block_summary[, .(
+    block,
+    n_A,
+    n_B,
+    pair_count,
+    nonmatches_min
+  )]
+  data.table::set(block_estimates, j = "n_M_est", value = 0L)
+  data.table::set(block_estimates, j = "selected_pairs", value = 0L)
+  if (NROW(M_est) > 0L) {
+    selected_by_block <- M_est[, .(selected_pairs = .N), by = block]
+    selected_counts <- selected_by_block[["selected_pairs"]][
+      match(block_estimates[["block"]], selected_by_block[["block"]])
+    ]
+    selected_counts[is.na(selected_counts)] <- 0L
+    data.table::set(block_estimates, j = "n_M_est", value = as.integer(selected_counts))
+    data.table::set(block_estimates, j = "selected_pairs", value = as.integer(selected_counts))
+  }
 
-    if (current_summary[["n_A"]] == 1L && current_summary[["n_B"]] == 1L) {
-      selected_idx <- select_singleton_mec_index(Omega_block[["ratio"]])
-      local_n_M_est <- length(selected_idx)
-    } else {
-      local_size <- estimate_local_mec_size(
-        ratio = Omega_block[["ratio"]],
-        n_pairs = NROW(Omega_block),
-        n_A = current_summary[["n_A"]],
-        n_B = current_summary[["n_B"]],
-        fixed_method = fixed_method,
-        prob_ratio = prob_ratio,
-        prob_est = pooled_model$prob_est
-      )
-      selected_idx <- select_mec_indices(
-        a = Omega_block[["a"]],
-        b = Omega_block[["b"]],
-        ratio = Omega_block[["ratio"]],
-        n_M = local_size$n_M_est,
-        duplicates_in_A = FALSE
-      )
-      local_n_M_est <- local_size$n_M_est
-    }
-
-    M_block <- Omega_block[selected_idx, c("a", "b", "block", "ratio"), with = FALSE]
-    block_estimate <- current_summary[, .(
-      block,
-      n_A,
-      n_B,
-      pair_count,
-      nonmatches_min
-    )]
-    block_estimate[, n_M_est := local_n_M_est]
-    block_estimate[, selected_pairs := NROW(M_block)]
-
-    list(M_est = M_block, block_estimate = block_estimate)
-  })
-
-  M_est_full <- data.table::rbindlist(lapply(block_results, `[[`, "M_est"), use.names = TRUE, fill = TRUE)
-  block_estimates <- data.table::rbindlist(lapply(block_results, `[[`, "block_estimate"), use.names = TRUE)
-  n_M_est <- sum(block_estimates[["n_M_est"]])
-  M_est <- M_est_full[, c("a", "b", "block", "ratio"), with = FALSE]
-
-  block_pairs <- make_block_pair_table(block_summary)
+  block_pairs <- candidate_pairs
   blocking_eval <- NULL
   eval_metrics <- NULL
   confusion <- NULL
@@ -1749,6 +2274,11 @@ mec_blocking <- function(
     list(
       M_est = M_est,
       n_M_est = n_M_est,
+      n_U_est = n_U_est,
+      n_U_min = pooled_fit$n_U_min,
+      nu = pooled_fit$nu,
+      candidate_pair_count = pooled_fit$candidate_pair_count,
+      ratio_orientation = pooled_model$ratio_orientation,
       training_rule = training_rule,
       block_estimates = block_estimates,
       training_blocks = training_blocks,
@@ -1768,8 +2298,8 @@ mec_blocking <- function(
       variables = variables,
       comparators = comparators,
       methods = methods,
-      nonmatch_sample_size = nonmatch_params$sample_size,
-      nonmatch_sampling_seed = nonmatch_sampling_seed,
+      nonmatch_sample_size = NULL,
+      nonmatch_sampling_seed = NULL,
       prob_ratio = prob_ratio,
       delta = delta,
       eps = eps,

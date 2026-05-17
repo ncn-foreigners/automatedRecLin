@@ -16,6 +16,7 @@ misc
 ^codex_tests$
 ^test-data$
 ^output_documents$
+ARCHITECTURE.md
 
 ^\.positai$
 ^\.claude$

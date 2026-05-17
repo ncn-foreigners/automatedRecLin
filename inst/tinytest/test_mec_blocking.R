@@ -13,6 +13,15 @@ controls_blocking <- list(
 expect_blocking_output_contract <- function(result) {
   expect_false(any(c("flr_est", "mmr_est") %in% names(result)))
   expect_equal(names(result$M_est), c("a", "b", "block", "ratio"))
+  expect_equal(result$training_rule, "all_candidate_pairs")
+  expect_equal(result$ratio_orientation, "u_over_m")
+  expect_equal(result$pooled_model$ratio_orientation, "u_over_m")
+  expect_equal(result$n_M_est, NROW(result$M_est))
+  expect_equal(result$n_U_est, result$candidate_pair_count - result$n_M_est)
+  expect_equal(result$n_U_min, result$candidate_pair_count - result$nu)
+  expect_true(result$n_U_est >= result$n_U_min)
+  expect_null(result$nonmatch_sample_size)
+  expect_null(result$nonmatch_sampling_seed)
   expect_equal(
     names(result$block_estimates),
     c("block", "n_A", "n_B", "pair_count", "nonmatches_min", "n_M_est", "selected_pairs")
@@ -25,11 +34,46 @@ expect_blocking_output_contract <- function(result) {
                     pmin(result$block_estimates[["n_A"]], result$block_estimates[["n_B"]])))
 }
 
-expect_equal(automatedRecLin:::select_singleton_mec_index(1), 1L)
-expect_equal(automatedRecLin:::select_singleton_mec_index(Inf), 1L)
-expect_equal(automatedRecLin:::select_singleton_mec_index(0.5), integer())
-expect_equal(automatedRecLin:::select_singleton_mec_index(NA_real_), integer())
-expect_equal(automatedRecLin:::select_singleton_mec_index(NaN), integer())
+expect_equal(
+  automatedRecLin:::select_inverted_mec_indices(
+    a = c(1L, 1L, 2L, 2L),
+    b = c(1L, 2L, 1L, 2L),
+    block = c(1, 1, 1, 1),
+    ratio = c(2, 0.1, 0.2, Inf),
+    n_M = 2
+  ),
+  c(2L, 3L)
+)
+expect_equal(
+  automatedRecLin:::select_inverted_mec_indices(
+    a = c(1L, 2L),
+    b = c(1L, 2L),
+    block = c(1, 1),
+    ratio = c(NA_real_, 0.5),
+    n_M = 1
+  ),
+  2L
+)
+expect_equal(
+  automatedRecLin:::select_inverted_mec_indices(
+    a = c(1L, 2L),
+    b = c(1L, 2L),
+    block = c(1, 1),
+    ratio = c(-1, 0.3),
+    n_M = 1
+  ),
+  2L
+)
+expect_equal(
+  automatedRecLin:::select_inverted_mec_indices(
+    a = c(1L, 2L),
+    b = c(1L, 2L),
+    block = c(1, 1),
+    ratio = c(0.1, 0.2),
+    n_M = 0
+  ),
+  integer()
+)
 
 unkey <- function(x) {
   data.table::setkey(x, NULL)
@@ -75,13 +119,20 @@ fit_binary <- mec_blocking(
 )
 
 expect_inherits(fit_binary, "mec_blocking")
-expect_equal(fit_binary$training_rule, "all_blocks")
+expect_equal(fit_binary$training_rule, "all_candidate_pairs")
+expect_equal(fit_binary$ratio_orientation, "u_over_m")
+expect_equal(fit_binary$n_M_est, 5L)
+expect_equal(fit_binary$n_U_est, 0L)
+expect_equal(fit_binary$n_U_min, 0L)
+expect_equal(fit_binary$nu, 5L)
+expect_equal(fit_binary$candidate_pair_count, 5L)
+expect_equal(fit_binary$pooled_model$convergence_reason, "structural_no_nonmatch_complement")
 expect_equal(
   fit_binary$M_est[, .(a, b, block)],
   data.table(a = 1:5, b = 1:5, block = as.numeric(1:5))
 )
 expect_true(all(is.finite(fit_binary$M_est[["ratio"]])))
-expect_true(all(fit_binary$M_est[["ratio"]] > 0))
+expect_true(all(fit_binary$M_est[["ratio"]] >= 0))
 expect_equal(
   unkey(fit_binary$block_summary[, .(block, n_A, n_B, pair_count, nonmatches_min)]),
   data.table(
@@ -111,7 +162,6 @@ expect_equal(
 expect_equal(fit_binary$eval_metrics, c(FLR = 0, MMR = 0))
 expect_equal(fit_binary$confusion, confusion_all_links)
 expect_blocking_output_contract(fit_binary)
-expect_true(all(fit_binary$M_est[["ratio"]] >= 1))
 expect_equal(fit_binary$block_estimates[["n_M_est"]], rep(1L, 5L))
 expect_equal(fit_binary$block_estimates[["selected_pairs"]], rep(1L, 5L))
 expect_null(fit_binary$blocking_result)
@@ -179,10 +229,13 @@ fit_singleton_nonmatch <- mec_blocking(
 )
 
 expect_blocking_output_contract(fit_singleton_nonmatch)
-expect_equal(fit_singleton_nonmatch$M_est[, .(a, b)], data.table(a = 1L, b = 1L))
+expect_equal(fit_singleton_nonmatch$n_M_est, 2L)
+expect_equal(fit_singleton_nonmatch$n_U_est, 0L)
+expect_equal(fit_singleton_nonmatch$pooled_model$convergence_reason, "structural_no_nonmatch_complement")
+expect_equal(fit_singleton_nonmatch$M_est[, .(a, b)], data.table(a = 1:2, b = 1:2))
 expect_equal(
-  fit_singleton_nonmatch$block_estimates[block == 2, .(n_M_est, selected_pairs)],
-  data.table(n_M_est = 0L, selected_pairs = 0L)
+  unkey(fit_singleton_nonmatch$block_estimates[, .(block, n_M_est, selected_pairs)]),
+  data.table(block = as.numeric(1:2), n_M_est = c(1L, 1L), selected_pairs = c(1L, 1L))
 )
 
 threshold_A <- data.frame(
@@ -213,10 +266,19 @@ fit_threshold <- mec_blocking(
   keep_blocking_result = TRUE
 )
 
-expect_equal(fit_threshold$training_rule, "threshold_sampling")
-expect_equal(fit_threshold$training_blocks[["block"]], 1)
-expect_equal(NROW(fit_threshold$training_Omega), 3L)
-expect_true(all(c("gamma_name", "gamma_surname") %in% names(fit_threshold$training_Omega)))
+expect_equal(fit_threshold$training_rule, "all_candidate_pairs")
+expect_equal(fit_threshold$ratio_orientation, "u_over_m")
+expect_equal(fit_threshold$candidate_pair_count, 6L)
+expect_equal(fit_threshold$nu, 2L)
+expect_equal(fit_threshold$n_U_min, 4L)
+expect_equal(fit_threshold$n_U_est, 4L)
+expect_equal(fit_threshold$n_M_est, 2L)
+expect_equal(fit_threshold$training_blocks[["block"]], as.numeric(1:2))
+expect_equal(NROW(fit_threshold$training_Omega), fit_threshold$candidate_pair_count)
+expect_true(all(c("gamma_name", "gamma_surname", "init_disagreement", "ratio", "q_est") %in%
+                  names(fit_threshold$training_Omega)))
+expect_true(all(fit_threshold$training_Omega[["q_est"]] >= 0 &
+                  fit_threshold$training_Omega[["q_est"]] <= 1))
 expect_true(!is.null(fit_threshold$blocking_result))
 expect_true("result" %in% names(fit_threshold$blocking_result))
 
