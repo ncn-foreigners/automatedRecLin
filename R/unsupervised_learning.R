@@ -1809,12 +1809,14 @@ fit_mec_blocking_inverted_omega <- function(A,
     )
     U_idx_new <- setdiff(all_idx, M_idx_new)
     param_vector <- inverted_nonmatch_param_vector(nonmatch_params)
+    can_check_convergence <- iter >= 2L
 
-    if (abs(n_U_est - n_U_old) < delta) {
+    if (can_check_convergence && abs(n_U_est - n_U_old) < delta) {
       convergence_reason <- "n_U_delta"
-    } else if (identical(sort(M_idx_new), sort(M_idx))) {
+    } else if (can_check_convergence && identical(sort(M_idx_new), sort(M_idx))) {
       convergence_reason <- "match_set_unchanged"
-    } else if (!is.null(previous_param_vector) &&
+    } else if (can_check_convergence &&
+               !is.null(previous_param_vector) &&
                norm(previous_param_vector - param_vector, type = "2") < eps) {
       convergence_reason <- "nonmatch_parameter_eps"
     } else if (iter >= max_iter_inverted) {
