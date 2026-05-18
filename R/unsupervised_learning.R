@@ -1355,6 +1355,21 @@ validate_mec_blocking_compatibility_args <- function(min_training_pairs,
 }
 
 #' @noRd
+validate_mec_blocking_rho <- function(rho) {
+  if (!is.numeric(rho) || length(rho) != 1L || is.na(rho) ||
+      !is.finite(rho) || rho <= 0 || rho > 1) {
+    stop("`rho` should be a single numeric value in (0, 1].")
+  }
+
+  invisible(rho)
+}
+
+#' @noRd
+initial_inverted_match_count <- function(nu, rho) {
+  as.integer(max(0L, min(nu, floor(rho * nu))))
+}
+
+#' @noRd
 prepare_inverted_start_params <- function(start_params, cpar_vars) {
   if (!is.null(start_params)) {
     stopifnot("`start_params` should be a list." =
@@ -1460,26 +1475,38 @@ estimate_hurdle_gamma_params <- function(df,
 
 #' @noRd
 estimate_inverted_match_parameters <- function(Omega,
+                                               M_idx,
                                                b_vars,
                                                cpar_vars,
+                                               previous_params,
                                                start_params,
                                                controls_nleqslv,
                                                context = "mec_blocking()") {
+  if (length(M_idx) == 0L) {
+    M_idx <- seq_len(NROW(Omega))
+  }
+
+  match_Omega <- Omega[M_idx]
+  cpar_fallback <- start_params$continuous_parametric
+  if (!is.null(previous_params$continuous_parametric)) {
+    cpar_fallback <- previous_params$continuous_parametric
+  }
+
   b_params <- NULL
   if (length(b_vars) > 0L) {
     b_params <- data.table(
       variable = b_vars,
-      theta = binary_formula(Omega[, b_vars, with = FALSE])
+      theta = binary_formula(match_Omega[, b_vars, with = FALSE])
     )
   }
 
   cpar_params <- NULL
   if (length(cpar_vars) > 0L) {
     cpar_params <- estimate_hurdle_gamma_params(
-      df = Omega[, cpar_vars, with = FALSE],
+      df = match_Omega[, cpar_vars, with = FALSE],
       variables = cpar_vars,
       side = "M",
-      fallback_params = start_params$continuous_parametric,
+      fallback_params = cpar_fallback,
       controls_nleqslv = controls_nleqslv,
       context = context
     )
@@ -1564,6 +1591,34 @@ inverted_nonmatch_param_vector <- function(nonmatch_params) {
   }
 
   params
+}
+
+#' @noRd
+inverted_match_param_vector <- function(match_params) {
+  params <- numeric()
+
+  if (!is.null(match_params$binary)) {
+    params <- c(params, match_params$binary$theta)
+  }
+
+  if (!is.null(match_params$continuous_parametric)) {
+    params <- c(
+      params,
+      match_params$continuous_parametric$p_0_M,
+      match_params$continuous_parametric$alpha_M,
+      match_params$continuous_parametric$beta_M
+    )
+  }
+
+  params
+}
+
+#' @noRd
+inverted_parameter_vector <- function(match_params, nonmatch_params) {
+  c(
+    inverted_match_param_vector(match_params),
+    inverted_nonmatch_param_vector(nonmatch_params)
+  )
 }
 
 #' @noRd
@@ -1682,6 +1737,7 @@ fit_mec_blocking_inverted_omega <- function(A,
                                             controls_nleqslv = list(),
                                             n_U_min,
                                             nu,
+                                            rho = 1,
                                             context = "mec_blocking()") {
   method_variables <- extract_method_variables(methods, include_hit_miss = FALSE)
   b_vars <- method_variables$b_vars
@@ -1691,25 +1747,19 @@ fit_mec_blocking_inverted_omega <- function(A,
   start_params <- prepare_inverted_start_params(start_params, cpar_vars)
   max_iter_inverted <- 1000L
 
-  match_params <- estimate_inverted_match_parameters(
-    Omega = Omega,
-    b_vars = b_vars,
-    cpar_vars = cpar_vars,
-    start_params = start_params,
-    controls_nleqslv = controls_nleqslv,
-    context = context
-  )
-
   init_disagreement <- blocking_disagreement_norm(Omega, b_vars, cpar_vars)
   data.table::set(Omega, j = "init_disagreement", value = init_disagreement)
+  n_M_init_target <- initial_inverted_match_count(nu, rho)
   M_idx <- select_inverted_mec_indices(
     a = Omega[["a"]],
     b = Omega[["b"]],
     block = Omega[["block"]],
     ratio = Omega[["init_disagreement"]],
-    n_M = nu
+    n_M = n_M_init_target
   )
   U_idx <- setdiff(all_idx, M_idx)
+  n_M_init <- length(M_idx)
+  n_U_init <- length(U_idx)
 
   if (length(U_idx) == 0L) {
     if (N != nu) {
@@ -1718,6 +1768,16 @@ fit_mec_blocking_inverted_omega <- function(A,
            call. = FALSE)
     }
 
+    match_params <- estimate_inverted_match_parameters(
+      Omega = Omega,
+      M_idx = M_idx,
+      b_vars = b_vars,
+      cpar_vars = cpar_vars,
+      previous_params = list(),
+      start_params = start_params,
+      controls_nleqslv = controls_nleqslv,
+      context = context
+    )
     data.table::set(Omega, j = "ratio", value = 0)
     data.table::set(Omega, j = "q_est", value = 0)
     M_est <- Omega[M_idx, c("a", "b", "block", "ratio"), with = FALSE]
@@ -1740,6 +1800,9 @@ fit_mec_blocking_inverted_omega <- function(A,
       n_U_est = 0L,
       n_U_min = n_U_min,
       nu = nu,
+      rho = rho,
+      n_M_init = n_M_init,
+      n_U_init = n_U_init,
       candidate_pair_count = N,
       prob_est = if (N == 0L) NA_real_ else NROW(M_est) / N,
       ratio_orientation = "u_over_m",
@@ -1755,6 +1818,9 @@ fit_mec_blocking_inverted_omega <- function(A,
       n_U_est = 0L,
       n_U_min = n_U_min,
       nu = nu,
+      rho = rho,
+      n_M_init = n_M_init,
+      n_U_init = n_U_init,
       candidate_pair_count = N,
       iter = 0L,
       convergence_reason = "structural_no_nonmatch_complement"
@@ -1763,11 +1829,22 @@ fit_mec_blocking_inverted_omega <- function(A,
 
   iter <- 1L
   n_U_old <- length(U_idx)
+  previous_match_params <- NULL
   previous_nonmatch_params <- NULL
   previous_param_vector <- NULL
   convergence_reason <- "max_iter"
 
   repeat {
+    match_params <- estimate_inverted_match_parameters(
+      Omega = Omega,
+      M_idx = M_idx,
+      b_vars = b_vars,
+      cpar_vars = cpar_vars,
+      previous_params = if (is.null(previous_match_params)) list() else previous_match_params,
+      start_params = start_params,
+      controls_nleqslv = controls_nleqslv,
+      context = context
+    )
     nonmatch_params <- estimate_inverted_nonmatch_parameters(
       Omega = Omega,
       U_idx = U_idx,
@@ -1808,7 +1885,7 @@ fit_mec_blocking_inverted_omega <- function(A,
       n_M = n_M_est
     )
     U_idx_new <- setdiff(all_idx, M_idx_new)
-    param_vector <- inverted_nonmatch_param_vector(nonmatch_params)
+    param_vector <- inverted_parameter_vector(match_params, nonmatch_params)
     can_check_convergence <- iter >= 2L
 
     if (can_check_convergence && abs(n_U_est - n_U_old) < delta) {
@@ -1822,7 +1899,12 @@ fit_mec_blocking_inverted_omega <- function(A,
     } else if (iter >= max_iter_inverted) {
       warning("mec_blocking() reached the maximum number of inverted MEC iterations.")
       convergence_reason <- "max_iter"
+    } else if (length(U_idx_new) == 0L) {
+      convergence_reason <- "structural_no_nonmatch_complement"
+    } else if (length(M_idx_new) == 0L) {
+      convergence_reason <- "empty_match_set"
     } else {
+      previous_match_params <- match_params
       previous_nonmatch_params <- nonmatch_params
       previous_param_vector <- param_vector
       n_U_old <- n_U_est
@@ -1834,6 +1916,7 @@ fit_mec_blocking_inverted_omega <- function(A,
 
     M_idx <- M_idx_new
     U_idx <- U_idx_new
+    previous_match_params <- match_params
     previous_nonmatch_params <- nonmatch_params
     previous_param_vector <- param_vector
     break
@@ -1861,6 +1944,9 @@ fit_mec_blocking_inverted_omega <- function(A,
     n_U_est = n_U_selected,
     n_U_min = n_U_min,
     nu = nu,
+    rho = rho,
+    n_M_init = n_M_init,
+    n_U_init = n_U_init,
     candidate_pair_count = N,
     prob_est = n_M_selected / N,
     ratio_orientation = "u_over_m",
@@ -1876,6 +1962,9 @@ fit_mec_blocking_inverted_omega <- function(A,
     n_U_est = n_U_selected,
     n_U_min = n_U_min,
     nu = nu,
+    rho = rho,
+    n_M_init = n_M_init,
+    n_U_init = n_U_init,
     candidate_pair_count = N,
     iter = iter,
     convergence_reason = convergence_reason
@@ -1920,10 +2009,14 @@ fit_mec_blocking_inverted_omega <- function(A,
 #' `"continuous_parametric"` methods.
 #' @param nonpar_hurdle Currently unused in [mec_blocking()].
 #' @param fixed_method Retained for compatibility and currently unused.
+#' @param rho A single numeric value in `(0, 1]` controlling the fraction of
+#' the structural one-to-one upper bound used to initialize the inverted MEC
+#' match set. The default `rho = 1` initializes with \eqn{\nu} pairs and
+#' uses the full structural one-to-one bound.
 #' @param delta A numeric value specifying the tolerance for the change in the
 #' estimated number of nonmatches between MEC iterations.
 #' @param eps A numeric value specifying the tolerance for the change in model
-#' parameters on the nonmatch side between MEC iterations.
+#' parameters between MEC iterations.
 #' @param max_iter_em Currently unused in [mec_blocking()].
 #' @param tol_em Currently unused in [mec_blocking()].
 #' @param controls_nleqslv Controls passed to the \link[nleqslv:nleqslv]{nleqslv()} function
@@ -1943,12 +2036,14 @@ fit_mec_blocking_inverted_omega <- function(A,
 #' within-block Cartesian products. Duplicate candidate pairs are removed
 #' deterministically before MEC fitting.
 #'
-#' The blocked MEC fit is inverted relative to [mec()]. Match-side parameters
-#' are estimated once from all candidate pairs in \eqn{\Omega_B}. Initial
-#' feasible matches are selected greedily by an unweighted disagreement norm:
-#' binary agreement indicators use `1 - gamma`, while continuous dissimilarities
-#' use `gamma` unchanged. At each iteration, nonmatch-side parameters are
-#' estimated from the complement of the current greedy one-to-one match set.
+#' The blocked MEC fit is inverted relative to [mec()]. The initial match set
+#' contains at most `floor(rho * nu)` feasible pairs, where \eqn{\nu} is the
+#' structural one-to-one upper bound. Initial feasible matches are selected
+#' greedily by an unweighted disagreement norm: binary agreement indicators use
+#' `1 - gamma`, while continuous dissimilarities use `gamma` unchanged. At each
+#' iteration, match-side parameters are estimated from the current greedy
+#' one-to-one match set, and nonmatch-side parameters are estimated from its
+#' complement.
 #'
 #' The returned `ratio` is \eqn{s = u / m}, where \eqn{u} and \eqn{m} denote
 #' the estimated nonmatch and match comparison-vector densities. Smaller values
@@ -1960,11 +2055,11 @@ fit_mec_blocking_inverted_omega <- function(A,
 #' bounded below by \eqn{N - \nu}. For the disjoint complete blocks reconstructed
 #' by this function, \eqn{\nu = \sum_h \min(n_{Ah}, n_{Bh})}.
 #'
-#' If every candidate pair is structurally needed by the one-to-one bound
-#' (\eqn{N = \nu}), there is no candidate complement from which to estimate
-#' nonmatch parameters. In that case the function returns the structurally
-#' feasible initialized match set, sets `n_U_est = 0`, and leaves nonmatch-side
-#' parameters unavailable.
+#' If the initialized match set exhausts the candidate-pair space, for example
+#' when \eqn{N = \nu} and `rho = 1`, there is no candidate complement from which
+#' to estimate nonmatch parameters. In that case the function returns the
+#' structurally feasible initialized match set, sets `n_U_est = 0`, and leaves
+#' nonmatch-side parameters unavailable.
 #'
 #' @return
 #' Returns a list of class `"mec_blocking"` containing:
@@ -1974,6 +2069,9 @@ fit_mec_blocking_inverted_omega <- function(A,
 #' \item{`n_U_est` -- estimated total number of candidate nonmatches,}
 #' \item{`n_U_min` -- lower bound on the number of candidate nonmatches,}
 #' \item{`nu` -- maximum feasible one-to-one matching size in the candidate-pair graph,}
+#' \item{`rho` -- fraction of `nu` used to initialize the inverted MEC match set,}
+#' \item{`n_M_init` -- number of candidate pairs in the initial inverted MEC match set,}
+#' \item{`n_U_init` -- number of candidate pairs in the initial inverted MEC nonmatch complement,}
 #' \item{`candidate_pair_count` -- number of candidate pairs in \eqn{\Omega_B},}
 #' \item{`ratio_orientation` -- density-ratio orientation, equal to `"u_over_m"`,}
 #' \item{`training_rule` -- fitting rule used by the function, equal to `"all_candidate_pairs"`,}
@@ -2069,6 +2167,7 @@ mec_blocking <- function(
     start_params = NULL,
     nonpar_hurdle = TRUE,
     fixed_method = "Newton",
+    rho = 1,
     delta = 0.5,
     eps = 0.05,
     max_iter_em = 10,
@@ -2096,6 +2195,7 @@ mec_blocking <- function(
   )
   validate_choice(prob_ratio, c("1", "2"), "prob_ratio")
   validate_blocking_controls(controls_blocking)
+  validate_mec_blocking_rho(rho)
 
   A <- data.table::copy(data.table::as.data.table(A))
   B <- data.table::copy(data.table::as.data.table(B))
@@ -2220,6 +2320,7 @@ mec_blocking <- function(
     controls_nleqslv = controls_nleqslv,
     n_U_min = n_U_min,
     nu = nu,
+    rho = rho,
     context = "mec_blocking()"
   )
   pooled_model <- pooled_fit$model
@@ -2279,6 +2380,9 @@ mec_blocking <- function(
       n_U_est = n_U_est,
       n_U_min = pooled_fit$n_U_min,
       nu = pooled_fit$nu,
+      rho = pooled_fit$rho,
+      n_M_init = pooled_fit$n_M_init,
+      n_U_init = pooled_fit$n_U_init,
       candidate_pair_count = pooled_fit$candidate_pair_count,
       ratio_orientation = pooled_model$ratio_orientation,
       training_rule = training_rule,

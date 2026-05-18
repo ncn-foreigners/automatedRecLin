@@ -24,6 +24,7 @@ mec_blocking(
   start_params = NULL,
   nonpar_hurdle = TRUE,
   fixed_method = "Newton",
+  rho = 1,
   delta = 0.5,
   eps = 0.05,
   max_iter_em = 10,
@@ -85,11 +86,16 @@ inverted blocked MEC workflow.}
 
 \item{fixed_method}{Retained for compatibility and currently unused.}
 
+\item{rho}{A single numeric value in \verb{(0, 1]} controlling the fraction of
+the structural one-to-one upper bound used to initialize the inverted MEC
+match set. The default \code{rho = 1} initializes with \eqn{\nu} pairs and
+uses the full structural one-to-one bound.}
+
 \item{delta}{A numeric value specifying the tolerance for the change in the
 estimated number of nonmatches between MEC iterations.}
 
 \item{eps}{A numeric value specifying the tolerance for the change in model
-parameters on the nonmatch side between MEC iterations.}
+parameters between MEC iterations.}
 
 \item{max_iter_em}{Currently unused in \code{\link[=mec_blocking]{mec_blocking()}}.}
 
@@ -119,6 +125,9 @@ Returns a list of class \code{"mec_blocking"} containing:
 \item{\code{n_U_est} -- estimated total number of candidate nonmatches,}
 \item{\code{n_U_min} -- lower bound on the number of candidate nonmatches,}
 \item{\code{nu} -- maximum feasible one-to-one matching size in the candidate-pair graph,}
+\item{\code{rho} -- fraction of \code{nu} used to initialize the inverted MEC match set,}
+\item{\code{n_M_init} -- number of candidate pairs in the initial inverted MEC match set,}
+\item{\code{n_U_init} -- number of candidate pairs in the initial inverted MEC nonmatch complement,}
 \item{\code{candidate_pair_count} -- number of candidate pairs in \eqn{\Omega_B},}
 \item{\code{ratio_orientation} -- density-ratio orientation, equal to \code{"u_over_m"},}
 \item{\code{training_rule} -- fitting rule used by the function, equal to \code{"all_candidate_pairs"},}
@@ -165,12 +174,14 @@ bipartite blocks, and the candidate-pair space \eqn{\Omega_B} is the union of
 within-block Cartesian products. Duplicate candidate pairs are removed
 deterministically before MEC fitting.
 
-The blocked MEC fit is inverted relative to \code{\link[=mec]{mec()}}. Match-side parameters
-are estimated once from all candidate pairs in \eqn{\Omega_B}. Initial
-feasible matches are selected greedily by an unweighted disagreement norm:
-binary agreement indicators use \code{1 - gamma}, while continuous dissimilarities
-use \code{gamma} unchanged. At each iteration, nonmatch-side parameters are
-estimated from the complement of the current greedy one-to-one match set.
+The blocked MEC fit is inverted relative to \code{\link[=mec]{mec()}}. The initial match set
+contains at most \code{floor(rho * nu)} feasible pairs, where \eqn{\nu} is the
+structural one-to-one upper bound. Initial feasible matches are selected
+greedily by an unweighted disagreement norm: binary agreement indicators use
+\code{1 - gamma}, while continuous dissimilarities use \code{gamma} unchanged. At each
+iteration, match-side parameters are estimated from the current greedy
+one-to-one match set, and nonmatch-side parameters are estimated from its
+complement.
 
 The returned \code{ratio} is \eqn{s = u / m}, where \eqn{u} and \eqn{m} denote
 the estimated nonmatch and match comparison-vector densities. Smaller values
@@ -182,11 +193,11 @@ matching size in the candidate graph, the estimated number of nonmatches is
 bounded below by \eqn{N - \nu}. For the disjoint complete blocks reconstructed
 by this function, \eqn{\nu = \sum_h \min(n_{Ah}, n_{Bh})}.
 
-If every candidate pair is structurally needed by the one-to-one bound
-(\eqn{N = \nu}), there is no candidate complement from which to estimate
-nonmatch parameters. In that case the function returns the structurally
-feasible initialized match set, sets \code{n_U_est = 0}, and leaves nonmatch-side
-parameters unavailable.
+If the initialized match set exhausts the candidate-pair space, for example
+when \eqn{N = \nu} and \code{rho = 1}, there is no candidate complement from which
+to estimate nonmatch parameters. In that case the function returns the
+structurally feasible initialized match set, sets \code{n_U_est = 0}, and leaves
+nonmatch-side parameters unavailable.
 }
 \examples{
 df_1 <- data.frame(
