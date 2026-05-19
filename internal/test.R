@@ -100,8 +100,8 @@ result <- mec_blocking(
   true_matches = true_matches,
   verbose = TRUE,
   rho = 1,
-  alpha = 0.6,
-  robust_u = TRUE,
+  alpha = 0.5,
+  robust_u = FALSE,
   keep_blocking_result = TRUE,
   controls_blocking = list(
     control_ann = ann_control_pars,
