@@ -1365,6 +1365,25 @@ validate_mec_blocking_rho <- function(rho) {
 }
 
 #' @noRd
+validate_mec_blocking_alpha <- function(alpha) {
+  if (!is.numeric(alpha) || length(alpha) != 1L || is.na(alpha) ||
+      !is.finite(alpha) || alpha < 0 || alpha >= 1) {
+    stop("`alpha` should be a single numeric value in [0, 1).", call. = FALSE)
+  }
+
+  invisible(alpha)
+}
+
+#' @noRd
+validate_mec_blocking_robust_u <- function(robust_u) {
+  if (!is.logical(robust_u) || length(robust_u) != 1L || is.na(robust_u)) {
+    stop("`robust_u` should be a single non-missing logical value.", call. = FALSE)
+  }
+
+  invisible(robust_u)
+}
+
+#' @noRd
 initial_inverted_match_count <- function(nu, rho) {
   as.integer(max(0L, min(nu, floor(rho * nu))))
 }
@@ -1725,6 +1744,211 @@ estimate_inverted_q <- function(ratio, n_U_current, N) {
 }
 
 #' @noRd
+has_valid_u_cpar_fallback <- function(previous_params, cpar_vars) {
+  if (length(cpar_vars) == 0L) {
+    return(logical())
+  }
+
+  if (is.null(previous_params)) {
+    return(stats::setNames(rep(FALSE, length(cpar_vars)), cpar_vars))
+  }
+
+  cpar_params <- previous_params$continuous_parametric
+  if (is.null(cpar_params) ||
+      !all(c("variable", "alpha_U", "beta_U") %in% names(cpar_params))) {
+    return(stats::setNames(rep(FALSE, length(cpar_vars)), cpar_vars))
+  }
+
+  cpar_params <- align_parameter_table(cpar_params, cpar_vars)
+  valid <- is.finite(cpar_params[["alpha_U"]]) &
+    is.finite(cpar_params[["beta_U"]]) &
+    cpar_params[["alpha_U"]] > 0 &
+    cpar_params[["beta_U"]] > 0
+  stats::setNames(valid, cpar_vars)
+}
+
+#' @noRd
+has_sufficient_u_fit_sample <- function(Omega,
+                                        U_fit_idx,
+                                        cpar_vars,
+                                        previous_params) {
+  if (length(U_fit_idx) == 0L) {
+    return(FALSE)
+  }
+
+  if (length(cpar_vars) == 0L) {
+    return(TRUE)
+  }
+
+  valid_fallback <- has_valid_u_cpar_fallback(previous_params, cpar_vars)
+  for (variable in cpar_vars) {
+    gamma <- Omega[[variable]][U_fit_idx]
+    n_positive <- sum(is.finite(gamma) & gamma > 0)
+    if (n_positive < 2L && !isTRUE(valid_fallback[[variable]])) {
+      return(FALSE)
+    }
+  }
+
+  TRUE
+}
+
+#' @noRd
+make_u_fit_diagnostic <- function(iter,
+                                  n_U_current,
+                                  n_U_base,
+                                  alpha,
+                                  requested_n_drop,
+                                  requested_n_keep,
+                                  actual_n_drop,
+                                  n_U_fit,
+                                  alpha_applied,
+                                  robust_u_rule,
+                                  reason) {
+  data.table(
+    iter = as.integer(iter),
+    n_U_current = as.integer(n_U_current),
+    n_U_base = as.integer(n_U_base),
+    alpha = as.numeric(alpha),
+    requested_n_drop = as.integer(requested_n_drop),
+    requested_n_keep = as.integer(requested_n_keep),
+    actual_n_drop = as.integer(actual_n_drop),
+    actual_drop_fraction = if (n_U_base == 0L) NA_real_ else actual_n_drop / n_U_base,
+    n_U_fit = as.integer(n_U_fit),
+    alpha_applied = as.logical(alpha_applied),
+    robust_u_rule = robust_u_rule,
+    reason = reason
+  )
+}
+
+#' @noRd
+rank_u_fit_candidates <- function(Omega, U_fit_idx) {
+  score_name <- if ("q_est" %in% names(Omega)) "q_est" else "ratio"
+  score <- Omega[[score_name]][U_fit_idx]
+  if (all(is.na(score)) && "ratio" %in% names(Omega)) {
+    score <- Omega[["ratio"]][U_fit_idx]
+  }
+  score[is.na(score)] <- -Inf
+  U_fit_idx[order(-score, Omega[["a"]][U_fit_idx], Omega[["b"]][U_fit_idx], Omega[["block"]][U_fit_idx])]
+}
+
+#' @noRd
+select_inverted_u_fit_indices <- function(Omega,
+                                          U_idx,
+                                          U_base_idx,
+                                          iter,
+                                          alpha,
+                                          cpar_vars,
+                                          previous_params,
+                                          robust_u_rule) {
+  n_U_current <- length(U_idx)
+  n_U_base <- length(U_base_idx)
+  requested_n_drop <- floor(alpha * n_U_current)
+  requested_n_keep <- n_U_current - requested_n_drop
+
+  if (iter == 1L) {
+    return(list(
+      U_fit_idx = U_base_idx,
+      diagnostic = make_u_fit_diagnostic(
+        iter = iter,
+        n_U_current = n_U_current,
+        n_U_base = n_U_base,
+        alpha = alpha,
+        requested_n_drop = 0L,
+        requested_n_keep = n_U_current,
+        actual_n_drop = 0L,
+        n_U_fit = n_U_base,
+        alpha_applied = FALSE,
+        robust_u_rule = robust_u_rule,
+        reason = "first_u_fit_full"
+      )
+    ))
+  }
+
+  if (alpha == 0 || requested_n_drop == 0L) {
+    reason <- if (alpha == 0) "alpha_zero" else "requested_drop_zero"
+    return(list(
+      U_fit_idx = U_base_idx,
+      diagnostic = make_u_fit_diagnostic(
+        iter = iter,
+        n_U_current = n_U_current,
+        n_U_base = n_U_base,
+        alpha = alpha,
+        requested_n_drop = requested_n_drop,
+        requested_n_keep = requested_n_keep,
+        actual_n_drop = 0L,
+        n_U_fit = n_U_base,
+        alpha_applied = FALSE,
+        robust_u_rule = robust_u_rule,
+        reason = reason
+      )
+    ))
+  }
+
+  if (n_U_base <= requested_n_keep) {
+    return(list(
+      U_fit_idx = U_base_idx,
+      diagnostic = make_u_fit_diagnostic(
+        iter = iter,
+        n_U_current = n_U_current,
+        n_U_base = n_U_base,
+        alpha = alpha,
+        requested_n_drop = requested_n_drop,
+        requested_n_keep = requested_n_keep,
+        actual_n_drop = 0L,
+        n_U_fit = n_U_base,
+        alpha_applied = FALSE,
+        robust_u_rule = robust_u_rule,
+        reason = "base_smaller_than_requested_keep"
+      )
+    ))
+  }
+
+  ranked_idx <- rank_u_fit_candidates(Omega, U_base_idx)
+  retained_idx <- ranked_idx[seq_len(requested_n_keep)]
+  if (!has_sufficient_u_fit_sample(
+    Omega = Omega,
+    U_fit_idx = retained_idx,
+    cpar_vars = cpar_vars,
+    previous_params = previous_params
+  )) {
+    return(list(
+      U_fit_idx = U_base_idx,
+      diagnostic = make_u_fit_diagnostic(
+        iter = iter,
+        n_U_current = n_U_current,
+        n_U_base = n_U_base,
+        alpha = alpha,
+        requested_n_drop = requested_n_drop,
+        requested_n_keep = requested_n_keep,
+        actual_n_drop = 0L,
+        n_U_fit = n_U_base,
+        alpha_applied = FALSE,
+        robust_u_rule = robust_u_rule,
+        reason = "minimum_sample_full_base"
+      )
+    ))
+  }
+
+  actual_n_drop <- n_U_base - length(retained_idx)
+  list(
+    U_fit_idx = retained_idx,
+    diagnostic = make_u_fit_diagnostic(
+      iter = iter,
+      n_U_current = n_U_current,
+      n_U_base = n_U_base,
+      alpha = alpha,
+      requested_n_drop = requested_n_drop,
+      requested_n_keep = requested_n_keep,
+      actual_n_drop = actual_n_drop,
+      n_U_fit = length(retained_idx),
+      alpha_applied = actual_n_drop > 0L,
+      robust_u_rule = robust_u_rule,
+      reason = "alpha_reliability_drop"
+    )
+  )
+}
+
+#' @noRd
 fit_mec_blocking_inverted_omega <- function(A,
                                             B,
                                             variables,
@@ -1738,6 +1962,8 @@ fit_mec_blocking_inverted_omega <- function(A,
                                             n_U_min,
                                             nu,
                                             rho = 1,
+                                            alpha = 0,
+                                            robust_u = FALSE,
                                             context = "mec_blocking()") {
   method_variables <- extract_method_variables(methods, include_hit_miss = FALSE)
   b_vars <- method_variables$b_vars
@@ -1749,6 +1975,15 @@ fit_mec_blocking_inverted_omega <- function(A,
 
   init_disagreement <- blocking_disagreement_norm(Omega, b_vars, cpar_vars)
   data.table::set(Omega, j = "init_disagreement", value = init_disagreement)
+  M_anchor_idx <- select_inverted_mec_indices(
+    a = Omega[["a"]],
+    b = Omega[["b"]],
+    block = Omega[["block"]],
+    ratio = Omega[["init_disagreement"]],
+    n_M = nu
+  )
+  U_anchor_idx <- setdiff(all_idx, M_anchor_idx)
+  n_U_anchor <- length(U_anchor_idx)
   n_M_init_target <- initial_inverted_match_count(nu, rho)
   M_idx <- select_inverted_mec_indices(
     a = Omega[["a"]],
@@ -1781,6 +2016,19 @@ fit_mec_blocking_inverted_omega <- function(A,
     data.table::set(Omega, j = "ratio", value = 0)
     data.table::set(Omega, j = "q_est", value = 0)
     M_est <- Omega[M_idx, c("a", "b", "block", "ratio"), with = FALSE]
+    u_fit_diagnostics <- make_u_fit_diagnostic(
+      iter = 0L,
+      n_U_current = 0L,
+      n_U_base = 0L,
+      alpha = alpha,
+      requested_n_drop = 0L,
+      requested_n_keep = 0L,
+      actual_n_drop = 0L,
+      n_U_fit = 0L,
+      alpha_applied = FALSE,
+      robust_u_rule = "structural_no_nonmatch_complement",
+      reason = "structural_no_nonmatch_complement"
+    )
     model <- list(
       b_vars = if (length(b_vars) == 0L) NULL else b_vars,
       cpar_vars = if (length(cpar_vars) == 0L) NULL else cpar_vars,
@@ -1806,6 +2054,12 @@ fit_mec_blocking_inverted_omega <- function(A,
       candidate_pair_count = N,
       prob_est = if (N == 0L) NA_real_ else NROW(M_est) / N,
       ratio_orientation = "u_over_m",
+      alpha = alpha,
+      robust_u = robust_u,
+      robust_u_rule = "structural_no_nonmatch_complement",
+      n_U_anchor = n_U_anchor,
+      n_U_fit = 0L,
+      u_fit_diagnostics = u_fit_diagnostics,
       iter = 0L,
       convergence_reason = "structural_no_nonmatch_complement"
     )
@@ -1822,6 +2076,12 @@ fit_mec_blocking_inverted_omega <- function(A,
       n_M_init = n_M_init,
       n_U_init = n_U_init,
       candidate_pair_count = N,
+      robust_u = robust_u,
+      alpha = alpha,
+      robust_u_rule = "structural_no_nonmatch_complement",
+      n_U_anchor = n_U_anchor,
+      n_U_fit = 0L,
+      u_fit_diagnostics = u_fit_diagnostics,
       iter = 0L,
       convergence_reason = "structural_no_nonmatch_complement"
     ))
@@ -1833,6 +2093,9 @@ fit_mec_blocking_inverted_omega <- function(A,
   previous_nonmatch_params <- NULL
   previous_param_vector <- NULL
   convergence_reason <- "max_iter"
+  robust_u_rule <- if (robust_u) "current_complement_no_anchor" else "current_complement"
+  n_U_fit <- length(U_idx)
+  u_fit_diagnostics <- data.table()
 
   repeat {
     match_params <- estimate_inverted_match_parameters(
@@ -1845,9 +2108,37 @@ fit_mec_blocking_inverted_omega <- function(A,
       controls_nleqslv = controls_nleqslv,
       context = context
     )
-    nonmatch_params <- estimate_inverted_nonmatch_parameters(
+    if (robust_u && length(U_anchor_idx) > 0L) {
+      U_fit_idx <- setdiff(U_anchor_idx, M_idx)
+      if (length(U_fit_idx) == 0L) {
+        U_fit_idx <- U_idx
+        robust_u_rule <- "current_complement_no_anchor"
+      } else {
+        robust_u_rule <- "anchored_structural_complement"
+      }
+    } else {
+      U_fit_idx <- U_idx
+      robust_u_rule <- if (robust_u) "current_complement_no_anchor" else "current_complement"
+    }
+    u_fit_selection <- select_inverted_u_fit_indices(
       Omega = Omega,
       U_idx = U_idx,
+      U_base_idx = U_fit_idx,
+      iter = iter,
+      alpha = alpha,
+      cpar_vars = cpar_vars,
+      previous_params = previous_nonmatch_params,
+      robust_u_rule = robust_u_rule
+    )
+    U_fit_idx <- u_fit_selection$U_fit_idx
+    u_fit_diagnostics <- rbindlist(
+      list(u_fit_diagnostics, u_fit_selection$diagnostic),
+      use.names = TRUE
+    )
+    n_U_fit <- length(U_fit_idx)
+    nonmatch_params <- estimate_inverted_nonmatch_parameters(
+      Omega = Omega,
+      U_idx = U_fit_idx,
       b_vars = b_vars,
       cpar_vars = cpar_vars,
       previous_params = previous_nonmatch_params,
@@ -1950,6 +2241,12 @@ fit_mec_blocking_inverted_omega <- function(A,
     candidate_pair_count = N,
     prob_est = n_M_selected / N,
     ratio_orientation = "u_over_m",
+    alpha = alpha,
+    robust_u = robust_u,
+    robust_u_rule = robust_u_rule,
+    n_U_anchor = n_U_anchor,
+    n_U_fit = n_U_fit,
+    u_fit_diagnostics = u_fit_diagnostics,
     iter = iter,
     convergence_reason = convergence_reason
   )
@@ -1966,6 +2263,12 @@ fit_mec_blocking_inverted_omega <- function(A,
     n_M_init = n_M_init,
     n_U_init = n_U_init,
     candidate_pair_count = N,
+    robust_u = robust_u,
+    alpha = alpha,
+    robust_u_rule = robust_u_rule,
+    n_U_anchor = n_U_anchor,
+    n_U_fit = n_U_fit,
+    u_fit_diagnostics = u_fit_diagnostics,
     iter = iter,
     convergence_reason = convergence_reason
   )
@@ -2013,6 +2316,15 @@ fit_mec_blocking_inverted_omega <- function(A,
 #' the structural one-to-one upper bound used to initialize the inverted MEC
 #' match set. The default `rho = 1` initializes with \eqn{\nu} pairs and
 #' uses the full structural one-to-one bound.
+#' @param alpha A single numeric value in `[0, 1)` controlling the fraction of
+#' the current nonmatch complement dropped from nonmatch-side parameter fitting
+#' after the first inverted MEC iteration. The first U-side fit uses the full
+#' initial fitting set, and posterior/count formulas continue to use the full
+#' current nonmatch count.
+#' @param robust_u Logical indicating whether to estimate nonmatch-side
+#' parameters from an anchored structural nonmatch complement instead of the
+#' current hard complement. Experimental; default `FALSE` preserves the
+#' current estimator.
 #' @param delta A numeric value specifying the tolerance for the change in the
 #' estimated number of nonmatches between MEC iterations.
 #' @param eps A numeric value specifying the tolerance for the change in model
@@ -2045,6 +2357,18 @@ fit_mec_blocking_inverted_omega <- function(A,
 #' one-to-one match set, and nonmatch-side parameters are estimated from its
 #' complement.
 #'
+#' If `robust_u = TRUE`, only the fitting sample for nonmatch-side parameters
+#' changes: it is based on the anchored structural nonmatch complement where
+#' available. Match-side estimation and final greedy selection are unchanged.
+#'
+#' The `alpha` argument applies only to nonmatch-side distribution estimation.
+#' The first U-side fit uses the full initial complement. In later iterations,
+#' the least reliable current nonmatches are dropped from the U-side fitting
+#' sample, with reliability ranked by the previous nonmatch posterior estimate
+#' and then by the inverted density ratio if the posterior is unavailable.
+#' The posterior and count updates still use the full current complement size,
+#' and the final match set remains one-to-one.
+#'
 #' The returned `ratio` is \eqn{s = u / m}, where \eqn{u} and \eqn{m} denote
 #' the estimated nonmatch and match comparison-vector densities. Smaller values
 #' are therefore more match-like. Updated match sets are selected greedily in
@@ -2070,10 +2394,16 @@ fit_mec_blocking_inverted_omega <- function(A,
 #' \item{`n_U_min` -- lower bound on the number of candidate nonmatches,}
 #' \item{`nu` -- maximum feasible one-to-one matching size in the candidate-pair graph,}
 #' \item{`rho` -- fraction of `nu` used to initialize the inverted MEC match set,}
+#' \item{`alpha` -- fraction of the current nonmatch complement dropped from later U-side fitting,}
 #' \item{`n_M_init` -- number of candidate pairs in the initial inverted MEC match set,}
 #' \item{`n_U_init` -- number of candidate pairs in the initial inverted MEC nonmatch complement,}
 #' \item{`candidate_pair_count` -- number of candidate pairs in \eqn{\Omega_B},}
 #' \item{`ratio_orientation` -- density-ratio orientation, equal to `"u_over_m"`,}
+#' \item{`robust_u` -- logical indicating whether robust U-side estimation was requested,}
+#' \item{`robust_u_rule` -- U-side parameter fitting rule used by the inverted MEC fit,}
+#' \item{`n_U_anchor` -- number of pairs in the structural anchored U set,}
+#' \item{`n_U_fit` -- number of pairs used for the final U-side parameter estimate,}
+#' \item{`u_fit_diagnostics` -- a `data.table` with iteration-level diagnostics for U-side fitting and `alpha` drops,}
 #' \item{`training_rule` -- fitting rule used by the function, equal to `"all_candidate_pairs"`,}
 #' \item{`block_estimates` -- a `data.table` with block-level size and match-count diagnostics,}
 #' \item{`training_blocks` -- a `data.table` with all final blocks used to define \eqn{\Omega_B},}
@@ -2103,6 +2433,7 @@ fit_mec_blocking_inverted_omega <- function(A,
 #' \item{`blocking_result` -- raw object returned by \link[blocking:blocking]{blocking()} if `keep_blocking_result = TRUE`; otherwise `NULL`,}
 #' \item{`training_Omega` -- candidate-space comparison vectors with inverted scores if `keep_training_data = TRUE`; otherwise `NULL`,}
 #' \item{`blocking_eval` -- blocking diagnostics if `true_matches` is provided; otherwise `NULL`,}
+#' \item{`mec_eval` -- MEC-selection diagnostics among known matches retained in the candidate-pair space if `true_matches` is provided; otherwise `NULL`,}
 #' \item{`eval_metrics` -- empirical linkage quality metrics based on `true_matches`; otherwise `NULL`,}
 #' \item{`confusion` -- empirical confusion matrix based on `true_matches`; otherwise `NULL`.}
 #' }
@@ -2168,6 +2499,8 @@ mec_blocking <- function(
     nonpar_hurdle = TRUE,
     fixed_method = "Newton",
     rho = 1,
+    alpha = 0,
+    robust_u = FALSE,
     delta = 0.5,
     eps = 0.05,
     max_iter_em = 10,
@@ -2196,6 +2529,8 @@ mec_blocking <- function(
   validate_choice(prob_ratio, c("1", "2"), "prob_ratio")
   validate_blocking_controls(controls_blocking)
   validate_mec_blocking_rho(rho)
+  validate_mec_blocking_alpha(alpha)
+  validate_mec_blocking_robust_u(robust_u)
 
   A <- data.table::copy(data.table::as.data.table(A))
   B <- data.table::copy(data.table::as.data.table(B))
@@ -2321,6 +2656,8 @@ mec_blocking <- function(
     n_U_min = n_U_min,
     nu = nu,
     rho = rho,
+    alpha = alpha,
+    robust_u = robust_u,
     context = "mec_blocking()"
   )
   pooled_model <- pooled_fit$model
@@ -2349,6 +2686,7 @@ mec_blocking <- function(
 
   block_pairs <- candidate_pairs
   blocking_eval <- NULL
+  mec_eval <- NULL
   eval_metrics <- NULL
   confusion <- NULL
 
@@ -2357,6 +2695,11 @@ mec_blocking <- function(
       true_matches = true_matches,
       block_pairs = block_pairs,
       n_full_pairs = n_A_original * n_B_original
+    )
+    mec_eval <- mec_selection_diagnostics(
+      true_matches = true_matches,
+      block_pairs = block_pairs,
+      M_est = M_est
     )
     eval <- evaluation(M_est, true_matches, n_A_original * n_B_original)
     eval_metrics <- unlist(get_metrics(
@@ -2381,10 +2724,16 @@ mec_blocking <- function(
       n_U_min = pooled_fit$n_U_min,
       nu = pooled_fit$nu,
       rho = pooled_fit$rho,
+      alpha = pooled_fit$alpha,
       n_M_init = pooled_fit$n_M_init,
       n_U_init = pooled_fit$n_U_init,
       candidate_pair_count = pooled_fit$candidate_pair_count,
       ratio_orientation = pooled_model$ratio_orientation,
+      robust_u = pooled_fit$robust_u,
+      robust_u_rule = pooled_fit$robust_u_rule,
+      n_U_anchor = pooled_fit$n_U_anchor,
+      n_U_fit = pooled_fit$n_U_fit,
+      u_fit_diagnostics = pooled_fit$u_fit_diagnostics,
       training_rule = training_rule,
       block_estimates = block_estimates,
       training_blocks = training_blocks,
@@ -2414,6 +2763,7 @@ mec_blocking <- function(
       blocking_result = if (keep_blocking_result) blocking_result else NULL,
       training_Omega = if (keep_training_data) pooled_fit$Omega else NULL,
       blocking_eval = blocking_eval,
+      mec_eval = mec_eval,
       eval_metrics = eval_metrics,
       confusion = confusion
     ),

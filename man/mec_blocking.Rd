@@ -25,6 +25,8 @@ mec_blocking(
   nonpar_hurdle = TRUE,
   fixed_method = "Newton",
   rho = 1,
+  alpha = 0,
+  robust_u = FALSE,
   delta = 0.5,
   eps = 0.05,
   max_iter_em = 10,
@@ -91,6 +93,17 @@ the structural one-to-one upper bound used to initialize the inverted MEC
 match set. The default \code{rho = 1} initializes with \eqn{\nu} pairs and
 uses the full structural one-to-one bound.}
 
+\item{alpha}{A single numeric value in \verb{[0, 1)} controlling the fraction of
+the current nonmatch complement dropped from nonmatch-side parameter fitting
+after the first inverted MEC iteration. The first U-side fit uses the full
+initial fitting set, and posterior/count formulas continue to use the full
+current nonmatch count.}
+
+\item{robust_u}{Logical indicating whether to estimate nonmatch-side
+parameters from an anchored structural nonmatch complement instead of the
+current hard complement. Experimental; default \code{FALSE} preserves the
+current estimator.}
+
 \item{delta}{A numeric value specifying the tolerance for the change in the
 estimated number of nonmatches between MEC iterations.}
 
@@ -126,10 +139,16 @@ Returns a list of class \code{"mec_blocking"} containing:
 \item{\code{n_U_min} -- lower bound on the number of candidate nonmatches,}
 \item{\code{nu} -- maximum feasible one-to-one matching size in the candidate-pair graph,}
 \item{\code{rho} -- fraction of \code{nu} used to initialize the inverted MEC match set,}
+\item{\code{alpha} -- fraction of the current nonmatch complement dropped from later U-side fitting,}
 \item{\code{n_M_init} -- number of candidate pairs in the initial inverted MEC match set,}
 \item{\code{n_U_init} -- number of candidate pairs in the initial inverted MEC nonmatch complement,}
 \item{\code{candidate_pair_count} -- number of candidate pairs in \eqn{\Omega_B},}
 \item{\code{ratio_orientation} -- density-ratio orientation, equal to \code{"u_over_m"},}
+\item{\code{robust_u} -- logical indicating whether robust U-side estimation was requested,}
+\item{\code{robust_u_rule} -- U-side parameter fitting rule used by the inverted MEC fit,}
+\item{\code{n_U_anchor} -- number of pairs in the structural anchored U set,}
+\item{\code{n_U_fit} -- number of pairs used for the final U-side parameter estimate,}
+\item{\code{u_fit_diagnostics} -- a \code{data.table} with iteration-level diagnostics for U-side fitting and \code{alpha} drops,}
 \item{\code{training_rule} -- fitting rule used by the function, equal to \code{"all_candidate_pairs"},}
 \item{\code{block_estimates} -- a \code{data.table} with block-level size and match-count diagnostics,}
 \item{\code{training_blocks} -- a \code{data.table} with all final blocks used to define \eqn{\Omega_B},}
@@ -159,6 +178,7 @@ Returns a list of class \code{"mec_blocking"} containing:
 \item{\code{blocking_result} -- raw object returned by \link[blocking:blocking]{blocking()} if \code{keep_blocking_result = TRUE}; otherwise \code{NULL},}
 \item{\code{training_Omega} -- candidate-space comparison vectors with inverted scores if \code{keep_training_data = TRUE}; otherwise \code{NULL},}
 \item{\code{blocking_eval} -- blocking diagnostics if \code{true_matches} is provided; otherwise \code{NULL},}
+\item{\code{mec_eval} -- MEC-selection diagnostics among known matches retained in the candidate-pair space if \code{true_matches} is provided; otherwise \code{NULL},}
 \item{\code{eval_metrics} -- empirical linkage quality metrics based on \code{true_matches}; otherwise \code{NULL},}
 \item{\code{confusion} -- empirical confusion matrix based on \code{true_matches}; otherwise \code{NULL}.}
 }
@@ -182,6 +202,18 @@ greedily by an unweighted disagreement norm: binary agreement indicators use
 iteration, match-side parameters are estimated from the current greedy
 one-to-one match set, and nonmatch-side parameters are estimated from its
 complement.
+
+If \code{robust_u = TRUE}, only the fitting sample for nonmatch-side parameters
+changes: it is based on the anchored structural nonmatch complement where
+available. Match-side estimation and final greedy selection are unchanged.
+
+The \code{alpha} argument applies only to nonmatch-side distribution estimation.
+The first U-side fit uses the full initial complement. In later iterations,
+the least reliable current nonmatches are dropped from the U-side fitting
+sample, with reliability ranked by the previous nonmatch posterior estimate
+and then by the inverted density ratio if the posterior is unavailable.
+The posterior and count updates still use the full current complement size,
+and the final match set remains one-to-one.
 
 The returned \code{ratio} is \eqn{s = u / m}, where \eqn{u} and \eqn{m} denote
 the estimated nonmatch and match comparison-vector densities. Smaller values

@@ -1,6 +1,14 @@
 library(data.table)
-library(automatedRecLin)
 library(blocking)
+
+if (!requireNamespace("devtools", quietly = TRUE)) {
+  stop(
+    "internal/test.R requires the devtools package so it can load ",
+    "the current automatedRecLin checkout with devtools::load_all().",
+    call. = FALSE
+  )
+}
+devtools::load_all(".", quiet = TRUE)
 
 options(text2vec.mc.cores = 1L)
 
@@ -54,6 +62,32 @@ df2[, dob_day := substr(date, 9, 10)]
 
 ann_control_pars <- controls_ann()
 ann_control_pars$nnd$epsilon <- 0.5
+# alpha_values <- c(0, 0.25, 0.5)
+# results <- lapply(alpha_values, function(alpha_value) {
+#   set.seed(1)
+#   mec_blocking(
+#     A = df1,
+#     B = df2,
+#     variables = variables,
+#     comparators = comparators,
+#     methods = methods,
+#     blocking_x = df1[["txt"]],
+#     blocking_y = df2[["txt"]],
+#     true_matches = true_matches,
+#     verbose = TRUE,
+#     rho = 1,
+#     alpha = alpha_value,
+#     robust_u = TRUE,
+#     keep_blocking_result = TRUE,
+#     controls_blocking = list(
+#       control_ann = ann_control_pars,
+#       control_txt = controls_txt(n_shingles = 3L)
+#     )
+#   )
+# })
+# names(results) <- paste0("alpha_", alpha_values)
+# result <- results[[1L]]
+
 set.seed(1)
 result <- mec_blocking(
   A = df1,
@@ -66,12 +100,26 @@ result <- mec_blocking(
   true_matches = true_matches,
   verbose = TRUE,
   rho = 1,
+  alpha = 0.6,
+  robust_u = TRUE,
   keep_blocking_result = TRUE,
   controls_blocking = list(
     control_ann = ann_control_pars,
     control_txt = controls_txt(n_shingles = 3L)
   )
 )
+
+alpha_summary <- rbindlist(lapply(seq_along(results), function(i) {
+  current <- results[[i]]
+  data.table(
+    alpha = alpha_values[i],
+    n_M_est = current$n_M_est,
+    n_U_est = current$n_U_est,
+    false_links = current$confusion["Actual Negative", "Predicted Positive"],
+    missed_matches = current$confusion["Actual Positive", "Predicted Negative"]
+  )
+}))
+print(alpha_summary)
 
 decorate_pair_keys <- function(pairs, A, B, key_vars) {
   pairs <- copy(as.data.table(pairs))
@@ -176,6 +224,14 @@ missed_matches_table <- decorate_pair_keys(missed_matches, df1, df2, variables)
 
 cat(sprintf("False links: %s\n", format(NROW(false_links_table), big.mark = ",")))
 cat(sprintf("Missed matches: %s\n", format(NROW(missed_matches_table), big.mark = ",")))
+
+if (!is.null(result$mec_eval)) {
+  print(result$mec_eval)
+}
+
+if (NROW(missed_matches_table) > 0L) {
+  print(missed_matches_table[, .N, by = preserved_by_blocking])
+}
 
 if (!is.null(result$confusion)) {
   stopifnot(NROW(false_links_table) == result$confusion["Actual Negative", "Predicted Positive"])

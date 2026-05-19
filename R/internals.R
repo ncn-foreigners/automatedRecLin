@@ -1145,3 +1145,31 @@ blocking_diagnostics <- function(true_matches, block_pairs, n_full_pairs) {
     full_pairs = n_full_pairs
   )
 }
+
+#' @noRd
+mec_selection_diagnostics <- function(true_matches, block_pairs, M_est) {
+  true_matches <- data.table::copy(data.table::as.data.table(true_matches))
+  block_pairs <- data.table::copy(data.table::as.data.table(block_pairs))[, .(a, b)]
+  M_pairs <- data.table::copy(data.table::as.data.table(M_est))[, .(a, b)]
+
+  candidate_matches <- NROW(block_pairs[true_matches, on = .(a, b), nomatch = 0L])
+  selected_candidate_matches <- NROW(M_pairs[true_matches, on = .(a, b), nomatch = 0L])
+  selected_pairs <- NROW(M_pairs)
+  true_match_count <- NROW(true_matches)
+  blocking_lost_matches <- true_match_count - candidate_matches
+  mec_missed_candidate_matches <- candidate_matches - selected_candidate_matches
+  false_links <- selected_pairs - selected_candidate_matches
+
+  data.table::data.table(
+    true_matches = true_match_count,
+    candidate_matches = candidate_matches,
+    blocking_lost_matches = blocking_lost_matches,
+    selected_candidate_matches = selected_candidate_matches,
+    mec_missed_candidate_matches = mec_missed_candidate_matches,
+    mec_candidate_recall = if (candidate_matches == 0L) NA_real_ else selected_candidate_matches / candidate_matches,
+    mec_candidate_fnr = if (candidate_matches == 0L) NA_real_ else mec_missed_candidate_matches / candidate_matches,
+    selected_pairs = selected_pairs,
+    false_links = false_links,
+    empirical_flr = if (selected_pairs == 0L) NA_real_ else false_links / selected_pairs
+  )
+}

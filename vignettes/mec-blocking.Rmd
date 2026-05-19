@@ -108,11 +108,10 @@ result <- mec_blocking(
   blocking_variables = blocking_variables,
   blocking_sep = "",
   controls_blocking = list(seed = 1, n_threads = 1),
-  min_training_pairs = 1000,
-  min_training_nonmatches = 1000,
   block_sampling_seed = 1,
-  nonmatch_sample_size = 100000,
-  nonmatch_sampling_seed = 1,
+  rho = 1,
+  alpha = 0.5,
+  robust_u = TRUE,
   true_matches = true_matches
 )
 
