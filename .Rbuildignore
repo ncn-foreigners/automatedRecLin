@@ -17,7 +17,7 @@ misc
 ^test-data$
 ^output_documents$
 ARCHITECTURE.md
-^internal$out
+^internal$
 
 ^\.positai$
 ^\.claude$

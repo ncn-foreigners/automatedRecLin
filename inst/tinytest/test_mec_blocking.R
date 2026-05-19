@@ -20,8 +20,7 @@ expect_blocking_output_contract <- function(result) {
   expect_equal(result$n_U_est, result$candidate_pair_count - result$n_M_est)
   expect_equal(result$n_U_min, result$candidate_pair_count - result$nu)
   expect_true(result$n_U_est >= result$n_U_min)
-  expect_null(result$nonmatch_sample_size)
-  expect_null(result$nonmatch_sampling_seed)
+  expect_false(any(c("nonmatch_sample_size", "nonmatch_sampling_seed", "prob_ratio") %in% names(result)))
   expect_equal(
     names(result$block_estimates),
     c("block", "n_A", "n_B", "pair_count", "nonmatches_min", "n_M_est", "selected_pairs")
@@ -257,10 +256,6 @@ fit_threshold <- mec_blocking(
   blocking_x = threshold_blocking,
   blocking_y = threshold_blocking,
   controls_blocking = controls_blocking,
-  min_training_pairs = 3,
-  min_training_nonmatches = 2,
-  block_sampling_seed = 1,
-  nonmatch_sampling_seed = 1,
   true_matches = data.frame(a = 1:6, b = 1:6),
   keep_training_data = TRUE,
   keep_blocking_result = TRUE

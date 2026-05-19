@@ -15,24 +15,13 @@ mec_blocking(
   blocking_variables = variables,
   blocking_sep = " ",
   controls_blocking = list(),
-  min_training_pairs = NULL,
-  min_training_nonmatches = NULL,
-  block_sampling_seed = NULL,
-  nonmatch_sample_size = NULL,
-  nonmatch_sampling_seed = NULL,
-  prob_ratio = "2",
   start_params = NULL,
-  nonpar_hurdle = TRUE,
-  fixed_method = "Newton",
   rho = 1,
   alpha = 0,
   robust_u = FALSE,
   delta = 0.5,
   eps = 0.05,
-  max_iter_em = 10,
-  tol_em = 1,
   controls_nleqslv = list(),
-  controls_kliep = control_kliep(),
   true_matches = NULL,
   keep_blocking_result = FALSE,
   keep_training_data = FALSE,
@@ -64,29 +53,8 @@ supported by \code{\link[=mec_blocking]{mec_blocking()}} at this stage.}
 \item{controls_blocking}{A list of additional arguments passed to
 \link[blocking:blocking]{blocking()}, except \code{x} and \code{y}.}
 
-\item{min_training_pairs}{Retained for compatibility. The current inverted
-blocked MEC workflow validates this argument when supplied but uses all
-candidate pairs for fitting.}
-
-\item{min_training_nonmatches}{Retained for compatibility. It should be
-supplied together with \code{min_training_pairs} or left \code{NULL}.}
-
-\item{block_sampling_seed}{Retained for compatibility and currently unused.}
-
-\item{nonmatch_sample_size}{Retained for compatibility and validated when
-supplied. The current workflow does not sample the full Cartesian product.}
-
-\item{nonmatch_sampling_seed}{Retained for compatibility and currently unused.}
-
-\item{prob_ratio}{Retained for compatibility and currently unused by the
-inverted blocked MEC workflow.}
-
 \item{start_params}{Start parameters for the \code{"binary"} and
 \code{"continuous_parametric"} methods.}
-
-\item{nonpar_hurdle}{Currently unused in \code{\link[=mec_blocking]{mec_blocking()}}.}
-
-\item{fixed_method}{Retained for compatibility and currently unused.}
 
 \item{rho}{A single numeric value in \verb{(0, 1]} controlling the fraction of
 the structural one-to-one upper bound used to initialize the inverted MEC
@@ -110,15 +78,9 @@ estimated number of nonmatches between MEC iterations.}
 \item{eps}{A numeric value specifying the tolerance for the change in model
 parameters between MEC iterations.}
 
-\item{max_iter_em}{Currently unused in \code{\link[=mec_blocking]{mec_blocking()}}.}
-
-\item{tol_em}{Currently unused in \code{\link[=mec_blocking]{mec_blocking()}}.}
-
 \item{controls_nleqslv}{Controls passed to the \link[nleqslv:nleqslv]{nleqslv()} function
 (only if the \code{"continuous_parametric"} method has been chosen for at least one
 variable).}
-
-\item{controls_kliep}{Currently unused in \code{\link[=mec_blocking]{mec_blocking()}}.}
 
 \item{true_matches}{A \code{data.frame} or \code{data.table} indicating known matches.}
 
@@ -168,9 +130,6 @@ Returns a list of class \code{"mec_blocking"} containing:
 \item{\code{variables} -- key variables used for comparison,}
 \item{\code{comparators} -- comparison functions used to create comparison vectors,}
 \item{\code{methods} -- MEC estimation methods used for the key variables,}
-\item{\code{nonmatch_sample_size} -- compatibility field, currently \code{NULL},}
-\item{\code{nonmatch_sampling_seed} -- compatibility field, currently \code{NULL},}
-\item{\code{prob_ratio} -- compatibility argument value, currently unused by the algorithm,}
 \item{\code{delta} -- tolerance for changes in the estimated number of nonmatches,}
 \item{\code{eps} -- tolerance for changes in nonmatch-side model parameters,}
 \item{\code{controls_nleqslv} -- controls passed to \link[nleqslv:nleqslv]{nleqslv()},}

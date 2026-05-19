@@ -737,243 +737,6 @@ make_block_pair_table <- function(block_summary, blocks = NULL) {
 }
 
 #' @noRd
-sample_with_optional_seed <- function(n, seed = NULL) {
-  if (is.null(seed)) {
-    return(sample.int(n))
-  }
-
-  old_seed_exists <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-  if (old_seed_exists) {
-    old_seed <- get(".Random.seed", envir = .GlobalEnv)
-  }
-
-  on.exit({
-    if (old_seed_exists) {
-      assign(".Random.seed", old_seed, envir = .GlobalEnv)
-    } else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
-      rm(".Random.seed", envir = .GlobalEnv)
-    }
-  })
-
-  set.seed(seed)
-  sample.int(n)
-}
-
-#' @noRd
-validate_nonmatch_sample_size <- function(nonmatch_sample_size, n_A, n_B) {
-  n_full <- as.numeric(n_A) * as.numeric(n_B)
-
-  if (is.null(nonmatch_sample_size)) {
-    return(n_full)
-  }
-
-  if (length(nonmatch_sample_size) != 1L || is.na(nonmatch_sample_size) ||
-      nonmatch_sample_size <= 0 || nonmatch_sample_size != floor(nonmatch_sample_size)) {
-    stop("`nonmatch_sample_size` should be `NULL` or a positive integer.")
-  }
-
-  if (nonmatch_sample_size > n_full) {
-    stop("`nonmatch_sample_size` cannot be larger than `nrow(A) * nrow(B)`.")
-  }
-
-  as.numeric(nonmatch_sample_size)
-}
-
-#' @noRd
-sample_cartesian_pair_ids <- function(n_pairs, sample_size, seed = NULL) {
-  old_seed_exists <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-  if (old_seed_exists) {
-    old_seed <- get(".Random.seed", envir = .GlobalEnv)
-  }
-
-  on.exit({
-    if (old_seed_exists) {
-      assign(".Random.seed", old_seed, envir = .GlobalEnv)
-    } else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
-      rm(".Random.seed", envir = .GlobalEnv)
-    }
-  })
-
-  if (!is.null(seed)) {
-    set.seed(seed)
-  }
-
-  sample.int(n_pairs, sample_size, replace = FALSE)
-}
-
-#' @noRd
-cartesian_pair_ids_to_pairs <- function(pair_ids, n_B) {
-  data.table::data.table(
-    a = ((pair_ids - 1) %/% n_B) + 1,
-    b = ((pair_ids - 1) %% n_B) + 1
-  )
-}
-
-#' @noRd
-update_nonmatch_summary <- function(summary, Omega, b_vars, cpar_vars) {
-  if (length(b_vars) > 0L) {
-    summary$b_sum <- summary$b_sum + colSums(as.matrix(Omega[, b_vars, with = FALSE]))
-  }
-
-  if (length(cpar_vars) > 0L) {
-    for (var in cpar_vars) {
-      gamma <- Omega[[var]]
-      positive_gamma <- gamma[gamma > 0]
-      summary$cpar_zero[var] <- summary$cpar_zero[var] + sum(gamma == 0)
-      summary$cpar_positive_n[var] <- summary$cpar_positive_n[var] + length(positive_gamma)
-      summary$cpar_positive_sum[var] <- summary$cpar_positive_sum[var] + sum(positive_gamma)
-      summary$cpar_log_positive_sum[var] <- summary$cpar_log_positive_sum[var] + sum(log(positive_gamma))
-    }
-  }
-
-  summary
-}
-
-#' @noRd
-estimate_nonmatch_parameters <- function(A,
-                                         B,
-                                         variables,
-                                         comparators,
-                                         methods,
-                                         nonmatch_sample_size,
-                                         nonmatch_sampling_seed = NULL,
-                                         controls_nleqslv = list(),
-                                         chunk_size = 50000L) {
-  n_A <- nrow(A)
-  n_B <- nrow(B)
-  n_full <- as.numeric(n_A) * as.numeric(n_B)
-  actual_sample_size <- validate_nonmatch_sample_size(nonmatch_sample_size, n_A, n_B)
-  method_variables <- extract_method_variables(methods, include_hit_miss = FALSE)
-  b_vars <- method_variables$b_vars
-  cpar_vars <- method_variables$cpar_vars
-
-  summary <- list(
-    b_sum = stats::setNames(numeric(length(b_vars)), b_vars),
-    cpar_zero = stats::setNames(numeric(length(cpar_vars)), cpar_vars),
-    cpar_positive_n = stats::setNames(numeric(length(cpar_vars)), cpar_vars),
-    cpar_positive_sum = stats::setNames(numeric(length(cpar_vars)), cpar_vars),
-    cpar_log_positive_sum = stats::setNames(numeric(length(cpar_vars)), cpar_vars)
-  )
-
-  sampled_ids <- NULL
-  if (actual_sample_size < n_full) {
-    sampled_ids <- sample_cartesian_pair_ids(
-      n_pairs = n_full,
-      sample_size = actual_sample_size,
-      seed = nonmatch_sampling_seed
-    )
-  }
-
-  start <- 1
-  while (start <= actual_sample_size) {
-    end <- min(start + chunk_size - 1, actual_sample_size)
-    pair_ids <- if (is.null(sampled_ids)) {
-      start:end
-    } else {
-      sampled_ids[start:end]
-    }
-    pairs <- cartesian_pair_ids_to_pairs(pair_ids, n_B)
-    vectors <- comparison_vectors(
-      A = A,
-      B = B,
-      variables = variables,
-      comparators = comparators,
-      pairs = pairs
-    )
-    summary <- update_nonmatch_summary(
-      summary = summary,
-      Omega = vectors$Omega,
-      b_vars = b_vars,
-      cpar_vars = cpar_vars
-    )
-    start <- end + 1
-  }
-
-  b_params <- NULL
-  if (length(b_vars) > 0L) {
-    b_params <- data.table::data.table(
-      variable = b_vars,
-      eta = summary$b_sum / actual_sample_size
-    )
-  }
-
-  cpar_params <- NULL
-  if (length(cpar_vars) > 0L) {
-    gamma_plus_U <- summary$cpar_positive_sum / summary$cpar_positive_n
-    modified_nleqslv <- purrr::partial(nleqslv::nleqslv, control = controls_nleqslv)
-    alpha_U <- alpha_formula_summary(
-      n_positive = summary$cpar_positive_n,
-      positive_sum = summary$cpar_positive_sum,
-      log_positive_sum = summary$cpar_log_positive_sum,
-      fun = modified_nleqslv
-    )
-    beta_U <- alpha_U / gamma_plus_U
-
-    cpar_params <- data.table::data.table(
-      variable = cpar_vars,
-      p_0_U = summary$cpar_zero / actual_sample_size,
-      alpha_U = alpha_U,
-      beta_U = beta_U
-    )
-  }
-
-  list(
-    sample_size = actual_sample_size,
-    binary = b_params,
-    continuous_parametric = cpar_params
-  )
-}
-
-#' @noRd
-select_training_blocks <- function(block_summary,
-                                   min_training_pairs,
-                                   min_training_nonmatches,
-                                   block_sampling_seed = NULL) {
-  if (is.null(min_training_pairs) && is.null(min_training_nonmatches)) {
-    training_blocks <- data.table::copy(block_summary)
-    training_blocks[, cumulative_pairs := cumsum(pair_count)]
-    training_blocks[, cumulative_nonmatches_min := cumsum(nonmatches_min)]
-    return(list(
-      training_rule = "all_blocks",
-      training_blocks = training_blocks
-    ))
-  }
-
-  if (is.null(min_training_pairs) || is.null(min_training_nonmatches)) {
-    stop("`min_training_pairs` and `min_training_nonmatches` should both be supplied or both be `NULL`.")
-  }
-
-  if (length(min_training_pairs) != 1L || is.na(min_training_pairs) ||
-      min_training_pairs <= 0) {
-    stop("`min_training_pairs` should be a positive number.")
-  }
-
-  if (length(min_training_nonmatches) != 1L || is.na(min_training_nonmatches) ||
-      min_training_nonmatches <= 0) {
-    stop("`min_training_nonmatches` should be a positive number.")
-  }
-
-  permutation <- sample_with_optional_seed(NROW(block_summary), block_sampling_seed)
-  training_blocks <- data.table::copy(block_summary[permutation])
-  training_blocks[, cumulative_pairs := cumsum(pair_count)]
-  training_blocks[, cumulative_nonmatches_min := cumsum(nonmatches_min)]
-  hit_idx <- which(
-    training_blocks[["cumulative_pairs"]] >= min_training_pairs &
-      training_blocks[["cumulative_nonmatches_min"]] >= min_training_nonmatches
-  )
-
-  if (length(hit_idx) == 0L) {
-    stop("Training sample is infeasible under the current blocking configuration and thresholds.")
-  }
-
-  training_blocks <- training_blocks[seq_len(hit_idx[1L])]
-  list(
-    training_rule = "threshold_sampling",
-    training_blocks = training_blocks
-  )
-}
-
-#' @noRd
 exact_match_pairs <- function(A, B, variables) {
   merge(
     A[, c("a", variables), with = FALSE],
@@ -1068,63 +831,6 @@ score_mec_ratio <- function(Omega, model) {
 }
 
 #' @noRd
-estimate_local_mec_size <- function(ratio,
-                                    n_pairs,
-                                    n_A,
-                                    n_B,
-                                    fixed_method,
-                                    prob_ratio,
-                                    prob_est = NULL) {
-  n_M_max <- min(n_A, n_B)
-
-  if (prob_ratio == "1") {
-    if (is.null(prob_est)) {
-      stop("`prob_est` is required when `prob_ratio == \"1\"`.")
-    }
-    g_est <- pmin(prob_est * ratio, 1)
-    g_est[!is.finite(g_est)] <- 0
-    n_M_est <- min(sum(g_est), n_M_max)
-    n_M_est <- max(n_M_est, 0)
-    n_M_est <- round(n_M_est)
-    g_est <- pmin(prob_est * ratio, 1)
-    g_est[!is.finite(g_est)] <- 0
-  } else {
-    fun_n_M <- fixed_n_M(n = n_pairs, ratio_gamma = ratio)
-    n_M_original <- tryCatch(
-      FixedPoint::FixedPoint(
-        Function = fun_n_M,
-        Inputs = n_M_max,
-        Method = fixed_method
-      )$FixedPoint,
-      error = function(e) NA_real_
-    )
-    if (length(n_M_original) != 1L || !is.finite(n_M_original)) {
-      n_M_original <- n_M_max
-    }
-    n_M_est <- min(n_M_original, n_M_max)
-    n_M_est <- max(n_M_est, 0)
-    n_M_est <- round(n_M_est)
-    g_est <- pmin(n_M_est * ratio / (n_M_est * (ratio - 1) + n_pairs), 1)
-    g_est[!is.finite(g_est)] <- 0
-  }
-
-  list(n_M_est = n_M_est, g_est = g_est)
-}
-
-#' @noRd
-# Singleton blocks have no one-to-one conflict, so classify the only pair by
-# its fitted density ratio.
-select_singleton_mec_index <- function(ratio) {
-  ratio <- ratio[1L]
-
-  if (!is.na(ratio) && ratio >= 1) {
-    return(1L)
-  }
-
-  integer()
-}
-
-#' @noRd
 blocking_diagnostics <- function(true_matches, block_pairs, n_full_pairs) {
   true_matches <- data.table::copy(true_matches)
   data.table::setkey(true_matches, a, b)
@@ -1171,5 +877,1427 @@ mec_selection_diagnostics <- function(true_matches, block_pairs, M_est) {
     selected_pairs = selected_pairs,
     false_links = false_links,
     empirical_flr = if (selected_pairs == 0L) NA_real_ else false_links / selected_pairs
+  )
+}
+
+#' @noRd
+fit_mec_unsupervised_omega <- function(A,
+                                       B,
+                                       variables,
+                                       comparators,
+                                       methods,
+                                       Omega,
+                                       exact_matches,
+                                       start_params = NULL,
+                                       nonmatch_params = NULL,
+                                       nonpar_hurdle = TRUE,
+                                       delta = 0.5,
+                                       eps = 0.05,
+                                       max_iter_em = 10,
+                                       tol_em = 1,
+                                       controls_nleqslv = list(),
+                                       controls_kliep = control_kliep(),
+                                       context = "mec_blocking()") {
+  if (!is.null(start_params)) {
+    stopifnot("`start_params` should be a list." =
+                is.list(start_params))
+  }
+  if (!is.null(nonmatch_params)) {
+    stopifnot("`nonmatch_params` should be a list." =
+                is.list(nonmatch_params))
+  }
+
+  method_variables <- extract_method_variables(methods, include_hit_miss = TRUE)
+  b_vars <- method_variables$b_vars
+  cpar_vars <- method_variables$cpar_vars
+  cnonpar_vars <- method_variables$cnonpar_vars
+  hm_vars <- method_variables$hm_vars
+
+  exact_match_idx <- data.table(
+    omega_idx = seq_len(NROW(Omega)),
+    a = Omega[["a"]],
+    b = Omega[["b"]]
+  )[exact_matches[, c("a", "b"), with = FALSE], on = c("a", "b"), nomatch = 0L][["omega_idx"]]
+
+  if (length(exact_match_idx) == 0L) {
+    stop("The MEC training space contains no exact agreements on the key variables.")
+  }
+
+  n <- NROW(Omega)
+  exact_match_mask <- rep(FALSE, n)
+  exact_match_mask[exact_match_idx] <- TRUE
+  M_idx <- exact_match_idx
+  n_M <- length(M_idx)
+  all_idx <- seq_len(n)
+  selection_mask <- rep(FALSE, n)
+
+  b_params <- NULL
+  cpar_params <- NULL
+  cnonpar_params <- NULL
+  hm_params <- NULL
+  ratio_kliep <- NULL
+  ratio_kliep_list <- NULL
+  kliep_warning_emitted <- FALSE
+
+  warn_kliep_once <- function(variables, message) {
+    if (!kliep_warning_emitted) {
+      warn_kliep_issue(context, variables, message)
+      kliep_warning_emitted <<- TRUE
+    }
+  }
+
+  data.table::set(Omega, j = "ratio", value = 1)
+
+  if (is.null(start_params)) {
+    start_params <- list()
+
+    if (length(b_vars) > 0L) {
+      start_params[["binary"]] <- data.table(
+        variable = b_vars,
+        theta = runif(length(b_vars), min = 0.9)
+      )
+    }
+
+    if (length(cpar_vars) > 0L) {
+      start_params[["continuous_parametric"]] <- data.table(
+        variable = cpar_vars,
+        p_0_M = runif(length(cpar_vars), min = 0.8, max = 0.9),
+        alpha_M = runif(length(cpar_vars), min = 0.1, max = 1),
+        beta_M = runif(length(cpar_vars), min = 10, max = 20)
+      )
+    }
+
+    if (length(hm_vars) > 0L) {
+      start_params[["hit_miss"]] <- data.table(
+        variable = hm_vars,
+        theta = runif(length(hm_vars), min = 0.9)
+      )
+    }
+  }
+
+  if (length(b_vars) > 0L) {
+    b_params <- align_parameter_table(start_params$binary, b_vars)
+    Omega_b <- Omega[, b_vars, with = FALSE]
+    if (!is.null(nonmatch_params) && !is.null(nonmatch_params$binary)) {
+      eta_b <- align_parameter_table(nonmatch_params$binary, b_vars)$eta
+    } else {
+      eta_b <- binary_formula(Omega_b)
+    }
+    b_params$eta <- eta_b
+    b_denominator <- bernoulli_product(Omega_b, b_params$eta)
+    data.table::set(
+      Omega,
+      j = "ratio",
+      value = Omega[["ratio"]] * bernoulli_ratio(Omega_b, b_params$theta, b_params$eta)
+    )
+    data.table::set(Omega, j = "b_denominator", value = b_denominator)
+  }
+
+  if (length(cpar_vars) > 0L) {
+    cpar_params <- align_parameter_table(start_params$continuous_parametric, cpar_vars)
+    Omega_cpar <- Omega[, cpar_vars, with = FALSE]
+    modified_nleqslv <- purrr::partial(nleqslv::nleqslv, control = controls_nleqslv)
+    if (!is.null(nonmatch_params) && !is.null(nonmatch_params$continuous_parametric)) {
+      cpar_nonmatch_params <- align_parameter_table(nonmatch_params$continuous_parametric, cpar_vars)
+      p_0_U <- cpar_nonmatch_params$p_0_U
+      alpha_U <- cpar_nonmatch_params$alpha_U
+      beta_U <- cpar_nonmatch_params$beta_U
+    } else {
+      p_0_U <- p_0_formula(Omega_cpar)
+      gamma_plus_U <- gamma_plus_formula(Omega_cpar)
+      alpha_U <- alpha_formula(Omega_cpar, modified_nleqslv)
+      beta_U <- alpha_U / gamma_plus_U
+    }
+    cpar_params$p_0_U <- p_0_U
+    cpar_params$alpha_U <- alpha_U
+    cpar_params$beta_U <- beta_U
+    cpar_denominator <- hurdle_gamma_product(
+      Omega_cpar,
+      cpar_params$p_0_U,
+      cpar_params$alpha_U,
+      cpar_params$beta_U
+    )
+    data.table::set(
+      Omega,
+      j = "ratio",
+      value = Omega[["ratio"]] * hurdle_gamma_ratio(
+        Omega_cpar,
+        cpar_params$p_0_M,
+        cpar_params$alpha_M,
+        cpar_params$beta_M,
+        cpar_params$p_0_U,
+        cpar_params$alpha_U,
+        cpar_params$beta_U
+      )
+    )
+    data.table::set(Omega, j = "cpar_denominator", value = cpar_denominator)
+  }
+
+  if (length(cnonpar_vars) > 0L) {
+    Omega_cnonpar <- Omega[, cnonpar_vars, with = FALSE]
+    n_exact_matches <- sum(exact_match_mask)
+
+    if (nonpar_hurdle) {
+      p_0_M_cnonpar <- runif(length(cnonpar_vars), min = 0.5)
+      p_0_U_cnonpar <- p_0_formula(Omega_cnonpar)
+      names(p_0_M_cnonpar) <- cnonpar_vars
+      cnonpar_params <- data.table(
+        variable = cnonpar_vars,
+        p_0_M_cnonpar = p_0_M_cnonpar,
+        p_0_U_cnonpar = p_0_U_cnonpar
+      )
+
+      ratio_temp <- lapply(cnonpar_vars, function(x) {
+        r <- numeric(n)
+        r[exact_match_mask] <- stats::runif(n_exact_matches, min = 5, max = 10)
+        r[!exact_match_mask] <- stats::runif(n - n_exact_matches, min = 0.1, max = 1)
+        r
+      })
+      names(ratio_temp) <- cnonpar_vars
+      cnonpar_ratio_list <- lapply(cnonpar_vars, function(x) {
+        gamma_vec <- Omega_cnonpar[[x]]
+        ifelse(gamma_vec == 0, p_0_M_cnonpar[x] / p_0_U_cnonpar[x], 1) *
+          ifelse(gamma_vec > 0, (1 - p_0_M_cnonpar[x]) / (1 - p_0_U_cnonpar[x]) * ratio_temp[[x]], 1)
+      })
+      ratio_kliep <- Reduce(`*`, cnonpar_ratio_list)
+      data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * ratio_kliep)
+    } else {
+      ratio_temp <- as.numeric(Omega$ratio)
+      ratio_temp[exact_match_mask] <- ratio_temp[exact_match_mask] * stats::runif(
+        n_exact_matches,
+        min = 5,
+        max = 10
+      )
+      ratio_temp[!exact_match_mask] <- ratio_temp[!exact_match_mask] * stats::runif(
+        n - n_exact_matches,
+        min = 0.1,
+        max = 5
+      )
+      data.table::set(Omega, j = "ratio", value = ratio_temp)
+    }
+  }
+
+  if (length(hm_vars) > 0L) {
+    hm_params <- align_parameter_table(start_params$hit_miss, hm_vars)
+    Omega_hm <- Omega[, hm_vars, with = FALSE]
+    eta_hm <- binary_formula(Omega_hm)
+    hm_params$eta <- eta_hm
+    hm_denominator <- bernoulli_product(Omega_hm, hm_params$eta)
+    data.table::set(
+      Omega,
+      j = "ratio",
+      value = Omega[["ratio"]] * bernoulli_ratio(Omega_hm, hm_params$theta, hm_params$eta)
+    )
+    data.table::set(Omega, j = "hm_denominator", value = hm_denominator)
+
+    values_list_m <- lapply(hm_vars, function(x) {
+      name <- substr(x, 7, nchar(x))
+      values <- unique(c(A[[name]], B[[name]]))
+      m_est <- sapply(values, function(y) sum(A[[name]] == y) / NROW(A))
+      data.table::data.table(
+        "value" = values,
+        "m_est" = m_est
+      )
+    })
+    names(values_list_m) <- hm_vars
+  }
+
+  iter <- 1
+
+  repeat {
+    g_est <- pmin(length(M_idx) * Omega$ratio / (length(M_idx) * (Omega$ratio - 1) + n), 1)
+    n_M_old <- n_M
+    n_M <- sum(g_est)
+
+    if (n_M > min(NROW(A), NROW(B))) {
+      n_M <- min(NROW(A), NROW(B))
+    }
+
+    data.table::set(Omega, j = "g_est", value = g_est)
+    M_idx <- select_mec_indices(
+      a = Omega[["a"]],
+      b = Omega[["b"]],
+      ratio = Omega[["ratio"]],
+      n_M = n_M,
+      duplicates_in_A = FALSE
+    )
+
+    if (length(M_idx) == 0L) {
+      break
+    }
+
+    selection_mask[M_idx] <- TRUE
+    U_idx <- all_idx[!selection_mask]
+    selection_mask[M_idx] <- FALSE
+
+    if (iter >= 2) {
+      old_params <- c()
+      params <- c()
+      if (length(b_vars) > 0L) {
+        old_params <- c(old_params, theta_b_old)
+        params <- c(params, theta_b)
+      }
+      if (length(cpar_vars) > 0L) {
+        old_params <- c(old_params, p_0_M_old, alpha_M_old, beta_M_old)
+        params <- c(params, p_0_M, alpha_M, beta_M)
+      }
+      if (length(hm_vars) > 0L) {
+        old_params <- c(old_params, theta_hm_old)
+        params <- c(params, theta_hm)
+      }
+
+      if (length(cnonpar_vars) == 0L) {
+        if ((abs(n_M_old - n_M) < delta) || norm(old_params - params, type = "2") < eps) {
+          break
+        }
+      } else if ((abs(n_M_old - n_M) < delta)) {
+        break
+      }
+    }
+
+    data.table::set(Omega, j = "ratio", value = 1)
+
+    if (length(b_vars) > 0L) {
+      M_b <- Omega_b[M_idx]
+      theta_b_old <- b_params$theta
+      theta_b <- binary_formula(M_b)
+      b_params$theta <- theta_b
+      b_numerator <- bernoulli_product(Omega_b, b_params$theta)
+      data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * b_numerator / Omega[["b_denominator"]])
+    }
+
+    if (length(cpar_vars) > 0L) {
+      M_cpar <- Omega_cpar[M_idx]
+      p_0_M_old <- cpar_params$p_0_M
+      alpha_M_old <- cpar_params$alpha_M
+      beta_M_old <- cpar_params$beta_M
+      p_0_M <- p_0_formula(M_cpar)
+      gamma_plus_M <- gamma_plus_formula(M_cpar)
+      alpha_M <- alpha_formula(M_cpar, modified_nleqslv)
+      beta_M <- alpha_M / gamma_plus_M
+      beta_M[is.nan(beta_M)] <- beta_M_old[is.nan(beta_M)]
+      cpar_params$p_0_M <- p_0_M
+      cpar_params$alpha_M <- alpha_M
+      cpar_params$beta_M <- beta_M
+      cpar_numerator <- hurdle_gamma_product(
+        Omega_cpar,
+        cpar_params$p_0_M,
+        cpar_params$alpha_M,
+        cpar_params$beta_M
+      )
+      data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * cpar_numerator / Omega[["cpar_denominator"]])
+    }
+
+    if (length(cnonpar_vars) > 0L) {
+      M_cnonpar <- Omega_cnonpar[M_idx]
+      U_cnonpar <- Omega_cnonpar[U_idx]
+
+      if (nonpar_hurdle) {
+        p_0_M_cnonpar <- p_0_formula(M_cnonpar)
+        p_0_U_cnonpar <- p_0_formula(U_cnonpar)
+        cnonpar_params <- data.table(
+          variable = cnonpar_vars,
+          p_0_M_cnonpar = p_0_M_cnonpar,
+          p_0_U_cnonpar = p_0_U_cnonpar
+        )
+        ratio_kliep_old <- ratio_kliep
+
+        tryCatch({
+          ratio_kliep_models <- fit_kliep_hurdle_models(
+            df_numerator = M_cnonpar,
+            df_denominator = U_cnonpar,
+            variables = cnonpar_vars,
+            controls_kliep = controls_kliep
+          )
+          missing_models <- missing_kliep_models(ratio_kliep_models)
+
+          if (length(missing_models) < length(cnonpar_vars)) {
+            if (length(missing_models) > 0L) {
+              warn_kliep_once(missing_models, "using only the hurdle mass term for those variables in the current iteration.")
+            }
+
+            ratio_kliep_list <- ratio_kliep_models
+            ratio_kliep <- kliep_hurdle_ratio(
+              df = Omega_cnonpar,
+              variables = cnonpar_vars,
+              p_0_numerator = p_0_M_cnonpar,
+              p_0_denominator = p_0_U_cnonpar,
+              ratio_kliep_list = ratio_kliep_models
+            )
+          } else {
+            ratio_kliep <- ratio_kliep_old
+            warn_kliep_once(cnonpar_vars, "could not be fitted in the current iteration; using the previous ratio estimate.")
+          }
+          data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * ratio_kliep)
+        },
+          error = function(e) {
+            warn_kliep_once(cnonpar_vars, paste("failed with error:", e$message))
+          })
+      } else {
+        ratio_kliep <- do.call(
+          densityratio::kliep,
+          c(list(
+            df_numerator = M_cnonpar,
+            df_denominator = U_cnonpar
+          ),
+          controls_kliep)
+        )
+        data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * stats::predict(ratio_kliep, Omega_cnonpar))
+      }
+    }
+
+    if (length(hm_vars) > 0L) {
+      M_hm <- Omega_hm[M_idx]
+      theta_hm_old <- hm_params$theta
+      theta_hm <- binary_formula(M_hm)
+      hm_params$theta <- theta_hm
+
+      p_est <- n_M / max(NROW(A), NROW(B))
+      u_est_list <- lapply(hm_vars, function(x) {
+        u_est <- runif(NROW(values_list_m[[x]]), 0, 1)
+        u_est <- u_est / sum(u_est)
+      })
+      names(u_est_list) <- hm_vars
+
+      m_bk_prod <- sapply(seq_len(NROW(B)), function(x) {
+        m_bk_list <- lapply(hm_vars, function(y) {
+          var_name <- substr(y, 7, nchar(y))
+          d_value <- (B[[var_name]])[x]
+          as.vector((values_list_m[[y]])[(values_list_m[[y]])[["value"]] == d_value, ][["m_est"]])
+        })
+        names(m_bk_list) <- hm_vars
+        Reduce(`*`, m_bk_list)
+      })
+
+      iter_em <- 1
+      while (iter_em <= max_iter_em + 1) {
+        if (iter_em >= 2) {
+          delta_b_old <- em_params[["delta_b"]]
+        }
+
+        delta_m_u <- lapply(seq_len(NROW(B)), function(x) {
+          u_bk_list <- lapply(hm_vars, function(y) {
+            var_name <- substr(y, 7, nchar(y))
+            values <- cbind(values_list_m[[y]], u_est_list[[y]])
+            colnames(values) <- c("value", "m_est", "u_est")
+            d_value <- (B[[var_name]])[x]
+            as.vector(values[values[["value"]] == d_value, ][["u_est"]])
+          })
+          names(u_bk_list) <- hm_vars
+          u_bk_prod <- Reduce(`*`, u_bk_list)
+          data.table::data.table(
+            delta_b = p_est * m_bk_prod[x] / (p_est * m_bk_prod[x] + (1 - p_est) * u_bk_prod),
+            m_bk_prod = m_bk_prod[x],
+            u_bk_prod = u_bk_prod
+          )
+        })
+
+        em_params <- data.table::rbindlist(delta_m_u)
+
+        if (iter_em >= 3) {
+          log_lik_old <- log_lik
+        }
+
+        if (iter_em >= 2) {
+          log_lik <- sum(
+            ifelse(delta_b_old == 0,
+                   0,
+                   delta_b_old * log(p_est * em_params[["m_bk_prod"]]))
+          ) +
+            sum(ifelse(em_params[["u_bk_prod"]] == 0,
+                       0,
+                       (1 - delta_b_old) * log((1 - p_est) * em_params[["u_bk_prod"]]))
+                )
+        }
+
+        if (iter_em >= 3) {
+          if (abs(log_lik - log_lik_old) <= tol_em) break
+        }
+
+        u_est_list <- lapply(hm_vars, function(x) {
+          var_name <- substr(x, 7, nchar(x))
+          z_bk <- B[[var_name]]
+
+          sapply((values_list_m[[x]])[["value"]], function(y) {
+            sum((1 - em_params[["delta_b"]]) * (z_bk == y)) / sum(1 - em_params[["delta_b"]])
+          })
+        })
+        names(u_est_list) <- hm_vars
+
+        iter_em <- iter_em + 1
+      }
+
+      hm_numerator <- bernoulli_product(Omega_hm, hm_params$theta)
+      eta_hm <- sapply(hm_vars, function(col) {
+        ((1 - p_est) * sum(u_est_list[[col]] * (values_list_m[[col]])[["m_est"]]) +
+           p_est * (1 - 1 / NROW(A)) * sum(((values_list_m[[col]])[["m_est"]]) ^ 2)) /
+          (1 - p_est / NROW(A))
+      })
+      hm_params$eta <- eta_hm
+      hm_denominator <- bernoulli_product(Omega_hm, hm_params$eta)
+      data.table::set(Omega, j = "hm_denominator", value = hm_denominator)
+      data.table::set(Omega, j = "ratio", value = Omega[["ratio"]] * hm_numerator / Omega[["hm_denominator"]])
+    }
+
+    iter <- iter + 1
+  }
+
+  n_M_est <- n_M
+  selection_summary <- summarize_mec_selection(
+    a = Omega[["a"]],
+    b = Omega[["b"]],
+    ratio = Omega[["ratio"]],
+    g_est = Omega[["g_est"]],
+    n_M_est = n_M_est,
+    duplicates_in_A = FALSE,
+    set_construction = "size"
+  )
+  M <- Omega[selection_summary$selected_idx]
+
+  model <- list(
+    b_vars = if (length(b_vars) == 0L) NULL else b_vars,
+    cpar_vars = if (length(cpar_vars) == 0L) NULL else cpar_vars,
+    cnonpar_vars = if (length(cnonpar_vars) == 0L) NULL else cnonpar_vars,
+    hm_vars = if (length(hm_vars) == 0L) NULL else hm_vars,
+    b_params = if (is.null(b_params)) NULL else b_params,
+    cpar_params = if (is.null(cpar_params)) NULL else cpar_params,
+    cnonpar_params = if (is.null(cnonpar_params)) NULL else cnonpar_params,
+    hm_params = if (is.null(hm_params)) NULL else hm_params,
+    ratio_kliep = if (is.null(ratio_kliep) || is.numeric(ratio_kliep)) NULL else ratio_kliep,
+    ratio_kliep_list = if (is.null(ratio_kliep_list)) NULL else ratio_kliep_list,
+    variables = variables,
+    comparators = comparators,
+    methods = methods,
+    n_M_est = n_M_est,
+    prob_est = n_M_est / n
+  )
+
+  list(
+    model = model,
+    Omega = Omega,
+    M_est = M[, c("a", "b", "ratio"), with = FALSE],
+    n_M_est = n_M_est,
+    flr_est = selection_summary$flr_est,
+    mmr_est = selection_summary$mmr_est
+  )
+}
+
+#' @noRd
+validate_mec_blocking_rho <- function(rho) {
+  if (!is.numeric(rho) || length(rho) != 1L || is.na(rho) ||
+      !is.finite(rho) || rho <= 0 || rho > 1) {
+    stop("`rho` should be a single numeric value in (0, 1].")
+  }
+
+  invisible(rho)
+}
+
+#' @noRd
+validate_mec_blocking_alpha <- function(alpha) {
+  if (!is.numeric(alpha) || length(alpha) != 1L || is.na(alpha) ||
+      !is.finite(alpha) || alpha < 0 || alpha >= 1) {
+    stop("`alpha` should be a single numeric value in [0, 1).", call. = FALSE)
+  }
+
+  invisible(alpha)
+}
+
+#' @noRd
+validate_mec_blocking_robust_u <- function(robust_u) {
+  if (!is.logical(robust_u) || length(robust_u) != 1L || is.na(robust_u)) {
+    stop("`robust_u` should be a single non-missing logical value.", call. = FALSE)
+  }
+
+  invisible(robust_u)
+}
+
+#' @noRd
+initial_inverted_match_count <- function(nu, rho) {
+  as.integer(max(0L, min(nu, floor(rho * nu))))
+}
+
+#' @noRd
+prepare_inverted_start_params <- function(start_params, cpar_vars) {
+  if (!is.null(start_params)) {
+    stopifnot("`start_params` should be a list." =
+                is.list(start_params))
+    return(start_params)
+  }
+
+  start_params <- list()
+  if (length(cpar_vars) > 0L) {
+    start_params[["continuous_parametric"]] <- data.table(
+      variable = cpar_vars,
+      p_0_M = stats::runif(length(cpar_vars), min = 0.8, max = 0.9),
+      alpha_M = stats::runif(length(cpar_vars), min = 0.1, max = 1),
+      beta_M = stats::runif(length(cpar_vars), min = 10, max = 20)
+    )
+  }
+
+  start_params
+}
+
+#' @noRd
+get_hurdle_gamma_fallback <- function(fallback_params, variables, side) {
+  if (is.null(fallback_params)) {
+    return(NULL)
+  }
+
+  alpha_col <- paste0("alpha_", side)
+  beta_col <- paste0("beta_", side)
+  if (!all(c("variable", alpha_col, beta_col) %in% names(fallback_params))) {
+    return(NULL)
+  }
+
+  fallback_params <- align_parameter_table(fallback_params, variables)
+  list(
+    alpha = fallback_params[[alpha_col]],
+    beta = fallback_params[[beta_col]]
+  )
+}
+
+#' @noRd
+estimate_hurdle_gamma_params <- function(df,
+                                         variables,
+                                         side,
+                                         fallback_params = NULL,
+                                         controls_nleqslv = list(),
+                                         context = "mec_blocking()") {
+  if (length(variables) == 0L) {
+    return(NULL)
+  }
+
+  p_0 <- p_0_formula(df)
+  alpha <- stats::setNames(rep(NA_real_, length(variables)), variables)
+  beta <- stats::setNames(rep(NA_real_, length(variables)), variables)
+  fallback <- get_hurdle_gamma_fallback(fallback_params, variables, side)
+  modified_nleqslv <- purrr::partial(nleqslv::nleqslv, control = controls_nleqslv)
+
+  for (i in seq_along(variables)) {
+    variable <- variables[i]
+    gamma <- df[[variable]]
+    positive_gamma <- gamma[gamma > 0]
+
+    if (length(positive_gamma) >= 2L) {
+      estimated_alpha <- tryCatch(
+        alpha_formula(df[, variable, with = FALSE], modified_nleqslv)[1L],
+        error = function(e) NA_real_
+      )
+      estimated_beta <- estimated_alpha / mean(positive_gamma)
+
+      if (is.finite(estimated_alpha) && is.finite(estimated_beta) &&
+          estimated_alpha > 0 && estimated_beta > 0) {
+        alpha[i] <- estimated_alpha
+        beta[i] <- estimated_beta
+        next
+      }
+    }
+
+    has_fallback <- !is.null(fallback) &&
+      is.finite(fallback$alpha[i]) && is.finite(fallback$beta[i]) &&
+      fallback$alpha[i] > 0 && fallback$beta[i] > 0
+
+    if (!has_fallback) {
+      stop(
+        sprintf(
+          "%s cannot estimate %s-side Gamma parameters for `%s`; at least two positive continuous comparisons or finite fallback parameters are required.",
+          context,
+          if (side == "M") "match" else "nonmatch",
+          variable
+        ),
+        call. = FALSE
+      )
+    }
+
+    alpha[i] <- fallback$alpha[i]
+    beta[i] <- fallback$beta[i]
+  }
+
+  params <- data.table(variable = variables)
+  data.table::set(params, j = paste0("p_0_", side), value = as.numeric(p_0))
+  data.table::set(params, j = paste0("alpha_", side), value = as.numeric(alpha))
+  data.table::set(params, j = paste0("beta_", side), value = as.numeric(beta))
+  params
+}
+
+#' @noRd
+estimate_inverted_match_parameters <- function(Omega,
+                                               M_idx,
+                                               b_vars,
+                                               cpar_vars,
+                                               previous_params,
+                                               start_params,
+                                               controls_nleqslv,
+                                               context = "mec_blocking()") {
+  if (length(M_idx) == 0L) {
+    M_idx <- seq_len(NROW(Omega))
+  }
+
+  match_Omega <- Omega[M_idx]
+  cpar_fallback <- start_params$continuous_parametric
+  if (!is.null(previous_params$continuous_parametric)) {
+    cpar_fallback <- previous_params$continuous_parametric
+  }
+
+  b_params <- NULL
+  if (length(b_vars) > 0L) {
+    b_params <- data.table(
+      variable = b_vars,
+      theta = binary_formula(match_Omega[, b_vars, with = FALSE])
+    )
+  }
+
+  cpar_params <- NULL
+  if (length(cpar_vars) > 0L) {
+    cpar_params <- estimate_hurdle_gamma_params(
+      df = match_Omega[, cpar_vars, with = FALSE],
+      variables = cpar_vars,
+      side = "M",
+      fallback_params = cpar_fallback,
+      controls_nleqslv = controls_nleqslv,
+      context = context
+    )
+  }
+
+  list(binary = b_params, continuous_parametric = cpar_params)
+}
+
+#' @noRd
+estimate_inverted_nonmatch_parameters <- function(Omega,
+                                                  U_idx,
+                                                  b_vars,
+                                                  cpar_vars,
+                                                  previous_params,
+                                                  controls_nleqslv,
+                                                  context = "mec_blocking()") {
+  if (length(U_idx) == 0L) {
+    stop(sprintf("%s cannot estimate nonmatch parameters from an empty candidate-pair complement.", context),
+         call. = FALSE)
+  }
+
+  b_params <- NULL
+  if (length(b_vars) > 0L) {
+    b_params <- data.table(
+      variable = b_vars,
+      eta = binary_formula(Omega[U_idx, b_vars, with = FALSE])
+    )
+  }
+
+  cpar_params <- NULL
+  if (length(cpar_vars) > 0L) {
+    cpar_params <- estimate_hurdle_gamma_params(
+      df = Omega[U_idx, cpar_vars, with = FALSE],
+      variables = cpar_vars,
+      side = "U",
+      fallback_params = previous_params$continuous_parametric,
+      controls_nleqslv = controls_nleqslv,
+      context = context
+    )
+  }
+
+  list(binary = b_params, continuous_parametric = cpar_params)
+}
+
+#' @noRd
+combine_inverted_parameters <- function(match_params, nonmatch_params, b_vars, cpar_vars) {
+  b_params <- NULL
+  if (length(b_vars) > 0L) {
+    b_params <- data.table(
+      variable = b_vars,
+      theta = match_params$binary$theta,
+      eta = nonmatch_params$binary$eta
+    )
+  }
+
+  cpar_params <- NULL
+  if (length(cpar_vars) > 0L) {
+    cpar_params <- data.table::copy(match_params$continuous_parametric)
+    data.table::set(cpar_params, j = "p_0_U", value = nonmatch_params$continuous_parametric$p_0_U)
+    data.table::set(cpar_params, j = "alpha_U", value = nonmatch_params$continuous_parametric$alpha_U)
+    data.table::set(cpar_params, j = "beta_U", value = nonmatch_params$continuous_parametric$beta_U)
+  }
+
+  list(binary = b_params, continuous_parametric = cpar_params)
+}
+
+#' @noRd
+inverted_nonmatch_param_vector <- function(nonmatch_params) {
+  params <- numeric()
+
+  if (!is.null(nonmatch_params$binary)) {
+    params <- c(params, nonmatch_params$binary$eta)
+  }
+
+  if (!is.null(nonmatch_params$continuous_parametric)) {
+    params <- c(
+      params,
+      nonmatch_params$continuous_parametric$p_0_U,
+      nonmatch_params$continuous_parametric$alpha_U,
+      nonmatch_params$continuous_parametric$beta_U
+    )
+  }
+
+  params
+}
+
+#' @noRd
+inverted_match_param_vector <- function(match_params) {
+  params <- numeric()
+
+  if (!is.null(match_params$binary)) {
+    params <- c(params, match_params$binary$theta)
+  }
+
+  if (!is.null(match_params$continuous_parametric)) {
+    params <- c(
+      params,
+      match_params$continuous_parametric$p_0_M,
+      match_params$continuous_parametric$alpha_M,
+      match_params$continuous_parametric$beta_M
+    )
+  }
+
+  params
+}
+
+#' @noRd
+inverted_parameter_vector <- function(match_params, nonmatch_params) {
+  c(
+    inverted_match_param_vector(match_params),
+    inverted_nonmatch_param_vector(nonmatch_params)
+  )
+}
+
+#' @noRd
+score_inverted_mec_ratio <- function(Omega, b_vars, cpar_vars, b_params, cpar_params) {
+  data.table::set(Omega, j = "ratio", value = 1)
+
+  if (length(b_vars) > 0L) {
+    Omega_b <- Omega[, b_vars, with = FALSE]
+    data.table::set(
+      Omega,
+      j = "ratio",
+      value = Omega[["ratio"]] * bernoulli_ratio(Omega_b, b_params$eta, b_params$theta)
+    )
+  }
+
+  if (length(cpar_vars) > 0L) {
+    Omega_cpar <- Omega[, cpar_vars, with = FALSE]
+    data.table::set(
+      Omega,
+      j = "ratio",
+      value = Omega[["ratio"]] * hurdle_gamma_ratio(
+        Omega_cpar,
+        cpar_params$p_0_U,
+        cpar_params$alpha_U,
+        cpar_params$beta_U,
+        cpar_params$p_0_M,
+        cpar_params$alpha_M,
+        cpar_params$beta_M
+      )
+    )
+  }
+
+  ratio <- Omega[["ratio"]]
+  ratio[is.na(ratio) | ratio < 0] <- Inf
+  data.table::set(Omega, j = "ratio", value = ratio)
+  Omega
+}
+
+#' @noRd
+blocking_disagreement_norm <- function(Omega, b_vars, cpar_vars) {
+  components <- list()
+
+  if (length(b_vars) > 0L) {
+    components[["binary"]] <- 1 - as.matrix(Omega[, b_vars, with = FALSE])
+  }
+
+  if (length(cpar_vars) > 0L) {
+    components[["continuous_parametric"]] <- as.matrix(Omega[, cpar_vars, with = FALSE])
+  }
+
+  disagreement <- do.call(cbind, components)
+  sqrt(rowSums(disagreement ^ 2))
+}
+
+#' @noRd
+select_inverted_mec_indices <- function(a, b, block, ratio, n_M) {
+  n_target <- round(n_M)
+
+  if (n_target <= 0L || length(ratio) == 0L) {
+    return(integer())
+  }
+
+  ratio_order <- ratio
+  ratio_order[is.na(ratio_order) | ratio_order < 0] <- Inf
+  order_idx <- order(ratio_order, a, b, block)
+  selected_idx <- integer(length(order_idx))
+  n_selected <- 0L
+  used_a <- rep(FALSE, max(a))
+  used_b <- rep(FALSE, max(b))
+
+  for (idx in order_idx) {
+    current_a <- a[idx]
+    current_b <- b[idx]
+
+    if (!used_a[current_a] && !used_b[current_b]) {
+      n_selected <- n_selected + 1L
+      selected_idx[n_selected] <- idx
+      used_a[current_a] <- TRUE
+      used_b[current_b] <- TRUE
+    }
+
+    if (n_selected >= n_target) {
+      break
+    }
+  }
+
+  if (n_selected == 0L) {
+    return(integer())
+  }
+
+  selected_idx[seq_len(n_selected)]
+}
+
+#' @noRd
+estimate_inverted_q <- function(ratio, n_U_current, N) {
+  denominator <- n_U_current * (ratio - 1) + N
+  q_est <- n_U_current * ratio / denominator
+  q_est[is.infinite(ratio) & ratio > 0] <- 1
+  q_est[ratio == 0 & denominator > 0] <- 0
+  q_est <- pmin(q_est, 1)
+  q_est <- pmax(q_est, 0)
+  q_est[!is.finite(q_est)] <- 1
+  q_est
+}
+
+#' @noRd
+has_valid_u_cpar_fallback <- function(previous_params, cpar_vars) {
+  if (length(cpar_vars) == 0L) {
+    return(logical())
+  }
+
+  if (is.null(previous_params)) {
+    return(stats::setNames(rep(FALSE, length(cpar_vars)), cpar_vars))
+  }
+
+  cpar_params <- previous_params$continuous_parametric
+  if (is.null(cpar_params) ||
+      !all(c("variable", "alpha_U", "beta_U") %in% names(cpar_params))) {
+    return(stats::setNames(rep(FALSE, length(cpar_vars)), cpar_vars))
+  }
+
+  cpar_params <- align_parameter_table(cpar_params, cpar_vars)
+  valid <- is.finite(cpar_params[["alpha_U"]]) &
+    is.finite(cpar_params[["beta_U"]]) &
+    cpar_params[["alpha_U"]] > 0 &
+    cpar_params[["beta_U"]] > 0
+  stats::setNames(valid, cpar_vars)
+}
+
+#' @noRd
+has_sufficient_u_fit_sample <- function(Omega,
+                                        U_fit_idx,
+                                        cpar_vars,
+                                        previous_params) {
+  if (length(U_fit_idx) == 0L) {
+    return(FALSE)
+  }
+
+  if (length(cpar_vars) == 0L) {
+    return(TRUE)
+  }
+
+  valid_fallback <- has_valid_u_cpar_fallback(previous_params, cpar_vars)
+  for (variable in cpar_vars) {
+    gamma <- Omega[[variable]][U_fit_idx]
+    n_positive <- sum(is.finite(gamma) & gamma > 0)
+    if (n_positive < 2L && !isTRUE(valid_fallback[[variable]])) {
+      return(FALSE)
+    }
+  }
+
+  TRUE
+}
+
+#' @noRd
+make_u_fit_diagnostic <- function(iter,
+                                  n_U_current,
+                                  n_U_base,
+                                  alpha,
+                                  requested_n_drop,
+                                  requested_n_keep,
+                                  actual_n_drop,
+                                  n_U_fit,
+                                  alpha_applied,
+                                  robust_u_rule,
+                                  reason) {
+  data.table(
+    iter = as.integer(iter),
+    n_U_current = as.integer(n_U_current),
+    n_U_base = as.integer(n_U_base),
+    alpha = as.numeric(alpha),
+    requested_n_drop = as.integer(requested_n_drop),
+    requested_n_keep = as.integer(requested_n_keep),
+    actual_n_drop = as.integer(actual_n_drop),
+    actual_drop_fraction = if (n_U_base == 0L) NA_real_ else actual_n_drop / n_U_base,
+    n_U_fit = as.integer(n_U_fit),
+    alpha_applied = as.logical(alpha_applied),
+    robust_u_rule = robust_u_rule,
+    reason = reason
+  )
+}
+
+#' @noRd
+rank_u_fit_candidates <- function(Omega, U_fit_idx) {
+  score_name <- if ("q_est" %in% names(Omega)) "q_est" else "ratio"
+  score <- Omega[[score_name]][U_fit_idx]
+  if (all(is.na(score)) && "ratio" %in% names(Omega)) {
+    score <- Omega[["ratio"]][U_fit_idx]
+  }
+  score[is.na(score)] <- -Inf
+  U_fit_idx[order(-score, Omega[["a"]][U_fit_idx], Omega[["b"]][U_fit_idx], Omega[["block"]][U_fit_idx])]
+}
+
+#' @noRd
+select_inverted_u_fit_indices <- function(Omega,
+                                          U_idx,
+                                          U_base_idx,
+                                          iter,
+                                          alpha,
+                                          cpar_vars,
+                                          previous_params,
+                                          robust_u_rule) {
+  n_U_current <- length(U_idx)
+  n_U_base <- length(U_base_idx)
+  requested_n_drop <- floor(alpha * n_U_current)
+  requested_n_keep <- n_U_current - requested_n_drop
+
+  if (iter == 1L) {
+    return(list(
+      U_fit_idx = U_base_idx,
+      diagnostic = make_u_fit_diagnostic(
+        iter = iter,
+        n_U_current = n_U_current,
+        n_U_base = n_U_base,
+        alpha = alpha,
+        requested_n_drop = 0L,
+        requested_n_keep = n_U_current,
+        actual_n_drop = 0L,
+        n_U_fit = n_U_base,
+        alpha_applied = FALSE,
+        robust_u_rule = robust_u_rule,
+        reason = "first_u_fit_full"
+      )
+    ))
+  }
+
+  if (alpha == 0 || requested_n_drop == 0L) {
+    reason <- if (alpha == 0) "alpha_zero" else "requested_drop_zero"
+    return(list(
+      U_fit_idx = U_base_idx,
+      diagnostic = make_u_fit_diagnostic(
+        iter = iter,
+        n_U_current = n_U_current,
+        n_U_base = n_U_base,
+        alpha = alpha,
+        requested_n_drop = requested_n_drop,
+        requested_n_keep = requested_n_keep,
+        actual_n_drop = 0L,
+        n_U_fit = n_U_base,
+        alpha_applied = FALSE,
+        robust_u_rule = robust_u_rule,
+        reason = reason
+      )
+    ))
+  }
+
+  if (n_U_base <= requested_n_keep) {
+    return(list(
+      U_fit_idx = U_base_idx,
+      diagnostic = make_u_fit_diagnostic(
+        iter = iter,
+        n_U_current = n_U_current,
+        n_U_base = n_U_base,
+        alpha = alpha,
+        requested_n_drop = requested_n_drop,
+        requested_n_keep = requested_n_keep,
+        actual_n_drop = 0L,
+        n_U_fit = n_U_base,
+        alpha_applied = FALSE,
+        robust_u_rule = robust_u_rule,
+        reason = "base_smaller_than_requested_keep"
+      )
+    ))
+  }
+
+  ranked_idx <- rank_u_fit_candidates(Omega, U_base_idx)
+  retained_idx <- ranked_idx[seq_len(requested_n_keep)]
+  if (!has_sufficient_u_fit_sample(
+    Omega = Omega,
+    U_fit_idx = retained_idx,
+    cpar_vars = cpar_vars,
+    previous_params = previous_params
+  )) {
+    return(list(
+      U_fit_idx = U_base_idx,
+      diagnostic = make_u_fit_diagnostic(
+        iter = iter,
+        n_U_current = n_U_current,
+        n_U_base = n_U_base,
+        alpha = alpha,
+        requested_n_drop = requested_n_drop,
+        requested_n_keep = requested_n_keep,
+        actual_n_drop = 0L,
+        n_U_fit = n_U_base,
+        alpha_applied = FALSE,
+        robust_u_rule = robust_u_rule,
+        reason = "minimum_sample_full_base"
+      )
+    ))
+  }
+
+  actual_n_drop <- n_U_base - length(retained_idx)
+  list(
+    U_fit_idx = retained_idx,
+    diagnostic = make_u_fit_diagnostic(
+      iter = iter,
+      n_U_current = n_U_current,
+      n_U_base = n_U_base,
+      alpha = alpha,
+      requested_n_drop = requested_n_drop,
+      requested_n_keep = requested_n_keep,
+      actual_n_drop = actual_n_drop,
+      n_U_fit = length(retained_idx),
+      alpha_applied = actual_n_drop > 0L,
+      robust_u_rule = robust_u_rule,
+      reason = "alpha_reliability_drop"
+    )
+  )
+}
+
+#' @noRd
+fit_mec_blocking_inverted_omega <- function(A,
+                                            B,
+                                            variables,
+                                            comparators,
+                                            methods,
+                                            Omega,
+                                            start_params = NULL,
+                                            delta = 0.5,
+                                            eps = 0.05,
+                                            controls_nleqslv = list(),
+                                            n_U_min,
+                                            nu,
+                                            rho = 1,
+                                            alpha = 0,
+                                            robust_u = FALSE,
+                                            context = "mec_blocking()") {
+  method_variables <- extract_method_variables(methods, include_hit_miss = FALSE)
+  b_vars <- method_variables$b_vars
+  cpar_vars <- method_variables$cpar_vars
+  N <- NROW(Omega)
+  all_idx <- seq_len(N)
+  start_params <- prepare_inverted_start_params(start_params, cpar_vars)
+  max_iter_inverted <- 1000L
+
+  init_disagreement <- blocking_disagreement_norm(Omega, b_vars, cpar_vars)
+  data.table::set(Omega, j = "init_disagreement", value = init_disagreement)
+  M_anchor_idx <- select_inverted_mec_indices(
+    a = Omega[["a"]],
+    b = Omega[["b"]],
+    block = Omega[["block"]],
+    ratio = Omega[["init_disagreement"]],
+    n_M = nu
+  )
+  U_anchor_idx <- setdiff(all_idx, M_anchor_idx)
+  n_U_anchor <- length(U_anchor_idx)
+  n_M_init_target <- initial_inverted_match_count(nu, rho)
+  M_idx <- select_inverted_mec_indices(
+    a = Omega[["a"]],
+    b = Omega[["b"]],
+    block = Omega[["block"]],
+    ratio = Omega[["init_disagreement"]],
+    n_M = n_M_init_target
+  )
+  U_idx <- setdiff(all_idx, M_idx)
+  n_M_init <- length(M_idx)
+  n_U_init <- length(U_idx)
+
+  if (length(U_idx) == 0L) {
+    if (N != nu) {
+      stop(sprintf("%s initialized an empty nonmatch complement before reaching the structural one-to-one bound.",
+                   context),
+           call. = FALSE)
+    }
+
+    match_params <- estimate_inverted_match_parameters(
+      Omega = Omega,
+      M_idx = M_idx,
+      b_vars = b_vars,
+      cpar_vars = cpar_vars,
+      previous_params = list(),
+      start_params = start_params,
+      controls_nleqslv = controls_nleqslv,
+      context = context
+    )
+    data.table::set(Omega, j = "ratio", value = 0)
+    data.table::set(Omega, j = "q_est", value = 0)
+    M_est <- Omega[M_idx, c("a", "b", "block", "ratio"), with = FALSE]
+    u_fit_diagnostics <- make_u_fit_diagnostic(
+      iter = 0L,
+      n_U_current = 0L,
+      n_U_base = 0L,
+      alpha = alpha,
+      requested_n_drop = 0L,
+      requested_n_keep = 0L,
+      actual_n_drop = 0L,
+      n_U_fit = 0L,
+      alpha_applied = FALSE,
+      robust_u_rule = "structural_no_nonmatch_complement",
+      reason = "structural_no_nonmatch_complement"
+    )
+    model <- list(
+      b_vars = if (length(b_vars) == 0L) NULL else b_vars,
+      cpar_vars = if (length(cpar_vars) == 0L) NULL else cpar_vars,
+      cnonpar_vars = NULL,
+      hm_vars = NULL,
+      b_params = match_params$binary,
+      cpar_params = match_params$continuous_parametric,
+      cnonpar_params = NULL,
+      hm_params = NULL,
+      ratio_kliep = NULL,
+      ratio_kliep_list = NULL,
+      nonmatch_params = NULL,
+      variables = variables,
+      comparators = comparators,
+      methods = methods,
+      n_M_est = NROW(M_est),
+      n_U_est = 0L,
+      n_U_min = n_U_min,
+      nu = nu,
+      rho = rho,
+      n_M_init = n_M_init,
+      n_U_init = n_U_init,
+      candidate_pair_count = N,
+      prob_est = if (N == 0L) NA_real_ else NROW(M_est) / N,
+      ratio_orientation = "u_over_m",
+      alpha = alpha,
+      robust_u = robust_u,
+      robust_u_rule = "structural_no_nonmatch_complement",
+      n_U_anchor = n_U_anchor,
+      n_U_fit = 0L,
+      u_fit_diagnostics = u_fit_diagnostics,
+      iter = 0L,
+      convergence_reason = "structural_no_nonmatch_complement"
+    )
+
+    return(list(
+      model = model,
+      Omega = Omega,
+      M_est = M_est,
+      n_M_est = NROW(M_est),
+      n_U_est = 0L,
+      n_U_min = n_U_min,
+      nu = nu,
+      rho = rho,
+      n_M_init = n_M_init,
+      n_U_init = n_U_init,
+      candidate_pair_count = N,
+      robust_u = robust_u,
+      alpha = alpha,
+      robust_u_rule = "structural_no_nonmatch_complement",
+      n_U_anchor = n_U_anchor,
+      n_U_fit = 0L,
+      u_fit_diagnostics = u_fit_diagnostics,
+      iter = 0L,
+      convergence_reason = "structural_no_nonmatch_complement"
+    ))
+  }
+
+  iter <- 1L
+  n_U_old <- length(U_idx)
+  previous_match_params <- NULL
+  previous_nonmatch_params <- NULL
+  previous_param_vector <- NULL
+  convergence_reason <- "max_iter"
+  robust_u_rule <- if (robust_u) "current_complement_no_anchor" else "current_complement"
+  n_U_fit <- length(U_idx)
+  u_fit_diagnostics <- data.table()
+
+  repeat {
+    match_params <- estimate_inverted_match_parameters(
+      Omega = Omega,
+      M_idx = M_idx,
+      b_vars = b_vars,
+      cpar_vars = cpar_vars,
+      previous_params = if (is.null(previous_match_params)) list() else previous_match_params,
+      start_params = start_params,
+      controls_nleqslv = controls_nleqslv,
+      context = context
+    )
+    if (robust_u && length(U_anchor_idx) > 0L) {
+      U_fit_idx <- setdiff(U_anchor_idx, M_idx)
+      if (length(U_fit_idx) == 0L) {
+        U_fit_idx <- U_idx
+        robust_u_rule <- "current_complement_no_anchor"
+      } else {
+        robust_u_rule <- "anchored_structural_complement"
+      }
+    } else {
+      U_fit_idx <- U_idx
+      robust_u_rule <- if (robust_u) "current_complement_no_anchor" else "current_complement"
+    }
+    u_fit_selection <- select_inverted_u_fit_indices(
+      Omega = Omega,
+      U_idx = U_idx,
+      U_base_idx = U_fit_idx,
+      iter = iter,
+      alpha = alpha,
+      cpar_vars = cpar_vars,
+      previous_params = previous_nonmatch_params,
+      robust_u_rule = robust_u_rule
+    )
+    U_fit_idx <- u_fit_selection$U_fit_idx
+    u_fit_diagnostics <- rbindlist(
+      list(u_fit_diagnostics, u_fit_selection$diagnostic),
+      use.names = TRUE
+    )
+    n_U_fit <- length(U_fit_idx)
+    nonmatch_params <- estimate_inverted_nonmatch_parameters(
+      Omega = Omega,
+      U_idx = U_fit_idx,
+      b_vars = b_vars,
+      cpar_vars = cpar_vars,
+      previous_params = previous_nonmatch_params,
+      controls_nleqslv = controls_nleqslv,
+      context = context
+    )
+    combined_params <- combine_inverted_parameters(
+      match_params = match_params,
+      nonmatch_params = nonmatch_params,
+      b_vars = b_vars,
+      cpar_vars = cpar_vars
+    )
+    Omega <- score_inverted_mec_ratio(
+      Omega = Omega,
+      b_vars = b_vars,
+      cpar_vars = cpar_vars,
+      b_params = combined_params$binary,
+      cpar_params = combined_params$continuous_parametric
+    )
+
+    q_est <- estimate_inverted_q(
+      ratio = Omega[["ratio"]],
+      n_U_current = length(U_idx),
+      N = N
+    )
+    data.table::set(Omega, j = "q_est", value = q_est)
+    n_U_raw <- sum(q_est)
+    n_U_est <- max(n_U_min, min(N, round(n_U_raw)))
+    n_M_est <- N - n_U_est
+    M_idx_new <- select_inverted_mec_indices(
+      a = Omega[["a"]],
+      b = Omega[["b"]],
+      block = Omega[["block"]],
+      ratio = Omega[["ratio"]],
+      n_M = n_M_est
+    )
+    U_idx_new <- setdiff(all_idx, M_idx_new)
+    param_vector <- inverted_parameter_vector(match_params, nonmatch_params)
+    can_check_convergence <- iter >= 2L
+
+    if (can_check_convergence && abs(n_U_est - n_U_old) < delta) {
+      convergence_reason <- "n_U_delta"
+    } else if (can_check_convergence && identical(sort(M_idx_new), sort(M_idx))) {
+      convergence_reason <- "match_set_unchanged"
+    } else if (can_check_convergence &&
+               !is.null(previous_param_vector) &&
+               norm(previous_param_vector - param_vector, type = "2") < eps) {
+      convergence_reason <- "nonmatch_parameter_eps"
+    } else if (iter >= max_iter_inverted) {
+      warning("mec_blocking() reached the maximum number of inverted MEC iterations.")
+      convergence_reason <- "max_iter"
+    } else if (length(U_idx_new) == 0L) {
+      convergence_reason <- "structural_no_nonmatch_complement"
+    } else if (length(M_idx_new) == 0L) {
+      convergence_reason <- "empty_match_set"
+    } else {
+      previous_match_params <- match_params
+      previous_nonmatch_params <- nonmatch_params
+      previous_param_vector <- param_vector
+      n_U_old <- n_U_est
+      M_idx <- M_idx_new
+      U_idx <- U_idx_new
+      iter <- iter + 1L
+      next
+    }
+
+    M_idx <- M_idx_new
+    U_idx <- U_idx_new
+    previous_match_params <- match_params
+    previous_nonmatch_params <- nonmatch_params
+    previous_param_vector <- param_vector
+    break
+  }
+
+  M_est <- Omega[M_idx, c("a", "b", "block", "ratio"), with = FALSE]
+  n_M_selected <- NROW(M_est)
+  n_U_selected <- N - n_M_selected
+  model <- list(
+    b_vars = if (length(b_vars) == 0L) NULL else b_vars,
+    cpar_vars = if (length(cpar_vars) == 0L) NULL else cpar_vars,
+    cnonpar_vars = NULL,
+    hm_vars = NULL,
+    b_params = combined_params$binary,
+    cpar_params = combined_params$continuous_parametric,
+    cnonpar_params = NULL,
+    hm_params = NULL,
+    ratio_kliep = NULL,
+    ratio_kliep_list = NULL,
+    nonmatch_params = previous_nonmatch_params,
+    variables = variables,
+    comparators = comparators,
+    methods = methods,
+    n_M_est = n_M_selected,
+    n_U_est = n_U_selected,
+    n_U_min = n_U_min,
+    nu = nu,
+    rho = rho,
+    n_M_init = n_M_init,
+    n_U_init = n_U_init,
+    candidate_pair_count = N,
+    prob_est = n_M_selected / N,
+    ratio_orientation = "u_over_m",
+    alpha = alpha,
+    robust_u = robust_u,
+    robust_u_rule = robust_u_rule,
+    n_U_anchor = n_U_anchor,
+    n_U_fit = n_U_fit,
+    u_fit_diagnostics = u_fit_diagnostics,
+    iter = iter,
+    convergence_reason = convergence_reason
+  )
+
+  list(
+    model = model,
+    Omega = Omega,
+    M_est = M_est,
+    n_M_est = n_M_selected,
+    n_U_est = n_U_selected,
+    n_U_min = n_U_min,
+    nu = nu,
+    rho = rho,
+    n_M_init = n_M_init,
+    n_U_init = n_U_init,
+    candidate_pair_count = N,
+    robust_u = robust_u,
+    alpha = alpha,
+    robust_u_rule = robust_u_rule,
+    n_U_anchor = n_U_anchor,
+    n_U_fit = n_U_fit,
+    u_fit_diagnostics = u_fit_diagnostics,
+    iter = iter,
+    convergence_reason = convergence_reason
   )
 }
