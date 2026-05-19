@@ -16,9 +16,7 @@ mec_blocking(
   blocking_sep = " ",
   controls_blocking = list(),
   start_params = NULL,
-  rho = 1,
   alpha = 0,
-  robust_u = FALSE,
   delta = 0.5,
   eps = 0.05,
   controls_nleqslv = list(),
@@ -56,21 +54,11 @@ supported by \code{\link[=mec_blocking]{mec_blocking()}} at this stage.}
 \item{start_params}{Start parameters for the \code{"binary"} and
 \code{"continuous_parametric"} methods.}
 
-\item{rho}{A single numeric value in \verb{(0, 1]} controlling the fraction of
-the structural one-to-one upper bound used to initialize the inverted MEC
-match set. The default \code{rho = 1} initializes with \eqn{\nu} pairs and
-uses the full structural one-to-one bound.}
-
 \item{alpha}{A single numeric value in \verb{[0, 1)} controlling the fraction of
 the current nonmatch complement dropped from nonmatch-side parameter fitting
 after the first inverted MEC iteration. The first U-side fit uses the full
 initial fitting set, and posterior/count formulas continue to use the full
 current nonmatch count.}
-
-\item{robust_u}{Logical indicating whether to estimate nonmatch-side
-parameters from an anchored structural nonmatch complement instead of the
-current hard complement. Experimental; default \code{FALSE} preserves the
-current estimator.}
 
 \item{delta}{A numeric value specifying the tolerance for the change in the
 estimated number of nonmatches between MEC iterations.}
@@ -100,15 +88,11 @@ Returns a list of class \code{"mec_blocking"} containing:
 \item{\code{n_U_est} -- estimated total number of candidate nonmatches,}
 \item{\code{n_U_min} -- lower bound on the number of candidate nonmatches,}
 \item{\code{nu} -- maximum feasible one-to-one matching size in the candidate-pair graph,}
-\item{\code{rho} -- fraction of \code{nu} used to initialize the inverted MEC match set,}
 \item{\code{alpha} -- fraction of the current nonmatch complement dropped from later U-side fitting,}
 \item{\code{n_M_init} -- number of candidate pairs in the initial inverted MEC match set,}
 \item{\code{n_U_init} -- number of candidate pairs in the initial inverted MEC nonmatch complement,}
 \item{\code{candidate_pair_count} -- number of candidate pairs in \eqn{\Omega_B},}
 \item{\code{ratio_orientation} -- density-ratio orientation, equal to \code{"u_over_m"},}
-\item{\code{robust_u} -- logical indicating whether robust U-side estimation was requested,}
-\item{\code{robust_u_rule} -- U-side parameter fitting rule used by the inverted MEC fit,}
-\item{\code{n_U_anchor} -- number of pairs in the structural anchored U set,}
 \item{\code{n_U_fit} -- number of pairs used for the final U-side parameter estimate,}
 \item{\code{u_fit_diagnostics} -- a \code{data.table} with iteration-level diagnostics for U-side fitting and \code{alpha} drops,}
 \item{\code{training_rule} -- fitting rule used by the function, equal to \code{"all_candidate_pairs"},}
@@ -154,17 +138,13 @@ within-block Cartesian products. Duplicate candidate pairs are removed
 deterministically before MEC fitting.
 
 The blocked MEC fit is inverted relative to \code{\link[=mec]{mec()}}. The initial match set
-contains at most \code{floor(rho * nu)} feasible pairs, where \eqn{\nu} is the
-structural one-to-one upper bound. Initial feasible matches are selected
+contains at most \eqn{\nu} feasible pairs, where \eqn{\nu} is the structural
+one-to-one upper bound. Initial feasible matches are selected
 greedily by an unweighted disagreement norm: binary agreement indicators use
 \code{1 - gamma}, while continuous dissimilarities use \code{gamma} unchanged. At each
 iteration, match-side parameters are estimated from the current greedy
 one-to-one match set, and nonmatch-side parameters are estimated from its
 complement.
-
-If \code{robust_u = TRUE}, only the fitting sample for nonmatch-side parameters
-changes: it is based on the anchored structural nonmatch complement where
-available. Match-side estimation and final greedy selection are unchanged.
 
 The \code{alpha} argument applies only to nonmatch-side distribution estimation.
 The first U-side fit uses the full initial complement. In later iterations,
@@ -185,10 +165,10 @@ bounded below by \eqn{N - \nu}. For the disjoint complete blocks reconstructed
 by this function, \eqn{\nu = \sum_h \min(n_{Ah}, n_{Bh})}.
 
 If the initialized match set exhausts the candidate-pair space, for example
-when \eqn{N = \nu} and \code{rho = 1}, there is no candidate complement from which
-to estimate nonmatch parameters. In that case the function returns the
-structurally feasible initialized match set, sets \code{n_U_est = 0}, and leaves
-nonmatch-side parameters unavailable.
+when \eqn{N = \nu}, there is no candidate complement from which to estimate
+nonmatch parameters. In that case the function returns the structurally
+feasible initialized match set, sets \code{n_U_est = 0}, and leaves nonmatch-side
+parameters unavailable.
 }
 \examples{
 df_1 <- data.frame(

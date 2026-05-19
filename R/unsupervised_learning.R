@@ -845,19 +845,11 @@ mec <- function(A,
 #' \link[blocking:blocking]{blocking()}, except `x` and `y`.
 #' @param start_params Start parameters for the `"binary"` and
 #' `"continuous_parametric"` methods.
-#' @param rho A single numeric value in `(0, 1]` controlling the fraction of
-#' the structural one-to-one upper bound used to initialize the inverted MEC
-#' match set. The default `rho = 1` initializes with \eqn{\nu} pairs and
-#' uses the full structural one-to-one bound.
 #' @param alpha A single numeric value in `[0, 1)` controlling the fraction of
 #' the current nonmatch complement dropped from nonmatch-side parameter fitting
 #' after the first inverted MEC iteration. The first U-side fit uses the full
 #' initial fitting set, and posterior/count formulas continue to use the full
 #' current nonmatch count.
-#' @param robust_u Logical indicating whether to estimate nonmatch-side
-#' parameters from an anchored structural nonmatch complement instead of the
-#' current hard complement. Experimental; default `FALSE` preserves the
-#' current estimator.
 #' @param delta A numeric value specifying the tolerance for the change in the
 #' estimated number of nonmatches between MEC iterations.
 #' @param eps A numeric value specifying the tolerance for the change in model
@@ -879,17 +871,13 @@ mec <- function(A,
 #' deterministically before MEC fitting.
 #'
 #' The blocked MEC fit is inverted relative to [mec()]. The initial match set
-#' contains at most `floor(rho * nu)` feasible pairs, where \eqn{\nu} is the
-#' structural one-to-one upper bound. Initial feasible matches are selected
+#' contains at most \eqn{\nu} feasible pairs, where \eqn{\nu} is the structural
+#' one-to-one upper bound. Initial feasible matches are selected
 #' greedily by an unweighted disagreement norm: binary agreement indicators use
 #' `1 - gamma`, while continuous dissimilarities use `gamma` unchanged. At each
 #' iteration, match-side parameters are estimated from the current greedy
 #' one-to-one match set, and nonmatch-side parameters are estimated from its
 #' complement.
-#'
-#' If `robust_u = TRUE`, only the fitting sample for nonmatch-side parameters
-#' changes: it is based on the anchored structural nonmatch complement where
-#' available. Match-side estimation and final greedy selection are unchanged.
 #'
 #' The `alpha` argument applies only to nonmatch-side distribution estimation.
 #' The first U-side fit uses the full initial complement. In later iterations,
@@ -910,10 +898,10 @@ mec <- function(A,
 #' by this function, \eqn{\nu = \sum_h \min(n_{Ah}, n_{Bh})}.
 #'
 #' If the initialized match set exhausts the candidate-pair space, for example
-#' when \eqn{N = \nu} and `rho = 1`, there is no candidate complement from which
-#' to estimate nonmatch parameters. In that case the function returns the
-#' structurally feasible initialized match set, sets `n_U_est = 0`, and leaves
-#' nonmatch-side parameters unavailable.
+#' when \eqn{N = \nu}, there is no candidate complement from which to estimate
+#' nonmatch parameters. In that case the function returns the structurally
+#' feasible initialized match set, sets `n_U_est = 0`, and leaves nonmatch-side
+#' parameters unavailable.
 #'
 #' @return
 #' Returns a list of class `"mec_blocking"` containing:
@@ -923,15 +911,11 @@ mec <- function(A,
 #' \item{`n_U_est` -- estimated total number of candidate nonmatches,}
 #' \item{`n_U_min` -- lower bound on the number of candidate nonmatches,}
 #' \item{`nu` -- maximum feasible one-to-one matching size in the candidate-pair graph,}
-#' \item{`rho` -- fraction of `nu` used to initialize the inverted MEC match set,}
 #' \item{`alpha` -- fraction of the current nonmatch complement dropped from later U-side fitting,}
 #' \item{`n_M_init` -- number of candidate pairs in the initial inverted MEC match set,}
 #' \item{`n_U_init` -- number of candidate pairs in the initial inverted MEC nonmatch complement,}
 #' \item{`candidate_pair_count` -- number of candidate pairs in \eqn{\Omega_B},}
 #' \item{`ratio_orientation` -- density-ratio orientation, equal to `"u_over_m"`,}
-#' \item{`robust_u` -- logical indicating whether robust U-side estimation was requested,}
-#' \item{`robust_u_rule` -- U-side parameter fitting rule used by the inverted MEC fit,}
-#' \item{`n_U_anchor` -- number of pairs in the structural anchored U set,}
 #' \item{`n_U_fit` -- number of pairs used for the final U-side parameter estimate,}
 #' \item{`u_fit_diagnostics` -- a `data.table` with iteration-level diagnostics for U-side fitting and `alpha` drops,}
 #' \item{`training_rule` -- fitting rule used by the function, equal to `"all_candidate_pairs"`,}
@@ -1014,9 +998,7 @@ mec_blocking <- function(
     blocking_sep = " ",
     controls_blocking = list(),
     start_params = NULL,
-    rho = 1,
     alpha = 0,
-    robust_u = FALSE,
     delta = 0.5,
     eps = 0.05,
     controls_nleqslv = list(),
@@ -1040,9 +1022,7 @@ mec_blocking <- function(
     allowed_methods = c("binary", "continuous_parametric")
   )
   validate_blocking_controls(controls_blocking)
-  validate_mec_blocking_rho(rho)
   validate_mec_blocking_alpha(alpha)
-  validate_mec_blocking_robust_u(robust_u)
 
   A <- data.table::copy(data.table::as.data.table(A))
   B <- data.table::copy(data.table::as.data.table(B))
@@ -1160,9 +1140,7 @@ mec_blocking <- function(
     controls_nleqslv = controls_nleqslv,
     n_U_min = n_U_min,
     nu = nu,
-    rho = rho,
     alpha = alpha,
-    robust_u = robust_u,
     context = "mec_blocking()"
   )
   pooled_model <- pooled_fit$model
@@ -1228,15 +1206,11 @@ mec_blocking <- function(
       n_U_est = n_U_est,
       n_U_min = pooled_fit$n_U_min,
       nu = pooled_fit$nu,
-      rho = pooled_fit$rho,
       alpha = pooled_fit$alpha,
       n_M_init = pooled_fit$n_M_init,
       n_U_init = pooled_fit$n_U_init,
       candidate_pair_count = pooled_fit$candidate_pair_count,
       ratio_orientation = pooled_model$ratio_orientation,
-      robust_u = pooled_fit$robust_u,
-      robust_u_rule = pooled_fit$robust_u_rule,
-      n_U_anchor = pooled_fit$n_U_anchor,
       n_U_fit = pooled_fit$n_U_fit,
       u_fit_diagnostics = pooled_fit$u_fit_diagnostics,
       training_rule = training_rule,

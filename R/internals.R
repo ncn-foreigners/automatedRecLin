@@ -1383,16 +1383,6 @@ fit_mec_unsupervised_omega <- function(A,
 }
 
 #' @noRd
-validate_mec_blocking_rho <- function(rho) {
-  if (!is.numeric(rho) || length(rho) != 1L || is.na(rho) ||
-      !is.finite(rho) || rho <= 0 || rho > 1) {
-    stop("`rho` should be a single numeric value in (0, 1].")
-  }
-
-  invisible(rho)
-}
-
-#' @noRd
 validate_mec_blocking_alpha <- function(alpha) {
   if (!is.numeric(alpha) || length(alpha) != 1L || is.na(alpha) ||
       !is.finite(alpha) || alpha < 0 || alpha >= 1) {
@@ -1403,17 +1393,8 @@ validate_mec_blocking_alpha <- function(alpha) {
 }
 
 #' @noRd
-validate_mec_blocking_robust_u <- function(robust_u) {
-  if (!is.logical(robust_u) || length(robust_u) != 1L || is.na(robust_u)) {
-    stop("`robust_u` should be a single non-missing logical value.", call. = FALSE)
-  }
-
-  invisible(robust_u)
-}
-
-#' @noRd
-initial_inverted_match_count <- function(nu, rho) {
-  as.integer(max(0L, min(nu, floor(rho * nu))))
+initial_inverted_match_count <- function(nu) {
+  as.integer(max(0L, nu))
 }
 
 #' @noRd
@@ -1830,7 +1811,6 @@ make_u_fit_diagnostic <- function(iter,
                                   actual_n_drop,
                                   n_U_fit,
                                   alpha_applied,
-                                  robust_u_rule,
                                   reason) {
   data.table(
     iter = as.integer(iter),
@@ -1843,7 +1823,6 @@ make_u_fit_diagnostic <- function(iter,
     actual_drop_fraction = if (n_U_base == 0L) NA_real_ else actual_n_drop / n_U_base,
     n_U_fit = as.integer(n_U_fit),
     alpha_applied = as.logical(alpha_applied),
-    robust_u_rule = robust_u_rule,
     reason = reason
   )
 }
@@ -1866,8 +1845,7 @@ select_inverted_u_fit_indices <- function(Omega,
                                           iter,
                                           alpha,
                                           cpar_vars,
-                                          previous_params,
-                                          robust_u_rule) {
+                                          previous_params) {
   n_U_current <- length(U_idx)
   n_U_base <- length(U_base_idx)
   requested_n_drop <- floor(alpha * n_U_current)
@@ -1886,7 +1864,6 @@ select_inverted_u_fit_indices <- function(Omega,
         actual_n_drop = 0L,
         n_U_fit = n_U_base,
         alpha_applied = FALSE,
-        robust_u_rule = robust_u_rule,
         reason = "first_u_fit_full"
       )
     ))
@@ -1906,7 +1883,6 @@ select_inverted_u_fit_indices <- function(Omega,
         actual_n_drop = 0L,
         n_U_fit = n_U_base,
         alpha_applied = FALSE,
-        robust_u_rule = robust_u_rule,
         reason = reason
       )
     ))
@@ -1925,7 +1901,6 @@ select_inverted_u_fit_indices <- function(Omega,
         actual_n_drop = 0L,
         n_U_fit = n_U_base,
         alpha_applied = FALSE,
-        robust_u_rule = robust_u_rule,
         reason = "base_smaller_than_requested_keep"
       )
     ))
@@ -1951,7 +1926,6 @@ select_inverted_u_fit_indices <- function(Omega,
         actual_n_drop = 0L,
         n_U_fit = n_U_base,
         alpha_applied = FALSE,
-        robust_u_rule = robust_u_rule,
         reason = "minimum_sample_full_base"
       )
     ))
@@ -1970,7 +1944,6 @@ select_inverted_u_fit_indices <- function(Omega,
       actual_n_drop = actual_n_drop,
       n_U_fit = length(retained_idx),
       alpha_applied = actual_n_drop > 0L,
-      robust_u_rule = robust_u_rule,
       reason = "alpha_reliability_drop"
     )
   )
@@ -1989,9 +1962,7 @@ fit_mec_blocking_inverted_omega <- function(A,
                                             controls_nleqslv = list(),
                                             n_U_min,
                                             nu,
-                                            rho = 1,
                                             alpha = 0,
-                                            robust_u = FALSE,
                                             context = "mec_blocking()") {
   method_variables <- extract_method_variables(methods, include_hit_miss = FALSE)
   b_vars <- method_variables$b_vars
@@ -2003,16 +1974,7 @@ fit_mec_blocking_inverted_omega <- function(A,
 
   init_disagreement <- blocking_disagreement_norm(Omega, b_vars, cpar_vars)
   data.table::set(Omega, j = "init_disagreement", value = init_disagreement)
-  M_anchor_idx <- select_inverted_mec_indices(
-    a = Omega[["a"]],
-    b = Omega[["b"]],
-    block = Omega[["block"]],
-    ratio = Omega[["init_disagreement"]],
-    n_M = nu
-  )
-  U_anchor_idx <- setdiff(all_idx, M_anchor_idx)
-  n_U_anchor <- length(U_anchor_idx)
-  n_M_init_target <- initial_inverted_match_count(nu, rho)
+  n_M_init_target <- initial_inverted_match_count(nu)
   M_idx <- select_inverted_mec_indices(
     a = Omega[["a"]],
     b = Omega[["b"]],
@@ -2054,7 +2016,6 @@ fit_mec_blocking_inverted_omega <- function(A,
       actual_n_drop = 0L,
       n_U_fit = 0L,
       alpha_applied = FALSE,
-      robust_u_rule = "structural_no_nonmatch_complement",
       reason = "structural_no_nonmatch_complement"
     )
     model <- list(
@@ -2076,16 +2037,12 @@ fit_mec_blocking_inverted_omega <- function(A,
       n_U_est = 0L,
       n_U_min = n_U_min,
       nu = nu,
-      rho = rho,
       n_M_init = n_M_init,
       n_U_init = n_U_init,
       candidate_pair_count = N,
       prob_est = if (N == 0L) NA_real_ else NROW(M_est) / N,
       ratio_orientation = "u_over_m",
       alpha = alpha,
-      robust_u = robust_u,
-      robust_u_rule = "structural_no_nonmatch_complement",
-      n_U_anchor = n_U_anchor,
       n_U_fit = 0L,
       u_fit_diagnostics = u_fit_diagnostics,
       iter = 0L,
@@ -2100,14 +2057,10 @@ fit_mec_blocking_inverted_omega <- function(A,
       n_U_est = 0L,
       n_U_min = n_U_min,
       nu = nu,
-      rho = rho,
       n_M_init = n_M_init,
       n_U_init = n_U_init,
       candidate_pair_count = N,
-      robust_u = robust_u,
       alpha = alpha,
-      robust_u_rule = "structural_no_nonmatch_complement",
-      n_U_anchor = n_U_anchor,
       n_U_fit = 0L,
       u_fit_diagnostics = u_fit_diagnostics,
       iter = 0L,
@@ -2121,7 +2074,6 @@ fit_mec_blocking_inverted_omega <- function(A,
   previous_nonmatch_params <- NULL
   previous_param_vector <- NULL
   convergence_reason <- "max_iter"
-  robust_u_rule <- if (robust_u) "current_complement_no_anchor" else "current_complement"
   n_U_fit <- length(U_idx)
   u_fit_diagnostics <- data.table()
 
@@ -2136,27 +2088,14 @@ fit_mec_blocking_inverted_omega <- function(A,
       controls_nleqslv = controls_nleqslv,
       context = context
     )
-    if (robust_u && length(U_anchor_idx) > 0L) {
-      U_fit_idx <- setdiff(U_anchor_idx, M_idx)
-      if (length(U_fit_idx) == 0L) {
-        U_fit_idx <- U_idx
-        robust_u_rule <- "current_complement_no_anchor"
-      } else {
-        robust_u_rule <- "anchored_structural_complement"
-      }
-    } else {
-      U_fit_idx <- U_idx
-      robust_u_rule <- if (robust_u) "current_complement_no_anchor" else "current_complement"
-    }
     u_fit_selection <- select_inverted_u_fit_indices(
       Omega = Omega,
       U_idx = U_idx,
-      U_base_idx = U_fit_idx,
+      U_base_idx = U_idx,
       iter = iter,
       alpha = alpha,
       cpar_vars = cpar_vars,
-      previous_params = previous_nonmatch_params,
-      robust_u_rule = robust_u_rule
+      previous_params = previous_nonmatch_params
     )
     U_fit_idx <- u_fit_selection$U_fit_idx
     u_fit_diagnostics <- rbindlist(
@@ -2263,16 +2202,12 @@ fit_mec_blocking_inverted_omega <- function(A,
     n_U_est = n_U_selected,
     n_U_min = n_U_min,
     nu = nu,
-    rho = rho,
     n_M_init = n_M_init,
     n_U_init = n_U_init,
     candidate_pair_count = N,
     prob_est = n_M_selected / N,
     ratio_orientation = "u_over_m",
     alpha = alpha,
-    robust_u = robust_u,
-    robust_u_rule = robust_u_rule,
-    n_U_anchor = n_U_anchor,
     n_U_fit = n_U_fit,
     u_fit_diagnostics = u_fit_diagnostics,
     iter = iter,
@@ -2287,14 +2222,10 @@ fit_mec_blocking_inverted_omega <- function(A,
     n_U_est = n_U_selected,
     n_U_min = n_U_min,
     nu = nu,
-    rho = rho,
     n_M_init = n_M_init,
     n_U_init = n_U_init,
     candidate_pair_count = N,
-    robust_u = robust_u,
     alpha = alpha,
-    robust_u_rule = robust_u_rule,
-    n_U_anchor = n_U_anchor,
     n_U_fit = n_U_fit,
     u_fit_diagnostics = u_fit_diagnostics,
     iter = iter,

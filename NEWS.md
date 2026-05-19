@@ -1,6 +1,7 @@
 # Version 1.1.1
 
-+ Improved handling singleton blocks in the `mec_blocking()` function.
++ Improved `mec_blocking()` by using inverted unsupervised MEC.
++ Added `alpha` in `mec_blocking()` for controlling the FLR-MMR trade-off. 
 
 # Version 1.1.0
 

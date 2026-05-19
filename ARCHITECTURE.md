@@ -6,7 +6,7 @@
 
 `automatedRecLin` is an R package for record linkage and entity resolution. Its main abstractions are comparison-vector construction, supervised and unsupervised MEC model fitting, prediction from trained models, and blocked unsupervised linkage through the external `blocking` package. The implementation is organized as a small R package using `data.table` for tabular data flow, `reclin2` for default comparators, `nleqslv` and `densityratio` for continuous estimation, and `FixedPoint` for fixed-point match-count calculations.
 
-This run updates the blocked MEC path so `mec_blocking()` accepts `alpha`, a nonmatch drop fraction used only for later U-side distribution fitting. The first U-side fit remains uncorrected, posterior and count formulas continue to use the full current nonmatch complement, returned objects now include `u_fit_diagnostics`, and `internal/test.R` loads the current checkout directly with `devtools::load_all()`.
+The blocked MEC path exposes `alpha`, a nonmatch drop fraction used only for later U-side distribution fitting. The first U-side fit remains uncorrected, posterior and count formulas continue to use the full current nonmatch complement, and returned objects include `u_fit_diagnostics`. Redundant `rho` and `robust_u` controls have been removed from the public `mec_blocking()` API.
 
 ---
 
@@ -120,7 +120,7 @@ graph TD
     RUNB --> PAIRS["candidate pairs"]
     PAIRS --> CVF["comparison_vectors()"]
     CVF --> FITINV["fit inverted MEC"]
-    FITINV --> INIT["rho init"]
+    FITINV --> INIT["nu init"]
     FITINV --> MP["match params"]
     FITINV --> BASE["U base"]
     BASE --> USEL["select U fit"]
@@ -153,10 +153,8 @@ graph TD
 
 | Function | Defined In | Called By | Calls | Changed | Purpose |
 | --- | --- | --- | --- | --- | --- |
-| `mec_blocking()` | `R/unsupervised_learning.R` | user / exported | blocking helpers, `comparison_vectors()`, `fit_mec_blocking_inverted_omega()`, evaluation helpers | yes | Public blocked unsupervised MEC entry point; now exposes `alpha` and returns `u_fit_diagnostics`. |
+| `mec_blocking()` | `R/unsupervised_learning.R` | user / exported | blocking helpers, `comparison_vectors()`, `fit_mec_blocking_inverted_omega()`, evaluation helpers | yes | Public blocked unsupervised MEC entry point; exposes `alpha` and returns `u_fit_diagnostics` without the removed `rho` or `robust_u` controls. |
 | `validate_mec_blocking_alpha()` | `R/unsupervised_learning.R` | `mec_blocking()` | base checks | yes | Validates `alpha` as a single finite numeric value in `[0, 1)`. |
-| `validate_mec_blocking_rho()` | `R/unsupervised_learning.R` | `mec_blocking()` | base checks | no | Validates the existing initialization fraction `rho`. |
-| `validate_mec_blocking_robust_u()` | `R/unsupervised_learning.R` | `mec_blocking()` | base checks | no | Validates the existing experimental `robust_u` flag. |
 | `prepare_blocking_inputs()` | `R/internals.R` | `mec_blocking()` | `build_blocking_input()` | no | Builds or validates inputs passed to `blocking::blocking()`. |
 | `run_blocking()` | `R/internals.R` | `mec_blocking()` | `blocking::blocking()` | no | Executes external blocking. |
 | `reconstruct_block_summary()` | `R/internals.R` | `mec_blocking()` | `data.table` operations | no | Rebuilds disjoint final block summaries from blocking output. |
@@ -192,7 +190,7 @@ graph TD
     BlockRun --> Blocks["final blocks"]
     Blocks --> Pairs["Omega_B pairs"]
     Pairs --> Vectors["comparison vectors"]
-    Vectors --> Init["rho initialization"]
+    Vectors --> Init["nu initialization"]
     Init --> First{"first U fit?"}
     First -- yes --> FullU["full U fit"]
     First -- no --> Filter{"alpha > 0?"}
@@ -231,7 +229,7 @@ graph TD
 - **Candidate-space blocked MEC**: `mec_blocking()` fits one pooled inverted MEC model on the blocked candidate-pair space rather than sampled training blocks.
 - **U-side fitting separation**: The U-side fitting subset can be smaller than the full current nonmatch complement, but posterior and count updates still use the full complement size.
 - **Deterministic ranking and selection**: U-side retention ranks by previous nonmatch reliability with deterministic pair tie-breaking; final matches still use greedy one-to-one selection.
-- **Compatibility-preserving outputs**: `mec_blocking()` keeps established result fields where feasible and adds explicit `alpha` and `u_fit_diagnostics` fields rather than overloading existing fields.
+- **Explicit blocked-MEC outputs**: `mec_blocking()` returns `alpha` and `u_fit_diagnostics` fields directly and omits metadata tied only to removed initialization or robust-U controls.
 - **Evaluation as optional post-processing**: Metrics and confusion matrices are only computed when `true_matches` is supplied.
 - **Direct checkout validation script**: `internal/test.R` uses `devtools::load_all(".", quiet = TRUE)` so direct script execution exercises the working-tree implementation instead of an installed package.
 
@@ -239,8 +237,8 @@ graph TD
 
 ## Notes
 
-- The current run changed the `mec_blocking()` API and documentation by adding `alpha`, top-level and `pooled_model` `alpha` fields, and `u_fit_diagnostics`.
+- The current `mec_blocking()` API keeps `alpha`, top-level and `pooled_model` `alpha` fields, and `u_fit_diagnostics`, while removing the redundant `rho` and `robust_u` arguments and return metadata.
 - The first U-side fit records `reason = "first_u_fit_full"` and does not apply an `alpha` drop, even when `alpha > 0`.
 - Later U-side fits may record `reason = "alpha_reliability_drop"`, `alpha_zero`, `requested_drop_zero`, `base_smaller_than_requested_keep`, or `minimum_sample_full_base`.
-- `rho` initialization remains separate from `alpha`; tester evidence confirmed `n_M_init` did not vary across tested `alpha` values for the same `rho`.
-- `man/mec_blocking.Rd` was manually synchronized for this run. `inst/tinytest` files were not changed in this run.
+- Initial inverted MEC selection now uses the structural one-to-one bound `nu` directly.
+- `man/mec_blocking.Rd` is synchronized from roxygen comments. `inst/tinytest` files were not changed in this run.
