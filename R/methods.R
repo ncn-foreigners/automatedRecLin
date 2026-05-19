@@ -172,15 +172,15 @@ print.mec_rec_lin <- function(x, ...) {
 #' @exportS3Method
 print.mec_blocking <- function(x, ...) {
 
-  cat("Blocked MEC record linkage based on the following variables: ", "\n")
+  cat("Blocked MEC record linkage based on: ", "\n")
   cat(paste(x$variables, collapse = ", "), ".\n", sep = "")
   cat("========================================================\n")
   cat("Number of final blocks: ", NROW(x$block_summary), ".\n", sep = "")
-  cat("Training rule: ", x$training_rule, ".\n", sep = "")
-  cat("Number of training blocks: ", NROW(x$training_blocks), ".\n", sep = "")
-  cat("Number of training pairs: ", sum(x$training_blocks[["pair_count"]]), ".\n", sep = "")
+  cat("Training rule: all_candidate_pairs.\n")
+  cat("Number of training blocks: ", NROW(x$block_summary), ".\n", sep = "")
+  cat("Number of training pairs: ", sum(x$block_summary[["pair_count"]]), ".\n", sep = "")
   cat("Training nonmatch lower bound: ",
-      sum(x$training_blocks[["nonmatches_min"]]), ".\n", sep = "")
+      sum(x$block_summary[["nonmatches_min"]]), ".\n", sep = "")
   cat("========================================================\n")
 
   if (NROW(x$M_est) == 0) {

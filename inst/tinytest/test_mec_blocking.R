@@ -12,8 +12,8 @@ controls_blocking <- list(
 
 expect_blocking_output_contract <- function(result) {
   expect_false(any(c("flr_est", "mmr_est") %in% names(result)))
+  expect_false(any(c("training_rule", "training_blocks", "controls_blocking") %in% names(result)))
   expect_equal(names(result$M_est), c("a", "b", "block", "ratio"))
-  expect_equal(result$training_rule, "all_candidate_pairs")
   expect_equal(result$ratio_orientation, "u_over_m")
   expect_equal(result$pooled_model$ratio_orientation, "u_over_m")
   expect_equal(result$n_M_est, NROW(result$M_est))
@@ -118,7 +118,6 @@ fit_binary <- mec_blocking(
 )
 
 expect_inherits(fit_binary, "mec_blocking")
-expect_equal(fit_binary$training_rule, "all_candidate_pairs")
 expect_equal(fit_binary$ratio_orientation, "u_over_m")
 expect_equal(fit_binary$n_M_est, 5L)
 expect_equal(fit_binary$n_U_est, 0L)
@@ -261,14 +260,13 @@ fit_threshold <- mec_blocking(
   keep_blocking_result = TRUE
 )
 
-expect_equal(fit_threshold$training_rule, "all_candidate_pairs")
 expect_equal(fit_threshold$ratio_orientation, "u_over_m")
 expect_equal(fit_threshold$candidate_pair_count, 6L)
 expect_equal(fit_threshold$nu, 2L)
 expect_equal(fit_threshold$n_U_min, 4L)
 expect_equal(fit_threshold$n_U_est, 4L)
 expect_equal(fit_threshold$n_M_est, 2L)
-expect_equal(fit_threshold$training_blocks[["block"]], as.numeric(1:2))
+expect_equal(fit_threshold$block_summary[["block"]], as.numeric(1:2))
 expect_equal(NROW(fit_threshold$training_Omega), fit_threshold$candidate_pair_count)
 expect_true(all(c("gamma_name", "gamma_surname", "init_disagreement", "ratio", "q_est") %in%
                   names(fit_threshold$training_Omega)))

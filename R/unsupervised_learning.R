@@ -918,29 +918,20 @@ mec <- function(A,
 #' \item{`ratio_orientation` -- density-ratio orientation, equal to `"u_over_m"`,}
 #' \item{`n_U_fit` -- number of pairs used for the final U-side parameter estimate,}
 #' \item{`u_fit_diagnostics` -- a `data.table` with iteration-level diagnostics for U-side fitting and `alpha` drops,}
-#' \item{`training_rule` -- fitting rule used by the function, equal to `"all_candidate_pairs"`,}
 #' \item{`block_estimates` -- a `data.table` with block-level size and match-count diagnostics,}
-#' \item{`training_blocks` -- a `data.table` with all final blocks used to define \eqn{\Omega_B},}
 #' \item{`block_summary` -- a `data.table` describing the final disjoint blocks,}
 #' \item{`excluded_records` -- a list with records from `A` and `B` excluded by blocking,}
 #' \item{`pooled_model` -- fitted inverted MEC model on the candidate-pair space,}
 #' \item{`b_vars` -- variables used for the `"binary"` method, with the prefix `"gamma_"`,}
 #' \item{`cpar_vars` -- variables used for the `"continuous_parametric"` method, with the prefix `"gamma_"`,}
-#' \item{`cnonpar_vars` -- variables used for the `"continuous_nonparametric"` method, currently `NULL`,}
-#' \item{`hm_vars` -- variables used for the `"hit_miss"` method, currently `NULL`,}
 #' \item{`b_params` -- parameters estimated using the `"binary"` method,}
 #' \item{`cpar_params` -- parameters estimated using the `"continuous_parametric"` method,}
-#' \item{`cnonpar_params` -- parameters estimated using the `"continuous_nonparametric"` method, currently `NULL`,}
-#' \item{`hm_params` -- parameters estimated using the `"hit_miss"` method, currently `NULL`,}
-#' \item{`ratio_kliep` -- result of \link[densityratio:kliep]{kliep()}, currently `NULL`,}
-#' \item{`ratio_kliep_list` -- variable-specific KLIEP results, currently `NULL`,}
 #' \item{`variables` -- key variables used for comparison,}
 #' \item{`comparators` -- comparison functions used to create comparison vectors,}
 #' \item{`methods` -- MEC estimation methods used for the key variables,}
 #' \item{`delta` -- tolerance for changes in the estimated number of nonmatches,}
 #' \item{`eps` -- tolerance for changes in nonmatch-side model parameters,}
 #' \item{`controls_nleqslv` -- controls passed to \link[nleqslv:nleqslv]{nleqslv()},}
-#' \item{`controls_blocking` -- additional arguments passed to \link[blocking:blocking]{blocking()},}
 #' \item{`blocking_result` -- raw object returned by \link[blocking:blocking]{blocking()} if `keep_blocking_result = TRUE`; otherwise `NULL`,}
 #' \item{`training_Omega` -- candidate-space comparison vectors with inverted scores if `keep_training_data = TRUE`; otherwise `NULL`,}
 #' \item{`blocking_eval` -- blocking diagnostics if `true_matches` is provided; otherwise `NULL`,}
@@ -1100,20 +1091,12 @@ mec_blocking <- function(
   candidate_pair_count <- NROW(candidate_pairs)
   nu <- sum(pmin(block_summary[["n_A"]], block_summary[["n_B"]]))
   n_U_min <- candidate_pair_count - nu
-  training_rule <- "all_candidate_pairs"
-  training_blocks <- data.table::copy(block_summary)
-  data.table::set(training_blocks, j = "cumulative_pairs", value = cumsum(training_blocks[["pair_count"]]))
-  data.table::set(
-    training_blocks,
-    j = "cumulative_nonmatches_min",
-    value = cumsum(training_blocks[["nonmatches_min"]])
-  )
 
   if (verbose) {
     message(sprintf(
       "Fitting inverted MEC on %d candidate pair(s) from %d block(s).",
       candidate_pair_count,
-      NROW(training_blocks)
+      NROW(block_summary)
     ))
   }
 
@@ -1213,29 +1196,20 @@ mec_blocking <- function(
       ratio_orientation = pooled_model$ratio_orientation,
       n_U_fit = pooled_fit$n_U_fit,
       u_fit_diagnostics = pooled_fit$u_fit_diagnostics,
-      training_rule = training_rule,
       block_estimates = block_estimates,
-      training_blocks = training_blocks,
       block_summary = block_summary,
       excluded_records = excluded_records,
       pooled_model = pooled_model,
       b_vars = pooled_model$b_vars,
       cpar_vars = pooled_model$cpar_vars,
-      cnonpar_vars = pooled_model$cnonpar_vars,
-      hm_vars = pooled_model$hm_vars,
       b_params = pooled_model$b_params,
       cpar_params = pooled_model$cpar_params,
-      cnonpar_params = pooled_model$cnonpar_params,
-      hm_params = pooled_model$hm_params,
-      ratio_kliep = pooled_model$ratio_kliep,
-      ratio_kliep_list = pooled_model$ratio_kliep_list,
       variables = variables,
       comparators = comparators,
       methods = methods,
       delta = delta,
       eps = eps,
       controls_nleqslv = controls_nleqslv,
-      controls_blocking = controls_blocking,
       blocking_result = if (keep_blocking_result) blocking_result else NULL,
       training_Omega = if (keep_training_data) pooled_fit$Omega else NULL,
       blocking_eval = blocking_eval,

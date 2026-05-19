@@ -95,29 +95,20 @@ Returns a list of class \code{"mec_blocking"} containing:
 \item{\code{ratio_orientation} -- density-ratio orientation, equal to \code{"u_over_m"},}
 \item{\code{n_U_fit} -- number of pairs used for the final U-side parameter estimate,}
 \item{\code{u_fit_diagnostics} -- a \code{data.table} with iteration-level diagnostics for U-side fitting and \code{alpha} drops,}
-\item{\code{training_rule} -- fitting rule used by the function, equal to \code{"all_candidate_pairs"},}
 \item{\code{block_estimates} -- a \code{data.table} with block-level size and match-count diagnostics,}
-\item{\code{training_blocks} -- a \code{data.table} with all final blocks used to define \eqn{\Omega_B},}
 \item{\code{block_summary} -- a \code{data.table} describing the final disjoint blocks,}
 \item{\code{excluded_records} -- a list with records from \code{A} and \code{B} excluded by blocking,}
 \item{\code{pooled_model} -- fitted inverted MEC model on the candidate-pair space,}
 \item{\code{b_vars} -- variables used for the \code{"binary"} method, with the prefix \code{"gamma_"},}
 \item{\code{cpar_vars} -- variables used for the \code{"continuous_parametric"} method, with the prefix \code{"gamma_"},}
-\item{\code{cnonpar_vars} -- variables used for the \code{"continuous_nonparametric"} method, currently \code{NULL},}
-\item{\code{hm_vars} -- variables used for the \code{"hit_miss"} method, currently \code{NULL},}
 \item{\code{b_params} -- parameters estimated using the \code{"binary"} method,}
 \item{\code{cpar_params} -- parameters estimated using the \code{"continuous_parametric"} method,}
-\item{\code{cnonpar_params} -- parameters estimated using the \code{"continuous_nonparametric"} method, currently \code{NULL},}
-\item{\code{hm_params} -- parameters estimated using the \code{"hit_miss"} method, currently \code{NULL},}
-\item{\code{ratio_kliep} -- result of \link[densityratio:kliep]{kliep()}, currently \code{NULL},}
-\item{\code{ratio_kliep_list} -- variable-specific KLIEP results, currently \code{NULL},}
 \item{\code{variables} -- key variables used for comparison,}
 \item{\code{comparators} -- comparison functions used to create comparison vectors,}
 \item{\code{methods} -- MEC estimation methods used for the key variables,}
 \item{\code{delta} -- tolerance for changes in the estimated number of nonmatches,}
 \item{\code{eps} -- tolerance for changes in nonmatch-side model parameters,}
 \item{\code{controls_nleqslv} -- controls passed to \link[nleqslv:nleqslv]{nleqslv()},}
-\item{\code{controls_blocking} -- additional arguments passed to \link[blocking:blocking]{blocking()},}
 \item{\code{blocking_result} -- raw object returned by \link[blocking:blocking]{blocking()} if \code{keep_blocking_result = TRUE}; otherwise \code{NULL},}
 \item{\code{training_Omega} -- candidate-space comparison vectors with inverted scores if \code{keep_training_data = TRUE}; otherwise \code{NULL},}
 \item{\code{blocking_eval} -- blocking diagnostics if \code{true_matches} is provided; otherwise \code{NULL},}

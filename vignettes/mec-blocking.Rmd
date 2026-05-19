@@ -128,8 +128,8 @@ data.table(
   step = c("Training", "Blocking", "Linkage"),
   result = c(
     paste0(
-      result$training_rule, " on ",
-      format(NROW(result$training_blocks), big.mark = ","),
+      "all_candidate_pairs on ",
+      format(NROW(result$block_summary), big.mark = ","),
       " blocks"
     ),
     paste0(
