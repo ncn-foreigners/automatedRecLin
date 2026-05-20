@@ -2,9 +2,9 @@
 
 Runs graph-based blocking using
 [blocking()](https://ncn-foreigners.ue.poznan.pl/blocking/reference/blocking.html),
-fits one pooled unsupervised maximum entropy classifier (MEC) on
-selected within-block pairs, and applies the fitted density-ratio model
-blockwise.
+defines a blocking candidate-pair space, and fits an inverted
+unsupervised maximum entropy classifier (MEC) directly on all candidate
+pairs.
 
 ## Usage
 
@@ -20,21 +20,11 @@ mec_blocking(
   blocking_variables = variables,
   blocking_sep = " ",
   controls_blocking = list(),
-  min_training_pairs = NULL,
-  min_training_nonmatches = NULL,
-  block_sampling_seed = NULL,
-  nonmatch_sample_size = NULL,
-  nonmatch_sampling_seed = NULL,
-  prob_ratio = "2",
   start_params = NULL,
-  nonpar_hurdle = TRUE,
-  fixed_method = "Newton",
+  alpha = 0,
   delta = 0.5,
   eps = 0.05,
-  max_iter_em = 10,
-  tol_em = 1,
   controls_nleqslv = list(),
-  controls_kliep = control_kliep(),
   true_matches = NULL,
   keep_blocking_result = FALSE,
   keep_training_data = FALSE,
@@ -92,69 +82,28 @@ mec_blocking(
   [blocking()](https://ncn-foreigners.ue.poznan.pl/blocking/reference/blocking.html),
   except `x` and `y`.
 
-- min_training_pairs:
-
-  Minimum number of within-block training pairs. If `NULL`,
-  `min_training_nonmatches` should also be `NULL`, and all blocks are
-  used for training.
-
-- min_training_nonmatches:
-
-  Minimum lower bound on within-block nonmatches. If `NULL`,
-  `min_training_pairs` should also be `NULL`, and all blocks are used
-  for training.
-
-- block_sampling_seed:
-
-  Optional seed for random training-block sampling.
-
-- nonmatch_sample_size:
-
-  Number of pairs sampled from the full Cartesian product of `A` and `B`
-  to estimate nonmatch distribution parameters. If `NULL`, all pairs are
-  used.
-
-- nonmatch_sampling_seed:
-
-  Optional seed for nonmatch pair sampling.
-
-- prob_ratio:
-
-  Probability/density ratio type (`"1"` or `"2"`). The default `"2"`
-  uses the blockwise fixed-point equation.
-
 - start_params:
 
   Start parameters for the `"binary"` and `"continuous_parametric"`
   methods.
 
-- nonpar_hurdle:
+- alpha:
 
-  Currently unused in `mec_blocking()`.
-
-- fixed_method:
-
-  A method for solving blockwise fixed-point equations using the
-  [FixedPoint()](https://rdrr.io/pkg/FixedPoint/man/FixedPoint.html)
-  function.
+  A single numeric value in `[0, 1)` controlling the fraction of the
+  current nonmatch complement dropped from nonmatch-side parameter
+  fitting after the first inverted MEC iteration. The first U-side fit
+  uses the full initial fitting set, and posterior/count formulas
+  continue to use the full current nonmatch count.
 
 - delta:
 
   A numeric value specifying the tolerance for the change in the
-  estimated number of matches between MEC iterations.
+  estimated number of nonmatches between MEC iterations.
 
 - eps:
 
   A numeric value specifying the tolerance for the change in model
   parameters between MEC iterations.
-
-- max_iter_em:
-
-  Currently unused in `mec_blocking()`.
-
-- tol_em:
-
-  Currently unused in `mec_blocking()`.
 
 - controls_nleqslv:
 
@@ -162,10 +111,6 @@ mec_blocking(
   [nleqslv()](https://bertcarnell.github.io/nleqslv/reference/nleqslv.html)
   function (only if the `"continuous_parametric"` method has been chosen
   for at least one variable).
-
-- controls_kliep:
-
-  Currently unused in `mec_blocking()`.
 
 - true_matches:
 
@@ -194,25 +139,20 @@ Returns a list of class `"mec_blocking"` containing:
 
 - `n_M_est` – estimated total number of matches across all blocks,
 
-- `flr_est` – estimated false link rate (FLR),
+- `n_U_est` – estimated total number of candidate nonmatches,
 
-- `mmr_est` – estimated missing match rate (MMR),
+- `alpha` – fraction of the current nonmatch complement dropped from
+  later U-side fitting,
 
-- `training_rule` – training-block selection rule used by the function,
+- `candidate_pair_count` – number of candidate pairs in \\\Omega_B\\,
 
-- `block_estimates` – a `data.table` with block-level match-count and
-  error-rate estimates,
-
-- `training_blocks` – a `data.table` with blocks selected for pooled MEC
-  training,
+- `block_estimates` – a `data.table` with block-level size and
+  match-count diagnostics,
 
 - `block_summary` – a `data.table` describing the final disjoint blocks,
 
 - `excluded_records` – a list with records from `A` and `B` excluded by
   blocking,
-
-- `pooled_model` – fitted pooled MEC density-ratio model used for
-  blockwise scoring,
 
 - `b_vars` – variables used for the `"binary"` method, with the prefix
   `"gamma_"`,
@@ -220,29 +160,10 @@ Returns a list of class `"mec_blocking"` containing:
 - `cpar_vars` – variables used for the `"continuous_parametric"` method,
   with the prefix `"gamma_"`,
 
-- `cnonpar_vars` – variables used for the `"continuous_nonparametric"`
-  method, currently `NULL`,
-
-- `hm_vars` – variables used for the `"hit_miss"` method, currently
-  `NULL`,
-
 - `b_params` – parameters estimated using the `"binary"` method,
 
 - `cpar_params` – parameters estimated using the
   `"continuous_parametric"` method,
-
-- `cnonpar_params` – parameters estimated using the
-  `"continuous_nonparametric"` method, currently `NULL`,
-
-- `hm_params` – parameters estimated using the `"hit_miss"` method,
-  currently `NULL`,
-
-- `ratio_kliep` – result of
-  [kliep()](https://thomvolker.github.io/densityratio/reference/kliep.html),
-  currently `NULL`,
-
-- `ratio_kliep_list` – variable-specific KLIEP results, currently
-  `NULL`,
 
 - `variables` – key variables used for comparison,
 
@@ -251,57 +172,74 @@ Returns a list of class `"mec_blocking"` containing:
 
 - `methods` – MEC estimation methods used for the key variables,
 
-- `nonmatch_sample_size` – number of full Cartesian-product pairs used
-  to estimate nonmatch parameters,
+- `delta` – tolerance for changes in the estimated number of nonmatches,
 
-- `nonmatch_sampling_seed` – seed used for nonmatch-pair sampling,
-
-- `prob_ratio` – probability/density ratio type used for blockwise
-  match-count estimation,
-
-- `delta` – tolerance for changes in the estimated number of matches,
-
-- `eps` – tolerance for changes in model parameters,
+- `eps` – tolerance for changes in nonmatch-side model parameters,
 
 - `controls_nleqslv` – controls passed to
   [nleqslv()](https://bertcarnell.github.io/nleqslv/reference/nleqslv.html),
-
-- `controls_blocking` – additional arguments passed to
-  [blocking()](https://ncn-foreigners.ue.poznan.pl/blocking/reference/blocking.html),
 
 - `blocking_result` – raw object returned by
   [blocking()](https://ncn-foreigners.ue.poznan.pl/blocking/reference/blocking.html)
   if `keep_blocking_result = TRUE`; otherwise `NULL`,
 
-- `training_Omega` – pooled training comparison vectors if
-  `keep_training_data = TRUE`; otherwise `NULL`,
+- `training_Omega` – candidate-space comparison vectors with inverted
+  scores if `keep_training_data = TRUE`; otherwise `NULL`,
 
 - `blocking_eval` – blocking diagnostics if `true_matches` is provided;
   otherwise `NULL`,
 
-- `eval_metrics` – standard linkage quality metrics if `true_matches` is
-  provided; otherwise `NULL`,
+- `mec_eval` – MEC-selection diagnostics among known matches retained in
+  the candidate-pair space if `true_matches` is provided; otherwise
+  `NULL`,
 
-- `confusion` – confusion matrix if `true_matches` is provided;
+- `eval_metrics` – empirical linkage quality metrics based on
+  `true_matches`; otherwise `NULL`,
+
+- `confusion` – empirical confusion matrix based on `true_matches`;
   otherwise `NULL`.
 
 ## Details
 
 The function assumes one-to-one linkage. The blocking stage defines
-disjoint bipartite blocks. MEC is trained once on the pooled union of
-selected within-block Cartesian products and is then applied separately
-in each final block. The ANN distance returned by
-[blocking()](https://ncn-foreigners.ue.poznan.pl/blocking/reference/blocking.html)
-is not used.
+disjoint bipartite blocks, and the candidate-pair space \\\Omega_B\\ is
+the union of within-block Cartesian products. Duplicate candidate pairs
+are removed deterministically before MEC fitting.
 
-If both `min_training_pairs` and `min_training_nonmatches` are `NULL`,
-all final blocks are used for pooled training. If both are supplied,
-blocks are sampled without replacement until both thresholds are
-reached. Supplying only one threshold is an error.
+The blocked MEC fit is inverted relative to
+[`mec()`](https://ncn-foreigners.github.io/automatedRecLin/reference/mec.md).
+The initial match set contains at most \\\nu\\ feasible pairs, where
+\\\nu\\ is the structural one-to-one upper bound. Initial feasible
+matches are selected greedily by an unweighted disagreement norm: binary
+agreement indicators use `1 - gamma`, while continuous dissimilarities
+use `gamma` unchanged. At each iteration, match-side parameters are
+estimated from the current greedy one-to-one match set, and
+nonmatch-side parameters are estimated from its complement.
 
-Nonmatch distribution parameters are estimated from a simple random
-sample from the full Cartesian product of `A` and `B`, not from the
-selected training blocks.
+The `alpha` argument applies only to nonmatch-side distribution
+estimation. The first U-side fit uses the full initial complement. In
+later iterations, the least reliable current nonmatches are dropped from
+the U-side fitting sample, with reliability ranked by the previous
+nonmatch posterior estimate and then by the inverted density ratio if
+the posterior is unavailable. The posterior and count updates still use
+the full current complement size, and the final match set remains
+one-to-one.
+
+The returned `ratio` is \\s = u / m\\, where \\u\\ and \\m\\ denote the
+estimated nonmatch and match comparison-vector densities. Smaller values
+are therefore more match-like. Updated match sets are selected greedily
+in ascending order of this ratio.
+
+If \\N = \|\Omega_B\|\\ and \\\nu\\ is the maximum feasible one-to-one
+matching size in the candidate graph, the estimated number of nonmatches
+is bounded below by \\N - \nu\\. For the disjoint complete blocks
+reconstructed by this function, \\\nu = \sum_h \min(n\_{Ah}, n\_{Bh})\\.
+
+If the initialized match set exhausts the candidate-pair space, for
+example when \\N = \nu\\, there is no candidate complement from which to
+estimate nonmatch parameters. In that case the function returns the
+structurally feasible initialized match set, sets `n_U_est = 0`, and
+leaves nonmatch-side parameters unavailable.
 
 ## Author
 
@@ -343,27 +281,19 @@ result <- mec_blocking(
   true_matches = data.frame(a = 1:5, b = 1:5)
 )
 result
-#> Blocked MEC record linkage based on the following variables:  
+#> Blocked MEC record linkage based on:  
 #> name, surname, city.
-#> ========================================================
-#> Number of final blocks: 5.
-#> Training rule: all_blocks.
-#> Number of training blocks: 5.
-#> Number of training pairs: 5.
-#> Training nonmatch lower bound: 0.
 #> ========================================================
 #> The algorithm predicted 5 matches.
 #> The first 5 predicted matches are:
 #>        a     b block ratio / 1000
 #>    <int> <int> <num>        <num>
-#> 1:     1     1     1   0.06944444
-#> 2:     2     2     2   0.06944444
-#> 3:     3     3     3   0.06944444
-#> 4:     4     4     4   0.06944444
-#> 5:     5     5     5   0.06944444
+#> 1:     1     1     1            0
+#> 2:     2     2     2            0
+#> 3:     3     3     3            0
+#> 4:     4     4     4            0
+#> 5:     5     5     5            0
 #> ========================================================
-#> Estimated false link rate (FLR): 0.0000 %.
-#> Estimated missing match rate (MMR): 0.0000 %.
 #> ========================================================
 #> Blocking diagnostics:
 #> Known matches: 5.

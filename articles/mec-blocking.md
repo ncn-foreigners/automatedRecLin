@@ -80,8 +80,8 @@ methods <- list(
 blocking_variables <- c(variables, "enumcap", "enumpc")
 ```
 
-Run blocked MEC. The model is trained on sampled blocks that contain at
-least the requested number of pairs and a lower bound on nonmatches.
+Run blocked MEC. The model is trained on all candidate pairs retained by
+blocking.
 
 ``` r
 
@@ -94,39 +94,27 @@ result <- mec_blocking(
   comparators = comparators,
   methods = methods,
   blocking_variables = blocking_variables,
-  blocking_sep = "",
+  blocking_sep = " ",
   controls_blocking = list(seed = 1, n_threads = 1),
-  min_training_pairs = 1000,
-  min_training_nonmatches = 1000,
-  block_sampling_seed = 1,
-  nonmatch_sample_size = 100000,
-  nonmatch_sampling_seed = 1,
+  alpha = 0.5,
   true_matches = true_matches
 )
 
 result
-#> Blocked MEC record linkage based on the following variables:  
+#> Blocked MEC record linkage based on:  
 #> pername1, pername2, sex, dob_day, dob_mon, dob_year.
 #> ========================================================
-#> Number of final blocks: 23725.
-#> Training rule: threshold_sampling.
-#> Number of training blocks: 14813.
-#> Number of training pairs: 15813.
-#> Training nonmatch lower bound: 1000.
-#> ========================================================
-#> The algorithm predicted 23717 matches.
+#> The algorithm predicted 23697 matches.
 #> The first 6 predicted matches are:
 #>        a     b block ratio / 1000
 #>    <int> <int> <num>        <num>
-#> 1:  8152     1     1    137901.96
-#> 2:  8584     2     2    604248.89
-#> 3: 20590     3     3    999468.99
-#> 4: 18456     4     4     50922.36
-#> 5: 17257     5     5    315391.85
-#> 6: 19868     6     6    315391.85
+#> 1: 12264 18361 17172 3.428838e-12
+#> 2: 23367 13031 12223 3.428838e-12
+#> 3: 23495 15194 14243 3.428838e-12
+#> 4:  1768 12279 11529 7.032757e-12
+#> 5:   343 18657 17446 8.007616e-12
+#> 6:  2124  5497  5152 8.007616e-12
 #> ========================================================
-#> Estimated false link rate (FLR): 0.0034 %.
-#> Estimated missing match rate (MMR): 0.0034 %.
 #> ========================================================
 #> Blocking diagnostics:
 #> Known matches: 24043.
@@ -138,17 +126,17 @@ result
 #> ========================================================
 #> Evaluation metrics:
 #> FLR (%) MMR (%) 
-#>  0.1560  1.5098
+#>  0.0506  1.4890
 ```
 
 ## Blocking efficiency and linkage results
 
 The full Cartesian product contains 623,767,259 record pairs. Blocking
 reduces this to 25,343 candidate pairs, while retaining 98.52% of known
-links. The final linkage set contains 23,717 predicted matches.
+links. The final linkage set contains 23,697 predicted matches.
 
     #>        step                                result
     #>      <char>                                <char>
-    #> 1: Training   threshold_sampling on 14,813 blocks
+    #> 1: Training  all_candidate_pairs on 23,725 blocks
     #> 2: Blocking 23,687 of 24,043 known links retained
-    #> 3:  Linkage              FLR = 0.16%; MMR = 1.51%
+    #> 3:  Linkage              FLR = 0.05%; MMR = 1.49%

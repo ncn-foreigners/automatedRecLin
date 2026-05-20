@@ -84,4 +84,11 @@ We have also developed the
 which blocks records for record linkage and deduplication based on
 approximate nearest neighbor algorithms (ANNs). Refer to the package
 when you are asked about blocking in record linkage. The package is also
-described in `papers/paper-blocking.pdf`.
+described in `papers/paper-blocking.pdf`. Currently, the
+[`mec_blocking()`](https://ncn-foreigners.github.io/automatedRecLin/reference/mec_blocking.md)
+function from `R/unsupervised_learning.R` combines both packages.
+
+## Output Documents
+
+If asked to produce an internal text document (e.g., a `PDF` or a `.tex`
+file), place it in `output_documents/`.

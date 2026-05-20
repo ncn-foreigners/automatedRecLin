@@ -8,8 +8,8 @@
 <title>MEC with blocking • automatedRecLin</title>
 <!-- katex math --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script><script src="../katex-auto.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="MEC with blocking">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">automatedRecLin</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -64,7 +64,7 @@
 Struzik</h4>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/automatedRecLin/blob/v1.1.0/vignettes/mec-blocking.Rmd" class="external-link"><code>vignettes/mec-blocking.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/automatedRecLin/blob/main/vignettes/mec-blocking.Rmd" class="external-link"><code>vignettes/mec-blocking.Rmd</code></a></small>
       <div class="d-none name"><code>mec-blocking.Rmd</code></div>
     </div>
 
@@ -139,9 +139,8 @@ binary method. Address fields are used only to construct blocks.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">blocking_variables</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">variables</span>, <span class="st">"enumcap"</span>, <span class="st">"enumpc"</span><span class="op">)</span></span></code></pre></div>
-<p>Run blocked MEC. The model is trained on sampled blocks that contain
-at least the requested number of pairs and a lower bound on
-nonmatches.</p>
+<p>Run blocked MEC. The model is trained on all candidate pairs retained
+by blocking.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span></span>
@@ -152,39 +151,27 @@ nonmatches.</p>
 <span>  comparators <span class="op">=</span> <span class="va">comparators</span>,</span>
 <span>  methods <span class="op">=</span> <span class="va">methods</span>,</span>
 <span>  blocking_variables <span class="op">=</span> <span class="va">blocking_variables</span>,</span>
-<span>  blocking_sep <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  blocking_sep <span class="op">=</span> <span class="st">" "</span>,</span>
 <span>  controls_blocking <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>seed <span class="op">=</span> <span class="fl">1</span>, n_threads <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
-<span>  min_training_pairs <span class="op">=</span> <span class="fl">1000</span>,</span>
-<span>  min_training_nonmatches <span class="op">=</span> <span class="fl">1000</span>,</span>
-<span>  block_sampling_seed <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  nonmatch_sample_size <span class="op">=</span> <span class="fl">100000</span>,</span>
-<span>  nonmatch_sampling_seed <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  alpha <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  true_matches <span class="op">=</span> <span class="va">true_matches</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">result</span></span>
-<span><span class="co">#&gt; Blocked MEC record linkage based on the following variables:  </span></span>
+<span><span class="co">#&gt; Blocked MEC record linkage based on:  </span></span>
 <span><span class="co">#&gt; pername1, pername2, sex, dob_day, dob_mon, dob_year.</span></span>
 <span><span class="co">#&gt; ========================================================</span></span>
-<span><span class="co">#&gt; Number of final blocks: 23725.</span></span>
-<span><span class="co">#&gt; Training rule: threshold_sampling.</span></span>
-<span><span class="co">#&gt; Number of training blocks: 14813.</span></span>
-<span><span class="co">#&gt; Number of training pairs: 15813.</span></span>
-<span><span class="co">#&gt; Training nonmatch lower bound: 1000.</span></span>
-<span><span class="co">#&gt; ========================================================</span></span>
-<span><span class="co">#&gt; The algorithm predicted 23717 matches.</span></span>
+<span><span class="co">#&gt; The algorithm predicted 23697 matches.</span></span>
 <span><span class="co">#&gt; The first 6 predicted matches are:</span></span>
 <span><span class="co">#&gt;        a     b block ratio / 1000</span></span>
 <span><span class="co">#&gt;    &lt;int&gt; &lt;int&gt; &lt;num&gt;        &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:  8152     1     1    137901.96</span></span>
-<span><span class="co">#&gt; 2:  8584     2     2    604248.89</span></span>
-<span><span class="co">#&gt; 3: 20590     3     3    999468.99</span></span>
-<span><span class="co">#&gt; 4: 18456     4     4     50922.36</span></span>
-<span><span class="co">#&gt; 5: 17257     5     5    315391.85</span></span>
-<span><span class="co">#&gt; 6: 19868     6     6    315391.85</span></span>
+<span><span class="co">#&gt; 1: 12264 18361 17172 3.428838e-12</span></span>
+<span><span class="co">#&gt; 2: 23367 13031 12223 3.428838e-12</span></span>
+<span><span class="co">#&gt; 3: 23495 15194 14243 3.428838e-12</span></span>
+<span><span class="co">#&gt; 4:  1768 12279 11529 7.032757e-12</span></span>
+<span><span class="co">#&gt; 5:   343 18657 17446 8.007616e-12</span></span>
+<span><span class="co">#&gt; 6:  2124  5497  5152 8.007616e-12</span></span>
 <span><span class="co">#&gt; ========================================================</span></span>
-<span><span class="co">#&gt; Estimated false link rate (FLR): 0.0034 %.</span></span>
-<span><span class="co">#&gt; Estimated missing match rate (MMR): 0.0034 %.</span></span>
 <span><span class="co">#&gt; ========================================================</span></span>
 <span><span class="co">#&gt; Blocking diagnostics:</span></span>
 <span><span class="co">#&gt; Known matches: 24043.</span></span>
@@ -196,20 +183,20 @@ nonmatches.</p>
 <span><span class="co">#&gt; ========================================================</span></span>
 <span><span class="co">#&gt; Evaluation metrics:</span></span>
 <span><span class="co">#&gt; FLR (%) MMR (%) </span></span>
-<span><span class="co">#&gt;  0.1560  1.5098</span></span></code></pre></div>
+<span><span class="co">#&gt;  0.0506  1.4890</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="blocking-efficiency-and-linkage-results">Blocking efficiency and linkage results<a class="anchor" aria-label="anchor" href="#blocking-efficiency-and-linkage-results"></a>
 </h2>
 <p>The full Cartesian product contains 623,767,259 record pairs.
 Blocking reduces this to 25,343 candidate pairs, while retaining 98.52%
-of known links. The final linkage set contains 23,717 predicted
+of known links. The final linkage set contains 23,697 predicted
 matches.</p>
 <pre><code><span><span class="co">#&gt;        step                                result</span></span>
 <span><span class="co">#&gt;      &lt;char&gt;                                &lt;char&gt;</span></span>
-<span><span class="co">#&gt; 1: Training   threshold_sampling on 14,813 blocks</span></span>
+<span><span class="co">#&gt; 1: Training  all_candidate_pairs on 23,725 blocks</span></span>
 <span><span class="co">#&gt; 2: Blocking 23,687 of 24,043 known links retained</span></span>
-<span><span class="co">#&gt; 3:  Linkage              FLR = 0.16%; MMR = 1.51%</span></span></code></pre>
+<span><span class="co">#&gt; 3:  Linkage              FLR = 0.05%; MMR = 1.49%</span></span></code></pre>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

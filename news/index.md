@@ -1,6 +1,17 @@
 # Changelog
 
+## Version 1.1.1
+
+- Improved
+  [`mec_blocking()`](https://ncn-foreigners.github.io/automatedRecLin/reference/mec_blocking.md)
+  by using inverted unsupervised MEC.
+- Added `alpha` in
+  [`mec_blocking()`](https://ncn-foreigners.github.io/automatedRecLin/reference/mec_blocking.md)
+  for controlling the FLR-MMR trade-off.
+
 ## Version 1.1.0
+
+CRAN release: 2026-05-08
 
 - Added
   [`mec_blocking()`](https://ncn-foreigners.github.io/automatedRecLin/reference/mec_blocking.md)
