@@ -6,7 +6,7 @@
 
 `automatedRecLin` is an R package for record linkage and entity resolution. Its main abstractions are comparison-vector construction, supervised and unsupervised MEC model fitting, prediction from trained models, and blocked unsupervised linkage through the external `blocking` package. The implementation is organized as a small R package using `data.table` for tabular data flow, `reclin2` for default comparators, `nleqslv` and `densityratio` for continuous estimation, and `FixedPoint` for fixed-point match-count calculations.
 
-The blocked MEC path exposes `alpha`, a nonmatch drop fraction used only for later U-side distribution fitting. The first U-side fit remains uncorrected, posterior and count formulas continue to use the full current nonmatch complement, and returned objects include `u_fit_diagnostics`. Redundant `rho` and `robust_u` controls have been removed from the public `mec_blocking()` API.
+The blocked MEC path exposes `alpha`, a nonmatch drop fraction used only for later U-side distribution fitting. The first U-side fit remains uncorrected, posterior and count formulas continue to use the full current nonmatch complement. Internal U-side fitting diagnostics remain available to the fitting helper, while the public `mec_blocking()` output keeps only user-facing summaries.
 
 ---
 
@@ -102,7 +102,7 @@ graph TD
 | `R/methods.R` | Utils/API | Defines S3 print methods for public result classes. | S3 print methods | no |
 | `R/bootstrap.R` | Core | Work-in-progress parametric bootstrap for MEC match-count uncertainty. | internal / unexported | no |
 | `R/data.R` | Data | Documents package example datasets. | datasets | no |
-| `man/mec_blocking.Rd` | Docs | Generated help page for blocked MEC; manually synchronized for `alpha` and `u_fit_diagnostics`. | help topic | yes |
+| `man/mec_blocking.Rd` | Docs | Generated help page for blocked MEC; synchronized with the public output contract. | help topic | yes |
 | `internal/test.R` | Developer script | Direct local validation script for blocked MEC; now loads the current checkout and runs multiple `alpha` values. | script | yes |
 
 ---
@@ -153,7 +153,7 @@ graph TD
 
 | Function | Defined In | Called By | Calls | Changed | Purpose |
 | --- | --- | --- | --- | --- | --- |
-| `mec_blocking()` | `R/unsupervised_learning.R` | user / exported | blocking helpers, `comparison_vectors()`, `fit_mec_blocking_inverted_omega()`, evaluation helpers | yes | Public blocked unsupervised MEC entry point; exposes `alpha` and returns `u_fit_diagnostics` without the removed `rho` or `robust_u` controls. |
+| `mec_blocking()` | `R/unsupervised_learning.R` | user / exported | blocking helpers, `comparison_vectors()`, `fit_mec_blocking_inverted_omega()`, evaluation helpers | yes | Public blocked unsupervised MEC entry point; exposes `alpha` and user-facing blocked-linkage summaries. |
 | `validate_mec_blocking_alpha()` | `R/unsupervised_learning.R` | `mec_blocking()` | base checks | yes | Validates `alpha` as a single finite numeric value in `[0, 1)`. |
 | `prepare_blocking_inputs()` | `R/internals.R` | `mec_blocking()` | `build_blocking_input()` | no | Builds or validates inputs passed to `blocking::blocking()`. |
 | `run_blocking()` | `R/internals.R` | `mec_blocking()` | `blocking::blocking()` | no | Executes external blocking. |
@@ -229,7 +229,7 @@ graph TD
 - **Candidate-space blocked MEC**: `mec_blocking()` fits one pooled inverted MEC model on the blocked candidate-pair space rather than sampled training blocks.
 - **U-side fitting separation**: The U-side fitting subset can be smaller than the full current nonmatch complement, but posterior and count updates still use the full complement size.
 - **Deterministic ranking and selection**: U-side retention ranks by previous nonmatch reliability with deterministic pair tie-breaking; final matches still use greedy one-to-one selection.
-- **Explicit blocked-MEC outputs**: `mec_blocking()` returns `alpha` and `u_fit_diagnostics` fields directly and omits metadata tied only to removed initialization or robust-U controls.
+- **Explicit blocked-MEC outputs**: `mec_blocking()` returns `alpha` and user-facing linkage, blocking, parameter, and evaluation summaries, while omitting internal fitting metadata.
 - **Evaluation as optional post-processing**: Metrics and confusion matrices are only computed when `true_matches` is supplied.
 - **Direct checkout validation script**: `internal/test.R` uses `devtools::load_all(".", quiet = TRUE)` so direct script execution exercises the working-tree implementation instead of an installed package.
 
@@ -237,8 +237,8 @@ graph TD
 
 ## Notes
 
-- The current `mec_blocking()` API keeps `alpha`, top-level and `pooled_model` `alpha` fields, and `u_fit_diagnostics`, while removing the redundant `rho` and `robust_u` arguments and return metadata.
+- The current `mec_blocking()` API keeps the top-level `alpha` field and omits internal fitting metadata such as initialization counts, U-fit diagnostics, ratio-orientation metadata, and the nested pooled model.
 - The first U-side fit records `reason = "first_u_fit_full"` and does not apply an `alpha` drop, even when `alpha > 0`.
 - Later U-side fits may record `reason = "alpha_reliability_drop"`, `alpha_zero`, `requested_drop_zero`, `base_smaller_than_requested_keep`, or `minimum_sample_full_base`.
 - Initial inverted MEC selection now uses the structural one-to-one bound `nu` directly.
-- `man/mec_blocking.Rd` is synchronized from roxygen comments. `inst/tinytest` files were not changed in this run.
+- `man/mec_blocking.Rd` is synchronized from roxygen comments, and `inst/tinytest/test_mec_blocking.R` asserts the trimmed public output contract.

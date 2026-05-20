@@ -909,19 +909,11 @@ mec <- function(A,
 #' \item{`M_est` -- a `data.table` with predicted matches and columns `a`, `b`, `block`, and `ratio`,}
 #' \item{`n_M_est` -- estimated total number of matches across all blocks,}
 #' \item{`n_U_est` -- estimated total number of candidate nonmatches,}
-#' \item{`n_U_min` -- lower bound on the number of candidate nonmatches,}
-#' \item{`nu` -- maximum feasible one-to-one matching size in the candidate-pair graph,}
 #' \item{`alpha` -- fraction of the current nonmatch complement dropped from later U-side fitting,}
-#' \item{`n_M_init` -- number of candidate pairs in the initial inverted MEC match set,}
-#' \item{`n_U_init` -- number of candidate pairs in the initial inverted MEC nonmatch complement,}
 #' \item{`candidate_pair_count` -- number of candidate pairs in \eqn{\Omega_B},}
-#' \item{`ratio_orientation` -- density-ratio orientation, equal to `"u_over_m"`,}
-#' \item{`n_U_fit` -- number of pairs used for the final U-side parameter estimate,}
-#' \item{`u_fit_diagnostics` -- a `data.table` with iteration-level diagnostics for U-side fitting and `alpha` drops,}
 #' \item{`block_estimates` -- a `data.table` with block-level size and match-count diagnostics,}
 #' \item{`block_summary` -- a `data.table` describing the final disjoint blocks,}
 #' \item{`excluded_records` -- a list with records from `A` and `B` excluded by blocking,}
-#' \item{`pooled_model` -- fitted inverted MEC model on the candidate-pair space,}
 #' \item{`b_vars` -- variables used for the `"binary"` method, with the prefix `"gamma_"`,}
 #' \item{`cpar_vars` -- variables used for the `"continuous_parametric"` method, with the prefix `"gamma_"`,}
 #' \item{`b_params` -- parameters estimated using the `"binary"` method,}
@@ -1187,19 +1179,11 @@ mec_blocking <- function(
       M_est = M_est,
       n_M_est = n_M_est,
       n_U_est = n_U_est,
-      n_U_min = pooled_fit$n_U_min,
-      nu = pooled_fit$nu,
       alpha = pooled_fit$alpha,
-      n_M_init = pooled_fit$n_M_init,
-      n_U_init = pooled_fit$n_U_init,
       candidate_pair_count = pooled_fit$candidate_pair_count,
-      ratio_orientation = pooled_model$ratio_orientation,
-      n_U_fit = pooled_fit$n_U_fit,
-      u_fit_diagnostics = pooled_fit$u_fit_diagnostics,
       block_estimates = block_estimates,
       block_summary = block_summary,
       excluded_records = excluded_records,
-      pooled_model = pooled_model,
       b_vars = pooled_model$b_vars,
       cpar_vars = pooled_model$cpar_vars,
       b_params = pooled_model$b_params,

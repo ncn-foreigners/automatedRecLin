@@ -175,13 +175,6 @@ print.mec_blocking <- function(x, ...) {
   cat("Blocked MEC record linkage based on: ", "\n")
   cat(paste(x$variables, collapse = ", "), ".\n", sep = "")
   cat("========================================================\n")
-  cat("Number of final blocks: ", NROW(x$block_summary), ".\n", sep = "")
-  cat("Training rule: all_candidate_pairs.\n")
-  cat("Number of training blocks: ", NROW(x$block_summary), ".\n", sep = "")
-  cat("Number of training pairs: ", sum(x$block_summary[["pair_count"]]), ".\n", sep = "")
-  cat("Training nonmatch lower bound: ",
-      sum(x$block_summary[["nonmatches_min"]]), ".\n", sep = "")
-  cat("========================================================\n")
 
   if (NROW(x$M_est) == 0) {
     cat("No matches were predicted.\n")

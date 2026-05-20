@@ -11,15 +11,16 @@ controls_blocking <- list(
 )
 
 expect_blocking_output_contract <- function(result) {
+  removed_outputs <- c(
+    "n_U_min", "nu", "n_M_init", "n_U_init", "n_U_fit",
+    "u_fit_diagnostics", "ratio_orientation", "pooled_model"
+  )
+  expect_false(any(removed_outputs %in% names(result)))
   expect_false(any(c("flr_est", "mmr_est") %in% names(result)))
   expect_false(any(c("training_rule", "training_blocks", "controls_blocking") %in% names(result)))
   expect_equal(names(result$M_est), c("a", "b", "block", "ratio"))
-  expect_equal(result$ratio_orientation, "u_over_m")
-  expect_equal(result$pooled_model$ratio_orientation, "u_over_m")
   expect_equal(result$n_M_est, NROW(result$M_est))
   expect_equal(result$n_U_est, result$candidate_pair_count - result$n_M_est)
-  expect_equal(result$n_U_min, result$candidate_pair_count - result$nu)
-  expect_true(result$n_U_est >= result$n_U_min)
   expect_false(any(c("nonmatch_sample_size", "nonmatch_sampling_seed", "prob_ratio") %in% names(result)))
   expect_equal(
     names(result$block_estimates),
@@ -118,13 +119,9 @@ fit_binary <- mec_blocking(
 )
 
 expect_inherits(fit_binary, "mec_blocking")
-expect_equal(fit_binary$ratio_orientation, "u_over_m")
 expect_equal(fit_binary$n_M_est, 5L)
 expect_equal(fit_binary$n_U_est, 0L)
-expect_equal(fit_binary$n_U_min, 0L)
-expect_equal(fit_binary$nu, 5L)
 expect_equal(fit_binary$candidate_pair_count, 5L)
-expect_equal(fit_binary$pooled_model$convergence_reason, "structural_no_nonmatch_complement")
 expect_equal(
   fit_binary$M_est[, .(a, b, block)],
   data.table(a = 1:5, b = 1:5, block = as.numeric(1:5))
@@ -229,7 +226,6 @@ fit_singleton_nonmatch <- mec_blocking(
 expect_blocking_output_contract(fit_singleton_nonmatch)
 expect_equal(fit_singleton_nonmatch$n_M_est, 2L)
 expect_equal(fit_singleton_nonmatch$n_U_est, 0L)
-expect_equal(fit_singleton_nonmatch$pooled_model$convergence_reason, "structural_no_nonmatch_complement")
 expect_equal(fit_singleton_nonmatch$M_est[, .(a, b)], data.table(a = 1:2, b = 1:2))
 expect_equal(
   unkey(fit_singleton_nonmatch$block_estimates[, .(block, n_M_est, selected_pairs)]),
@@ -260,10 +256,7 @@ fit_threshold <- mec_blocking(
   keep_blocking_result = TRUE
 )
 
-expect_equal(fit_threshold$ratio_orientation, "u_over_m")
 expect_equal(fit_threshold$candidate_pair_count, 6L)
-expect_equal(fit_threshold$nu, 2L)
-expect_equal(fit_threshold$n_U_min, 4L)
 expect_equal(fit_threshold$n_U_est, 4L)
 expect_equal(fit_threshold$n_M_est, 2L)
 expect_equal(fit_threshold$block_summary[["block"]], as.numeric(1:2))

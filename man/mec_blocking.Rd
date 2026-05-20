@@ -86,19 +86,11 @@ Returns a list of class \code{"mec_blocking"} containing:
 \item{\code{M_est} -- a \code{data.table} with predicted matches and columns \code{a}, \code{b}, \code{block}, and \code{ratio},}
 \item{\code{n_M_est} -- estimated total number of matches across all blocks,}
 \item{\code{n_U_est} -- estimated total number of candidate nonmatches,}
-\item{\code{n_U_min} -- lower bound on the number of candidate nonmatches,}
-\item{\code{nu} -- maximum feasible one-to-one matching size in the candidate-pair graph,}
 \item{\code{alpha} -- fraction of the current nonmatch complement dropped from later U-side fitting,}
-\item{\code{n_M_init} -- number of candidate pairs in the initial inverted MEC match set,}
-\item{\code{n_U_init} -- number of candidate pairs in the initial inverted MEC nonmatch complement,}
 \item{\code{candidate_pair_count} -- number of candidate pairs in \eqn{\Omega_B},}
-\item{\code{ratio_orientation} -- density-ratio orientation, equal to \code{"u_over_m"},}
-\item{\code{n_U_fit} -- number of pairs used for the final U-side parameter estimate,}
-\item{\code{u_fit_diagnostics} -- a \code{data.table} with iteration-level diagnostics for U-side fitting and \code{alpha} drops,}
 \item{\code{block_estimates} -- a \code{data.table} with block-level size and match-count diagnostics,}
 \item{\code{block_summary} -- a \code{data.table} describing the final disjoint blocks,}
 \item{\code{excluded_records} -- a list with records from \code{A} and \code{B} excluded by blocking,}
-\item{\code{pooled_model} -- fitted inverted MEC model on the candidate-pair space,}
 \item{\code{b_vars} -- variables used for the \code{"binary"} method, with the prefix \code{"gamma_"},}
 \item{\code{cpar_vars} -- variables used for the \code{"continuous_parametric"} method, with the prefix \code{"gamma_"},}
 \item{\code{b_params} -- parameters estimated using the \code{"binary"} method,}
