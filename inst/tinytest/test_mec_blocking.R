@@ -10,12 +10,70 @@ controls_blocking <- list(
   seed = 1
 )
 
-expect_rate_bounds <- function(result) {
-  expect_true(is.finite(result$flr_est))
-  expect_true(result$flr_est >= 0 && result$flr_est <= 1)
-  expect_true(is.finite(result$mmr_est))
-  expect_true(result$mmr_est >= 0 && result$mmr_est <= 1)
+expect_blocking_output_contract <- function(result) {
+  removed_outputs <- c(
+    "n_U_min", "nu", "n_M_init", "n_U_init", "n_U_fit",
+    "u_fit_diagnostics", "ratio_orientation", "pooled_model"
+  )
+  expect_false(any(removed_outputs %in% names(result)))
+  expect_false(any(c("flr_est", "mmr_est") %in% names(result)))
+  expect_false(any(c("training_rule", "training_blocks", "controls_blocking") %in% names(result)))
+  expect_equal(names(result$M_est), c("a", "b", "block", "ratio"))
+  expect_equal(result$n_M_est, NROW(result$M_est))
+  expect_equal(result$n_U_est, result$candidate_pair_count - result$n_M_est)
+  expect_false(any(c("nonmatch_sample_size", "nonmatch_sampling_seed", "prob_ratio") %in% names(result)))
+  expect_equal(
+    names(result$block_estimates),
+    c("block", "n_A", "n_B", "pair_count", "nonmatches_min", "n_M_est", "selected_pairs")
+  )
+  expect_true(all(result$block_estimates[["n_M_est"]] >= 0))
+  expect_true(all(result$block_estimates[["selected_pairs"]] >= 0))
+  expect_true(all(result$block_estimates[["n_M_est"]] <=
+                    pmin(result$block_estimates[["n_A"]], result$block_estimates[["n_B"]])))
+  expect_true(all(result$block_estimates[["selected_pairs"]] <=
+                    pmin(result$block_estimates[["n_A"]], result$block_estimates[["n_B"]])))
 }
+
+expect_equal(
+  automatedRecLin:::select_inverted_mec_indices(
+    a = c(1L, 1L, 2L, 2L),
+    b = c(1L, 2L, 1L, 2L),
+    block = c(1, 1, 1, 1),
+    ratio = c(2, 0.1, 0.2, Inf),
+    n_M = 2
+  ),
+  c(2L, 3L)
+)
+expect_equal(
+  automatedRecLin:::select_inverted_mec_indices(
+    a = c(1L, 2L),
+    b = c(1L, 2L),
+    block = c(1, 1),
+    ratio = c(NA_real_, 0.5),
+    n_M = 1
+  ),
+  2L
+)
+expect_equal(
+  automatedRecLin:::select_inverted_mec_indices(
+    a = c(1L, 2L),
+    b = c(1L, 2L),
+    block = c(1, 1),
+    ratio = c(-1, 0.3),
+    n_M = 1
+  ),
+  2L
+)
+expect_equal(
+  automatedRecLin:::select_inverted_mec_indices(
+    a = c(1L, 2L),
+    b = c(1L, 2L),
+    block = c(1, 1),
+    ratio = c(0.1, 0.2),
+    n_M = 0
+  ),
+  integer()
+)
 
 unkey <- function(x) {
   data.table::setkey(x, NULL)
@@ -61,13 +119,15 @@ fit_binary <- mec_blocking(
 )
 
 expect_inherits(fit_binary, "mec_blocking")
-expect_equal(fit_binary$training_rule, "all_blocks")
+expect_equal(fit_binary$n_M_est, 5L)
+expect_equal(fit_binary$n_U_est, 0L)
+expect_equal(fit_binary$candidate_pair_count, 5L)
 expect_equal(
   fit_binary$M_est[, .(a, b, block)],
   data.table(a = 1:5, b = 1:5, block = as.numeric(1:5))
 )
 expect_true(all(is.finite(fit_binary$M_est[["ratio"]])))
-expect_true(all(fit_binary$M_est[["ratio"]] > 0))
+expect_true(all(fit_binary$M_est[["ratio"]] >= 0))
 expect_equal(
   unkey(fit_binary$block_summary[, .(block, n_A, n_B, pair_count, nonmatches_min)]),
   data.table(
@@ -96,9 +156,16 @@ expect_equal(
 )
 expect_equal(fit_binary$eval_metrics, c(FLR = 0, MMR = 0))
 expect_equal(fit_binary$confusion, confusion_all_links)
-expect_rate_bounds(fit_binary)
+expect_blocking_output_contract(fit_binary)
+expect_equal(fit_binary$block_estimates[["n_M_est"]], rep(1L, 5L))
+expect_equal(fit_binary$block_estimates[["selected_pairs"]], rep(1L, 5L))
 expect_null(fit_binary$blocking_result)
 expect_null(fit_binary$training_Omega)
+
+fit_binary_print <- paste(capture.output(print(fit_binary)), collapse = "\n")
+expect_false(grepl("Estimated false link rate", fit_binary_print))
+expect_false(grepl("Estimated missing match rate", fit_binary_print))
+expect_true(grepl("Evaluation metrics", fit_binary_print))
 
 set.seed(1)
 fit_cpar <- mec_blocking(
@@ -134,7 +201,36 @@ expect_true(all(is.finite(unlist(fit_cpar$cpar_params[, -"variable"]))))
 expect_equal(fit_cpar$b_params[["variable"]], "gamma_city")
 expect_true(all(is.finite(fit_cpar$b_params[["theta"]])))
 expect_true(all(is.finite(fit_cpar$b_params[["eta"]])))
-expect_rate_bounds(fit_cpar)
+expect_blocking_output_contract(fit_cpar)
+
+singleton_nonmatch_A <- data.frame(
+  name = c("same", "left"),
+  surname = c("person", "alpha")
+)
+singleton_nonmatch_B <- data.frame(
+  name = c("same", "right"),
+  surname = c("person", "beta")
+)
+singleton_nonmatch_blocking <- matrix(c(1, 2), ncol = 1)
+
+set.seed(1)
+fit_singleton_nonmatch <- mec_blocking(
+  A = singleton_nonmatch_A,
+  B = singleton_nonmatch_B,
+  variables = c("name", "surname"),
+  blocking_x = singleton_nonmatch_blocking,
+  blocking_y = singleton_nonmatch_blocking,
+  controls_blocking = controls_blocking
+)
+
+expect_blocking_output_contract(fit_singleton_nonmatch)
+expect_equal(fit_singleton_nonmatch$n_M_est, 2L)
+expect_equal(fit_singleton_nonmatch$n_U_est, 0L)
+expect_equal(fit_singleton_nonmatch$M_est[, .(a, b)], data.table(a = 1:2, b = 1:2))
+expect_equal(
+  unkey(fit_singleton_nonmatch$block_estimates[, .(block, n_M_est, selected_pairs)]),
+  data.table(block = as.numeric(1:2), n_M_est = c(1L, 1L), selected_pairs = c(1L, 1L))
+)
 
 threshold_A <- data.frame(
   name = c("A1", "A2", "A3", "B1", "B2", "B3"),
@@ -155,19 +251,20 @@ fit_threshold <- mec_blocking(
   blocking_x = threshold_blocking,
   blocking_y = threshold_blocking,
   controls_blocking = controls_blocking,
-  min_training_pairs = 3,
-  min_training_nonmatches = 2,
-  block_sampling_seed = 1,
-  nonmatch_sampling_seed = 1,
   true_matches = data.frame(a = 1:6, b = 1:6),
   keep_training_data = TRUE,
   keep_blocking_result = TRUE
 )
 
-expect_equal(fit_threshold$training_rule, "threshold_sampling")
-expect_equal(fit_threshold$training_blocks[["block"]], 1)
-expect_equal(NROW(fit_threshold$training_Omega), 3L)
-expect_true(all(c("gamma_name", "gamma_surname") %in% names(fit_threshold$training_Omega)))
+expect_equal(fit_threshold$candidate_pair_count, 6L)
+expect_equal(fit_threshold$n_U_est, 4L)
+expect_equal(fit_threshold$n_M_est, 2L)
+expect_equal(fit_threshold$block_summary[["block"]], as.numeric(1:2))
+expect_equal(NROW(fit_threshold$training_Omega), fit_threshold$candidate_pair_count)
+expect_true(all(c("gamma_name", "gamma_surname", "init_disagreement", "ratio", "q_est") %in%
+                  names(fit_threshold$training_Omega)))
+expect_true(all(fit_threshold$training_Omega[["q_est"]] >= 0 &
+                  fit_threshold$training_Omega[["q_est"]] <= 1))
 expect_true(!is.null(fit_threshold$blocking_result))
 expect_true("result" %in% names(fit_threshold$blocking_result))
 
@@ -204,7 +301,7 @@ expect_equal(
 )
 expect_equal(fit_threshold$eval_metrics, c(FLR = 0, MMR = 2 / 3))
 expect_equal(fit_threshold$confusion, confusion_threshold)
-expect_rate_bounds(fit_threshold)
+expect_blocking_output_contract(fit_threshold)
 
 expect_error(
   mec_blocking(

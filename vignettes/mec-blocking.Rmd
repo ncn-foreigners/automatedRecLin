@@ -93,8 +93,8 @@ methods <- list(
 blocking_variables <- c(variables, "enumcap", "enumpc")
 ```
 
-Run blocked MEC. The model is trained on sampled blocks that contain at least
-the requested number of pairs and a lower bound on nonmatches.
+Run blocked MEC. The model is trained on all candidate pairs retained by
+blocking.
 
 ```{r mec-blocking}
 set.seed(1)
@@ -106,13 +106,9 @@ result <- mec_blocking(
   comparators = comparators,
   methods = methods,
   blocking_variables = blocking_variables,
-  blocking_sep = "",
+  blocking_sep = " ",
   controls_blocking = list(seed = 1, n_threads = 1),
-  min_training_pairs = 1000,
-  min_training_nonmatches = 1000,
-  block_sampling_seed = 1,
-  nonmatch_sample_size = 100000,
-  nonmatch_sampling_seed = 1,
+  alpha = 0.5,
   true_matches = true_matches
 )
 
@@ -132,8 +128,8 @@ data.table(
   step = c("Training", "Blocking", "Linkage"),
   result = c(
     paste0(
-      result$training_rule, " on ",
-      format(NROW(result$training_blocks), big.mark = ","),
+      "all_candidate_pairs on ",
+      format(NROW(result$block_summary), big.mark = ","),
       " blocks"
     ),
     paste0(

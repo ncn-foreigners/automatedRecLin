@@ -1,20 +1,10 @@
 #' @import data.table
 #' @import stats
 #' @importFrom utils head
-#'
-#' @title Parametric Bootstrap for Standard Error Estimation in MEC
-#'
-#' @author Adam Struzik
-#'
-#' @description
-#' **WORK IN PROGRESS**
-#'
-#' *This function is currently under development.*
-#'
-#' @param mec_result An object of class `mec_rec_lin`.
-#' @param B A number of bootstrap iterations.
-#' @param alpha A significance level for calculating the confidence interval.
-#' Default is 0.05 (which yields a 95% confidence interval).
+#' @noRd
+
+# Parametric bootstrap prototype for MEC standard error estimation.
+# Work in progress; kept internal until the interface and limitations are final.
 est_se_bootstrap <- function(mec_result,
                              B = 100,
                              alpha = 0.05) {
