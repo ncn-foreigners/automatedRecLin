@@ -15,7 +15,7 @@ Authors@R:
 Description: The goal of 'automatedRecLin' is to perform record linkage (also known as entity resolution) in unsupervised or supervised settings. It compares pairs of records from two datasets using selected comparison functions to estimate the probability or density ratio between matched and non-matched records. Based on these estimates, it predicts a set of matches that maximizes entropy. For details see: Lee et al. (2022) <https://www150.statcan.gc.ca/n1/pub/12-001-x/2022001/article/00007-eng.htm>, Vo et al. (2023) <https://ideas.repec.org/a/eee/csdana/v179y2023ics0167947322002365.html>, Sugiyama et al. (2008) <doi:10.1007/s10463-008-0197-x>.
 License: GPL-3
 Encoding: UTF-8
-URL: https://github.com/ncn-foreigners/automatedRecLin, https://ncn-foreigners.ue.poznan.pl/automatedRecLin/
+URL: https://github.com/ncn-foreigners/automatedRecLin
 BugReports: https://github.com/ncn-foreigners/automatedRecLin/issues
 Roxygen: list(markdown = TRUE)
 Imports: 
