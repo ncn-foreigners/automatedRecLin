@@ -11,7 +11,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/ncn-foreigners/automatedRecLin/blob/v1.1.1/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/ncn-foreigners/automatedRecLin/blob/main/DESCRIPTION)
 
 Struzik A, Beręsewicz M (2026). *automatedRecLin: Record Linkage Based
 on an Entropy-Maximizing Classifier*. R package version 1.1.1,
