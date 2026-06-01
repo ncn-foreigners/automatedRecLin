@@ -1,3 +1,8 @@
+# Version 1.1.2
+
++ Added `join_records()` to join files after the MEC
+record linkage procedure.
+
 # Version 1.1.1
 
 + Improved `mec_blocking()` by using inverted unsupervised MEC.
