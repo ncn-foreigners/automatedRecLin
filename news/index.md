@@ -1,6 +1,14 @@
 # Changelog
 
+## Version 1.1.2
+
+- Added
+  [`join_records()`](https://ncn-foreigners.github.io/automatedRecLin/reference/join_records.md)
+  to join files after the MEC record linkage procedure.
+
 ## Version 1.1.1
+
+CRAN release: 2026-05-21
 
 - Improved
   [`mec_blocking()`](https://ncn-foreigners.github.io/automatedRecLin/reference/mec_blocking.md)

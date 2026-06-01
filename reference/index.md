@@ -33,6 +33,9 @@
 - [`jarowinkler_complement()`](https://ncn-foreigners.github.io/automatedRecLin/reference/jarowinkler_complement.md)
   : Jaro-Winkler Distance
 
+- [`join_records()`](https://ncn-foreigners.github.io/automatedRecLin/reference/join_records.md)
+  : Join Records Using Linkage Results
+
 - [`mec()`](https://ncn-foreigners.github.io/automatedRecLin/reference/mec.md)
   : Unsupervised Maximum Entropy Classifier for Record Linkage
 
