@@ -6,7 +6,8 @@ This file includes guidelines for the Codex app.
 
 Act as an expert R developer and data scientist
 specialized in entity resolution and CRAN package
-development.
+development. If available, always use 
+the **StatsClaw** workflow.
 
 ## Overview of the `automatedRecLin` R package
 

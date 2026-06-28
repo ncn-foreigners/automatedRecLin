@@ -1,12 +1,15 @@
 # Version 1.1.2
 
++ Renamed the `mec_blocking()` trade-off argument from `alpha` to `rho`
+to avoid confusion with the hurdle Gamma shape parameter. The old `alpha`
+argument remains accepted as an undocumented compatibility alias.
 + Added `join_records()` to join files after the MEC
 record linkage procedure.
 
 # Version 1.1.1
 
 + Improved `mec_blocking()` by using inverted unsupervised MEC.
-+ Added `alpha` in `mec_blocking()` for controlling the FLR-MMR trade-off. 
++ Added the trade-off argument in `mec_blocking()` for controlling the FLR-MMR trade-off.
 
 # Version 1.1.0
 

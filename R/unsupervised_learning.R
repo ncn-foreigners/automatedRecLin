@@ -845,7 +845,7 @@ mec <- function(A,
 #' \link[blocking:blocking]{blocking()}, except `x` and `y`.
 #' @param start_params Start parameters for the `"binary"` and
 #' `"continuous_parametric"` methods.
-#' @param alpha A single numeric value in `[0, 1)` controlling the fraction of
+#' @param rho A single numeric value in `[0, 1)` controlling the fraction of
 #' the current nonmatch complement dropped from nonmatch-side parameter fitting
 #' after the first inverted MEC iteration. The first U-side fit uses the full
 #' initial fitting set, and posterior/count formulas continue to use the full
@@ -863,6 +863,7 @@ mec <- function(A,
 #' @param keep_training_data Logical indicating whether to store pooled training
 #' comparison vectors.
 #' @param verbose Logical indicating whether to print progress messages.
+#' @param ... Reserved for backward-compatible arguments.
 #'
 #' @details
 #' The function assumes one-to-one linkage. The blocking stage defines disjoint
@@ -879,7 +880,7 @@ mec <- function(A,
 #' one-to-one match set, and nonmatch-side parameters are estimated from its
 #' complement.
 #'
-#' The `alpha` argument applies only to nonmatch-side distribution estimation.
+#' The `rho` argument applies only to nonmatch-side distribution estimation.
 #' The first U-side fit uses the full initial complement. In later iterations,
 #' the least reliable current nonmatches are dropped from the U-side fitting
 #' sample, with reliability ranked by the previous nonmatch posterior estimate
@@ -909,7 +910,7 @@ mec <- function(A,
 #' \item{`M_est` -- a `data.table` with predicted matches and columns `a`, `b`, `block`, and `ratio`,}
 #' \item{`n_M_est` -- estimated total number of matches across all blocks,}
 #' \item{`n_U_est` -- estimated total number of candidate nonmatches,}
-#' \item{`alpha` -- fraction of the current nonmatch complement dropped from later U-side fitting,}
+#' \item{`rho` -- fraction of the current nonmatch complement dropped from later U-side fitting,}
 #' \item{`candidate_pair_count` -- number of candidate pairs in \eqn{\Omega_B},}
 #' \item{`block_estimates` -- a `data.table` with block-level size and match-count diagnostics,}
 #' \item{`block_summary` -- a `data.table` describing the final disjoint blocks,}
@@ -981,14 +982,23 @@ mec_blocking <- function(
     blocking_sep = " ",
     controls_blocking = list(),
     start_params = NULL,
-    alpha = 0,
+    rho = 0,
     delta = 0.5,
     eps = 0.05,
     controls_nleqslv = list(),
     true_matches = NULL,
     keep_blocking_result = FALSE,
     keep_training_data = FALSE,
-    verbose = FALSE) {
+    verbose = FALSE,
+    ...) {
+
+  rho_missing <- missing(rho)
+  dots <- list(...)
+  rho <- resolve_mec_blocking_rho(
+    rho = rho,
+    rho_missing = rho_missing,
+    dots = dots
+  )
 
   stopifnot("`A` should be a data.frame or a data.table." =
               is.data.frame(A) | is.data.table(A))
@@ -1005,7 +1015,7 @@ mec_blocking <- function(
     allowed_methods = c("binary", "continuous_parametric")
   )
   validate_blocking_controls(controls_blocking)
-  validate_mec_blocking_alpha(alpha)
+  validate_mec_blocking_rho(rho)
 
   A <- data.table::copy(data.table::as.data.table(A))
   B <- data.table::copy(data.table::as.data.table(B))
@@ -1115,7 +1125,7 @@ mec_blocking <- function(
     controls_nleqslv = controls_nleqslv,
     n_U_min = n_U_min,
     nu = nu,
-    alpha = alpha,
+    rho = rho,
     context = "mec_blocking()"
   )
   pooled_model <- pooled_fit$model
@@ -1179,7 +1189,7 @@ mec_blocking <- function(
       M_est = M_est,
       n_M_est = n_M_est,
       n_U_est = n_U_est,
-      alpha = pooled_fit$alpha,
+      rho = pooled_fit$rho,
       candidate_pair_count = pooled_fit$candidate_pair_count,
       block_estimates = block_estimates,
       block_summary = block_summary,

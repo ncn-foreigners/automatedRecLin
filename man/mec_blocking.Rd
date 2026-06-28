@@ -16,14 +16,15 @@ mec_blocking(
   blocking_sep = " ",
   controls_blocking = list(),
   start_params = NULL,
-  alpha = 0,
+  rho = 0,
   delta = 0.5,
   eps = 0.05,
   controls_nleqslv = list(),
   true_matches = NULL,
   keep_blocking_result = FALSE,
   keep_training_data = FALSE,
-  verbose = FALSE
+  verbose = FALSE,
+  ...
 )
 }
 \arguments{
@@ -54,7 +55,7 @@ supported by \code{\link[=mec_blocking]{mec_blocking()}} at this stage.}
 \item{start_params}{Start parameters for the \code{"binary"} and
 \code{"continuous_parametric"} methods.}
 
-\item{alpha}{A single numeric value in \verb{[0, 1)} controlling the fraction of
+\item{rho}{A single numeric value in \verb{[0, 1)} controlling the fraction of
 the current nonmatch complement dropped from nonmatch-side parameter fitting
 after the first inverted MEC iteration. The first U-side fit uses the full
 initial fitting set, and posterior/count formulas continue to use the full
@@ -79,6 +80,8 @@ returned by \link[blocking:blocking]{blocking()}.}
 comparison vectors.}
 
 \item{verbose}{Logical indicating whether to print progress messages.}
+
+\item{...}{Reserved for backward-compatible arguments.}
 }
 \value{
 Returns a list of class \code{"mec_blocking"} containing:
@@ -86,7 +89,7 @@ Returns a list of class \code{"mec_blocking"} containing:
 \item{\code{M_est} -- a \code{data.table} with predicted matches and columns \code{a}, \code{b}, \code{block}, and \code{ratio},}
 \item{\code{n_M_est} -- estimated total number of matches across all blocks,}
 \item{\code{n_U_est} -- estimated total number of candidate nonmatches,}
-\item{\code{alpha} -- fraction of the current nonmatch complement dropped from later U-side fitting,}
+\item{\code{rho} -- fraction of the current nonmatch complement dropped from later U-side fitting,}
 \item{\code{candidate_pair_count} -- number of candidate pairs in \eqn{\Omega_B},}
 \item{\code{block_estimates} -- a \code{data.table} with block-level size and match-count diagnostics,}
 \item{\code{block_summary} -- a \code{data.table} describing the final disjoint blocks,}
@@ -129,7 +132,7 @@ iteration, match-side parameters are estimated from the current greedy
 one-to-one match set, and nonmatch-side parameters are estimated from its
 complement.
 
-The \code{alpha} argument applies only to nonmatch-side distribution estimation.
+The \code{rho} argument applies only to nonmatch-side distribution estimation.
 The first U-side fit uses the full initial complement. In later iterations,
 the least reliable current nonmatches are dropped from the U-side fitting
 sample, with reliability ranked by the previous nonmatch posterior estimate
