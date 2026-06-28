@@ -12,10 +12,11 @@ controls_blocking <- list(
 
 expect_blocking_output_contract <- function(result) {
   removed_outputs <- c(
-    "n_U_min", "nu", "n_M_init", "n_U_init", "n_U_fit",
+    "alpha", "n_U_min", "nu", "n_M_init", "n_U_init", "n_U_fit",
     "u_fit_diagnostics", "ratio_orientation", "pooled_model"
   )
   expect_false(any(removed_outputs %in% names(result)))
+  expect_true("rho" %in% names(result))
   expect_false(any(c("flr_est", "mmr_est") %in% names(result)))
   expect_false(any(c("training_rule", "training_blocks", "controls_blocking") %in% names(result)))
   expect_equal(names(result$M_est), c("a", "b", "block", "ratio"))
@@ -302,6 +303,51 @@ expect_equal(
 expect_equal(fit_threshold$eval_metrics, c(FLR = 0, MMR = 2 / 3))
 expect_equal(fit_threshold$confusion, confusion_threshold)
 expect_blocking_output_contract(fit_threshold)
+
+set.seed(1)
+fit_rho <- mec_blocking(
+  A = threshold_A,
+  B = threshold_B,
+  variables = c("name", "surname"),
+  blocking_x = threshold_blocking,
+  blocking_y = threshold_blocking,
+  controls_blocking = controls_blocking,
+  true_matches = data.frame(a = 1:6, b = 1:6),
+  rho = 0.5
+)
+
+set.seed(1)
+expect_silent(
+  fit_alpha_alias <- mec_blocking(
+    A = threshold_A,
+    B = threshold_B,
+    variables = c("name", "surname"),
+    blocking_x = threshold_blocking,
+    blocking_y = threshold_blocking,
+    controls_blocking = controls_blocking,
+    true_matches = data.frame(a = 1:6, b = 1:6),
+    alpha = 0.5
+  )
+)
+
+expect_equal(fit_rho$rho, 0.5)
+expect_equal(fit_alpha_alias$rho, 0.5)
+expect_equal(fit_alpha_alias$M_est, fit_rho$M_est)
+expect_equal(fit_alpha_alias$n_M_est, fit_rho$n_M_est)
+expect_false("alpha" %in% names(fit_alpha_alias))
+
+expect_error(
+  mec_blocking(
+    A = threshold_A,
+    B = threshold_B,
+    variables = c("name", "surname"),
+    blocking_x = threshold_blocking,
+    blocking_y = threshold_blocking,
+    controls_blocking = controls_blocking,
+    rho = 0.25,
+    alpha = 0.5
+  )
+)
 
 expect_error(
   mec_blocking(

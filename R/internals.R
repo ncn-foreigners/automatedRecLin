@@ -1383,13 +1383,52 @@ fit_mec_unsupervised_omega <- function(A,
 }
 
 #' @noRd
-validate_mec_blocking_alpha <- function(alpha) {
-  if (!is.numeric(alpha) || length(alpha) != 1L || is.na(alpha) ||
-      !is.finite(alpha) || alpha < 0 || alpha >= 1) {
-    stop("`alpha` should be a single numeric value in [0, 1).", call. = FALSE)
+validate_mec_blocking_rho <- function(rho, arg_name = "rho") {
+  if (!is.numeric(rho) || length(rho) != 1L || is.na(rho) ||
+      !is.finite(rho) || rho < 0 || rho >= 1) {
+    stop(sprintf("`%s` should be a single numeric value in [0, 1).", arg_name), call. = FALSE)
   }
 
-  invisible(alpha)
+  invisible(rho)
+}
+
+#' @noRd
+resolve_mec_blocking_rho <- function(rho, rho_missing, dots) {
+  if (length(dots) == 0L) {
+    return(rho)
+  }
+
+  dot_names <- names(dots)
+  if (is.null(dot_names)) {
+    dot_names <- rep("", length(dots))
+  }
+
+  alpha_idx <- which(dot_names == "alpha")
+  invalid_idx <- which(dot_names != "alpha")
+
+  if (length(invalid_idx) > 0L) {
+    invalid_name <- dot_names[invalid_idx[1L]]
+    if (!nzchar(invalid_name)) {
+      invalid_name <- "<unnamed>"
+    }
+    stop(sprintf("Unused argument `%s` in mec_blocking().", invalid_name), call. = FALSE)
+  }
+
+  if (length(alpha_idx) > 1L) {
+    stop("`alpha` supplied multiple times.", call. = FALSE)
+  }
+
+  alpha <- dots[[alpha_idx]]
+  validate_mec_blocking_rho(alpha, arg_name = "alpha")
+
+  if (!rho_missing) {
+    validate_mec_blocking_rho(rho)
+    if (!identical(as.numeric(rho), as.numeric(alpha))) {
+      stop("`rho` and `alpha` should not be supplied with different values.", call. = FALSE)
+    }
+  }
+
+  alpha
 }
 
 #' @noRd
@@ -1805,24 +1844,24 @@ has_sufficient_u_fit_sample <- function(Omega,
 make_u_fit_diagnostic <- function(iter,
                                   n_U_current,
                                   n_U_base,
-                                  alpha,
+                                  rho,
                                   requested_n_drop,
                                   requested_n_keep,
                                   actual_n_drop,
                                   n_U_fit,
-                                  alpha_applied,
+                                  rho_applied,
                                   reason) {
   data.table(
     iter = as.integer(iter),
     n_U_current = as.integer(n_U_current),
     n_U_base = as.integer(n_U_base),
-    alpha = as.numeric(alpha),
+    rho = as.numeric(rho),
     requested_n_drop = as.integer(requested_n_drop),
     requested_n_keep = as.integer(requested_n_keep),
     actual_n_drop = as.integer(actual_n_drop),
     actual_drop_fraction = if (n_U_base == 0L) NA_real_ else actual_n_drop / n_U_base,
     n_U_fit = as.integer(n_U_fit),
-    alpha_applied = as.logical(alpha_applied),
+    rho_applied = as.logical(rho_applied),
     reason = reason
   )
 }
@@ -1843,12 +1882,12 @@ select_inverted_u_fit_indices <- function(Omega,
                                           U_idx,
                                           U_base_idx,
                                           iter,
-                                          alpha,
+                                          rho,
                                           cpar_vars,
                                           previous_params) {
   n_U_current <- length(U_idx)
   n_U_base <- length(U_base_idx)
-  requested_n_drop <- floor(alpha * n_U_current)
+  requested_n_drop <- floor(rho * n_U_current)
   requested_n_keep <- n_U_current - requested_n_drop
 
   if (iter == 1L) {
@@ -1858,31 +1897,31 @@ select_inverted_u_fit_indices <- function(Omega,
         iter = iter,
         n_U_current = n_U_current,
         n_U_base = n_U_base,
-        alpha = alpha,
+        rho = rho,
         requested_n_drop = 0L,
         requested_n_keep = n_U_current,
         actual_n_drop = 0L,
         n_U_fit = n_U_base,
-        alpha_applied = FALSE,
+        rho_applied = FALSE,
         reason = "first_u_fit_full"
       )
     ))
   }
 
-  if (alpha == 0 || requested_n_drop == 0L) {
-    reason <- if (alpha == 0) "alpha_zero" else "requested_drop_zero"
+  if (rho == 0 || requested_n_drop == 0L) {
+    reason <- if (rho == 0) "rho_zero" else "requested_drop_zero"
     return(list(
       U_fit_idx = U_base_idx,
       diagnostic = make_u_fit_diagnostic(
         iter = iter,
         n_U_current = n_U_current,
         n_U_base = n_U_base,
-        alpha = alpha,
+        rho = rho,
         requested_n_drop = requested_n_drop,
         requested_n_keep = requested_n_keep,
         actual_n_drop = 0L,
         n_U_fit = n_U_base,
-        alpha_applied = FALSE,
+        rho_applied = FALSE,
         reason = reason
       )
     ))
@@ -1895,12 +1934,12 @@ select_inverted_u_fit_indices <- function(Omega,
         iter = iter,
         n_U_current = n_U_current,
         n_U_base = n_U_base,
-        alpha = alpha,
+        rho = rho,
         requested_n_drop = requested_n_drop,
         requested_n_keep = requested_n_keep,
         actual_n_drop = 0L,
         n_U_fit = n_U_base,
-        alpha_applied = FALSE,
+        rho_applied = FALSE,
         reason = "base_smaller_than_requested_keep"
       )
     ))
@@ -1920,12 +1959,12 @@ select_inverted_u_fit_indices <- function(Omega,
         iter = iter,
         n_U_current = n_U_current,
         n_U_base = n_U_base,
-        alpha = alpha,
+        rho = rho,
         requested_n_drop = requested_n_drop,
         requested_n_keep = requested_n_keep,
         actual_n_drop = 0L,
         n_U_fit = n_U_base,
-        alpha_applied = FALSE,
+        rho_applied = FALSE,
         reason = "minimum_sample_full_base"
       )
     ))
@@ -1938,13 +1977,13 @@ select_inverted_u_fit_indices <- function(Omega,
       iter = iter,
       n_U_current = n_U_current,
       n_U_base = n_U_base,
-      alpha = alpha,
+      rho = rho,
       requested_n_drop = requested_n_drop,
       requested_n_keep = requested_n_keep,
       actual_n_drop = actual_n_drop,
       n_U_fit = length(retained_idx),
-      alpha_applied = actual_n_drop > 0L,
-      reason = "alpha_reliability_drop"
+      rho_applied = actual_n_drop > 0L,
+      reason = "rho_reliability_drop"
     )
   )
 }
@@ -1962,7 +2001,7 @@ fit_mec_blocking_inverted_omega <- function(A,
                                             controls_nleqslv = list(),
                                             n_U_min,
                                             nu,
-                                            alpha = 0,
+                                            rho = 0,
                                             context = "mec_blocking()") {
   method_variables <- extract_method_variables(methods, include_hit_miss = FALSE)
   b_vars <- method_variables$b_vars
@@ -2010,12 +2049,12 @@ fit_mec_blocking_inverted_omega <- function(A,
       iter = 0L,
       n_U_current = 0L,
       n_U_base = 0L,
-      alpha = alpha,
+      rho = rho,
       requested_n_drop = 0L,
       requested_n_keep = 0L,
       actual_n_drop = 0L,
       n_U_fit = 0L,
-      alpha_applied = FALSE,
+      rho_applied = FALSE,
       reason = "structural_no_nonmatch_complement"
     )
     model <- list(
@@ -2036,7 +2075,7 @@ fit_mec_blocking_inverted_omega <- function(A,
       candidate_pair_count = N,
       prob_est = if (N == 0L) NA_real_ else NROW(M_est) / N,
       ratio_orientation = "u_over_m",
-      alpha = alpha,
+      rho = rho,
       n_U_fit = 0L,
       u_fit_diagnostics = u_fit_diagnostics,
       iter = 0L,
@@ -2054,7 +2093,7 @@ fit_mec_blocking_inverted_omega <- function(A,
       n_M_init = n_M_init,
       n_U_init = n_U_init,
       candidate_pair_count = N,
-      alpha = alpha,
+      rho = rho,
       n_U_fit = 0L,
       u_fit_diagnostics = u_fit_diagnostics,
       iter = 0L,
@@ -2087,7 +2126,7 @@ fit_mec_blocking_inverted_omega <- function(A,
       U_idx = U_idx,
       U_base_idx = U_idx,
       iter = iter,
-      alpha = alpha,
+      rho = rho,
       cpar_vars = cpar_vars,
       previous_params = previous_nonmatch_params
     )
@@ -2195,7 +2234,7 @@ fit_mec_blocking_inverted_omega <- function(A,
     candidate_pair_count = N,
     prob_est = n_M_selected / N,
     ratio_orientation = "u_over_m",
-    alpha = alpha,
+    rho = rho,
     n_U_fit = n_U_fit,
     u_fit_diagnostics = u_fit_diagnostics,
     iter = iter,
@@ -2213,7 +2252,7 @@ fit_mec_blocking_inverted_omega <- function(A,
     n_M_init = n_M_init,
     n_U_init = n_U_init,
     candidate_pair_count = N,
-    alpha = alpha,
+    rho = rho,
     n_U_fit = n_U_fit,
     u_fit_diagnostics = u_fit_diagnostics,
     iter = iter,
