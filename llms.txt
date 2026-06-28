@@ -406,6 +406,11 @@ Work on this package is supported by the National Science Centre, OPUS
 20 grant no. 2020/39/B/HS4/00941 (Towards census-like statistics for
 foreign-born populations – quality, data integration and estimation).
 
+## Use of AI tools
+
+Some elements of the package were designed with the support of
+[StatsClaw](https://statsclaw.ai).
+
 ## References
 
 Lee, D., Zhang, L.-C. and Kim, J. K. (2022). [Maximum entropy
@@ -424,6 +429,11 @@ Sugiyama, M., Suzuki, T., Nakajima, S. et al. [Direct importance
 estimation for covariate shift
 adaptation.](https://doi.org/10.1007/s10463-008-0197-x) Ann Inst Stat
 Math 60, 699–746 (2008).
+
+Qin, Tianzhu and Yiqing Xu. 2026. [StatsClaw: An AI-Collaborative
+Workflow for Statistical Software
+Development](https://arxiv.org/abs/2604.04871). arXiv preprint
+arXiv:2604.04871.
 
 # Package index
 

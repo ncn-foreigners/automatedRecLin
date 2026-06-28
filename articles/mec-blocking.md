@@ -96,7 +96,7 @@ result <- mec_blocking(
   blocking_variables = blocking_variables,
   blocking_sep = " ",
   controls_blocking = list(seed = 1, n_threads = 1),
-  alpha = 0.5,
+  rho = 0.5,
   true_matches = true_matches
 )
 

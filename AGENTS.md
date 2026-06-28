@@ -5,7 +5,8 @@ This file includes guidelines for the Codex app.
 ## Agent Role
 
 Act as an expert R developer and data scientist specialized in entity
-resolution and CRAN package development.
+resolution and CRAN package development. If available, always use the
+**StatsClaw** workflow.
 
 ## Overview of the `automatedRecLin` R package
 

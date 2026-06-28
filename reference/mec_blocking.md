@@ -21,14 +21,15 @@ mec_blocking(
   blocking_sep = " ",
   controls_blocking = list(),
   start_params = NULL,
-  alpha = 0,
+  rho = 0,
   delta = 0.5,
   eps = 0.05,
   controls_nleqslv = list(),
   true_matches = NULL,
   keep_blocking_result = FALSE,
   keep_training_data = FALSE,
-  verbose = FALSE
+  verbose = FALSE,
+  ...
 )
 ```
 
@@ -87,7 +88,7 @@ mec_blocking(
   Start parameters for the `"binary"` and `"continuous_parametric"`
   methods.
 
-- alpha:
+- rho:
 
   A single numeric value in `[0, 1)` controlling the fraction of the
   current nonmatch complement dropped from nonmatch-side parameter
@@ -130,6 +131,10 @@ mec_blocking(
 
   Logical indicating whether to print progress messages.
 
+- ...:
+
+  Reserved for backward-compatible arguments.
+
 ## Value
 
 Returns a list of class `"mec_blocking"` containing:
@@ -141,8 +146,8 @@ Returns a list of class `"mec_blocking"` containing:
 
 - `n_U_est` – estimated total number of candidate nonmatches,
 
-- `alpha` – fraction of the current nonmatch complement dropped from
-  later U-side fitting,
+- `rho` – fraction of the current nonmatch complement dropped from later
+  U-side fitting,
 
 - `candidate_pair_count` – number of candidate pairs in \\\Omega_B\\,
 
@@ -216,7 +221,7 @@ use `gamma` unchanged. At each iteration, match-side parameters are
 estimated from the current greedy one-to-one match set, and
 nonmatch-side parameters are estimated from its complement.
 
-The `alpha` argument applies only to nonmatch-side distribution
+The `rho` argument applies only to nonmatch-side distribution
 estimation. The first U-side fit uses the full initial complement. In
 later iterations, the least reliable current nonmatches are dropped from
 the U-side fitting sample, with reliability ranked by the previous

@@ -2,6 +2,11 @@
 
 ## Version 1.1.2
 
+- Renamed the
+  [`mec_blocking()`](https://ncn-foreigners.github.io/automatedRecLin/reference/mec_blocking.md)
+  trade-off argument from `alpha` to `rho` to avoid confusion with the
+  hurdle Gamma shape parameter. The old `alpha` argument remains
+  accepted as an undocumented compatibility alias.
 - Added
   [`join_records()`](https://ncn-foreigners.github.io/automatedRecLin/reference/join_records.md)
   to join files after the MEC record linkage procedure.
@@ -13,7 +18,7 @@ CRAN release: 2026-05-21
 - Improved
   [`mec_blocking()`](https://ncn-foreigners.github.io/automatedRecLin/reference/mec_blocking.md)
   by using inverted unsupervised MEC.
-- Added `alpha` in
+- Added the trade-off argument in
   [`mec_blocking()`](https://ncn-foreigners.github.io/automatedRecLin/reference/mec_blocking.md)
   for controlling the FLR-MMR trade-off.
 
