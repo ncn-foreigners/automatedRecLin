@@ -80,6 +80,7 @@
 #' Ann Inst Stat Math 60, 699–746 (2008). \doi{10.1007/s10463-008-0197-x}
 #'
 #' @examples
+#' \dontrun{
 #' df_1 <- data.frame(
 #'   "name" = c("James", "Emma", "William", "Olivia", "Thomas",
 #'   "Sophie", "Harry", "Amelia", "George", "Isabella"),
@@ -111,6 +112,7 @@
 #'   "surname" = c("Smitth", "Johnson", "Tailor", "Henders")
 #' )
 #' predict(model, df_new_1, df_new_2)
+#' }
 #' @export
 predict.rec_lin_model <- function(object,
                                   newdata_A,
