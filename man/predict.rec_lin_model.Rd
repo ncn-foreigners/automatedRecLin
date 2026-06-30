@@ -94,6 +94,7 @@ might be relaxed by allowing \code{newdata_A} to have duplicates. To do so,
 set \code{duplicates_in_A = TRUE}.
 }
 \examples{
+\dontrun{
 df_1 <- data.frame(
   "name" = c("James", "Emma", "William", "Olivia", "Thomas",
   "Sophie", "Harry", "Amelia", "George", "Isabella"),
@@ -125,6 +126,7 @@ df_new_2 <- data.frame(
   "surname" = c("Smitth", "Johnson", "Tailor", "Henders")
 )
 predict(model, df_new_1, df_new_2)
+}
 }
 \references{
 Lee, D., Zhang, L.-C. and Kim, J. K. (2022). Maximum entropy classification for record linkage.

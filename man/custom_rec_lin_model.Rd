@@ -49,6 +49,7 @@ appropriate arguments.}
 }
 }
 \examples{
+\dontrun{
 if (requireNamespace("xgboost", quietly = TRUE)) {
   df_1 <- data.frame(
     "name" = c("James", "Emma", "William", "Olivia", "Thomas",
@@ -73,6 +74,7 @@ if (requireNamespace("xgboost", quietly = TRUE)) {
                        nrounds = 100, verbosity = 0, nthread = 1)
   custom_xgb_model <- custom_rec_lin_model(model_xgb, vectors)
   custom_xgb_model
+}
 }
 }
 \author{
