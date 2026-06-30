@@ -82,6 +82,7 @@ Adam Struzik
 ## Examples
 
 ``` r
+if (FALSE) { # \dontrun{
 if (requireNamespace("xgboost", quietly = TRUE)) {
   df_1 <- data.frame(
     "name" = c("James", "Emma", "William", "Olivia", "Thomas",
@@ -107,9 +108,5 @@ if (requireNamespace("xgboost", quietly = TRUE)) {
   custom_xgb_model <- custom_rec_lin_model(model_xgb, vectors)
   custom_xgb_model
 }
-#> Record linkage model based on the following variables: name, surname.
-#> A custom ML model was used.
-#> The prior probability of matching is 0.04.
-#> ========================================================
-#> Probability/density ratio type: 2.
+} # }
 ```

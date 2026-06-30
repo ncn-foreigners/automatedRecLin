@@ -2,6 +2,8 @@
 
 ## Version 1.1.2
 
+CRAN release: 2026-06-29
+
 - Renamed the
   [`mec_blocking()`](https://ncn-foreigners.github.io/automatedRecLin/reference/mec_blocking.md)
   trade-off argument from `alpha` to `rho` to avoid confusion with the

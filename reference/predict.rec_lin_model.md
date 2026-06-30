@@ -165,6 +165,7 @@ Adam Struzik
 ## Examples
 
 ``` r
+if (FALSE) { # \dontrun{
 df_1 <- data.frame(
   "name" = c("James", "Emma", "William", "Olivia", "Thomas",
   "Sophie", "Harry", "Amelia", "George", "Isabella"),
@@ -186,8 +187,6 @@ model <- train_rec_lin(A = df_1, B = df_2, matches = matches,
                        variables = c("name", "surname"),
                        comparators = comparators,
                        methods = methods)
-#> Warning: There are duplicate values in 'sigma', only the unique values are used.
-#> Warning: There are duplicate values in 'sigma', only the unique values are used.
 
 df_new_1 <- data.frame(
   "name" = c("John", "Emily", "Mark", "Anna", "David"),
@@ -198,15 +197,5 @@ df_new_2 <- data.frame(
   "surname" = c("Smitth", "Johnson", "Tailor", "Henders")
 )
 predict(model, df_new_1, df_new_2)
-#> The algorithm predicted 3 matches.
-#> The first 3 predicted matches are:
-#>        a     b ratio / 1000
-#>    <int> <int>        <num>
-#> 1:     2     2   0.04761403
-#> 2:     3     3   0.02929836
-#> 3:     1     1   0.02665718
-#> ========================================================
-#> The construction of the classification set was based on estimates of its size.
-#> Estimated false link rate (FLR): 0.0000 %.
-#> Estimated missing match rate (MMR): 0.0000 %.
+} # }
 ```

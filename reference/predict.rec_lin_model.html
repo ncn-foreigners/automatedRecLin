@@ -178,7 +178,8 @@ Ann Inst Stat Math 60, 699–746 (2008). <a href="https://doi.org/10.1007/s10463
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">df_1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+<span class="r-in"><span><span class="va">df_1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="st">"name"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"James"</span>, <span class="st">"Emma"</span>, <span class="st">"William"</span>, <span class="st">"Olivia"</span>, <span class="st">"Thomas"</span>,</span></span>
 <span class="r-in"><span>  <span class="st">"Sophie"</span>, <span class="st">"Harry"</span>, <span class="st">"Amelia"</span>, <span class="st">"George"</span>, <span class="st">"Isabella"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  <span class="st">"surname"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Smith"</span>, <span class="st">"Johnson"</span>, <span class="st">"Brown"</span>, <span class="st">"Taylor"</span>, <span class="st">"Wilson"</span>,</span></span>
@@ -199,8 +200,6 @@ Ann Inst Stat Math 60, 699–746 (2008). <a href="https://doi.org/10.1007/s10463
 <span class="r-in"><span>                       variables <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"surname"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                       comparators <span class="op">=</span> <span class="va">comparators</span>,</span></span>
 <span class="r-in"><span>                       methods <span class="op">=</span> <span class="va">methods</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>There are duplicate values in 'sigma', only the unique values are used.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>There are duplicate values in 'sigma', only the unique values are used.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">df_new_1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="st">"name"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"John"</span>, <span class="st">"Emily"</span>, <span class="st">"Mark"</span>, <span class="st">"Anna"</span>, <span class="st">"David"</span><span class="op">)</span>,</span></span>
@@ -211,17 +210,7 @@ Ann Inst Stat Math 60, 699–746 (2008). <a href="https://doi.org/10.1007/s10463
 <span class="r-in"><span>  <span class="st">"surname"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Smitth"</span>, <span class="st">"Johnson"</span>, <span class="st">"Tailor"</span>, <span class="st">"Henders"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">model</span>, <span class="va">df_new_1</span>, <span class="va">df_new_2</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> The algorithm predicted 3 matches.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> The first 3 predicted matches are:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        a     b ratio / 1000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;        &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     2     2   0.04761403</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:     3     3   0.02929836</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:     1     1   0.02665718</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ========================================================</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> The construction of the classification set was based on estimates of its size.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Estimated false link rate (FLR): 0.0000 %.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Estimated missing match rate (MMR): 0.0000 %.</span>
+<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
